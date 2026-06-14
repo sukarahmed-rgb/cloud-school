@@ -2,7 +2,7 @@
     "name": "Cloud School - المنصة السحابية التعليمية للمكفوفين",
     "short_name": "Cloud School",
     "description": "منصة تعليمية سحابية شاملة مصممة للطلاب المكفوفين وضعاف البصر مع دعم كامل للذكاء الاصطناعي ولغة برايل",
-    "start_url": "./cloud_school.html",
+    "start_url": "./index.html",
     "display": "standalone",
     "orientation": "portrait",
     "dir": "rtl",

@@ -9,7 +9,7 @@ const CACHE_NAME = 'cloud-school-v2';
 // قائمة الملفات الأساسية المطلوب تخزينها مؤقتاً
 const ASSETS_TO_CACHE = [
   './',
-  './cloud_school.html',
+  './index.html',
   './cloud_school_styles.css',
   './cloud_school_app.js',
   './manifest.json'
