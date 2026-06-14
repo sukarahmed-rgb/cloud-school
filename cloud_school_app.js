@@ -635,6 +635,40 @@ function checkAgeLimitations() {
     }
 }
 
+function handleLoginSubmit(e) {
+    e.preventDefault();
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value.trim();
+
+    const warningBox = document.getElementById('auth-warning-box');
+    const warningText = document.getElementById('auth-warning-text');
+    warningBox.classList.add('hidden');
+
+    if (!username || !password) {
+        warningText.textContent = "يرجى إدخال اسم المستخدم وكلمة المرور.";
+        warningBox.classList.remove('hidden');
+        speak("يرجى إدخال اسم المستخدم وكلمة المرور.");
+        return;
+    }
+
+    // Check saved accounts in localStorage
+    const savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]');
+    const account = savedAccounts.find(a => a.contact === username && a.password === password);
+
+    if (account) {
+        currentUserSession = account;
+        document.getElementById('auth-gate').classList.add('hidden');
+        document.getElementById('dev-role-bar').classList.remove('hidden');
+        document.getElementById('active-user-badge').textContent = `المستخدم: ${account.name} (${getArabicRoleName(account.role)})`;
+        switchRole(account.role);
+        showToast(`أهلاً بك يا ${account.name} في Cloud School`);
+    } else {
+        warningText.textContent = "اسم المستخدم أو كلمة المرور غير صحيحة. إذا لم يكن لديك حساب، اضغط على 'إنشاء حساب جديد'.";
+        warningBox.classList.remove('hidden');
+        speak("اسم المستخدم أو كلمة المرور غير صحيحة.");
+    }
+}
+
 function handleRegistrationSubmit(e) {
     e.preventDefault();
     const name = document.getElementById('reg-name').value.trim();
@@ -665,13 +699,18 @@ function handleRegistrationSubmit(e) {
             return;
         }
 
-        currentUserSession = { name, contact, role, age, parentContact };
+    currentUserSession = { name, contact, role, age, parentContact, password: document.getElementById('reg-password-new').value };
     } else if (role === 'parent') {
         const childContact = document.getElementById('reg-child-contact').value.trim();
-        currentUserSession = { name, contact, role, childContact };
+        currentUserSession = { name, contact, role, childContact, password: document.getElementById('reg-password-new').value };
     } else {
-        currentUserSession = { name, contact, role, age };
+        currentUserSession = { name, contact, role, age, password: document.getElementById('reg-password-new').value };
     }
+
+    // Save account to localStorage
+    const savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]');
+    savedAccounts.push(currentUserSession);
+    localStorage.setItem('cloudSchoolAccounts', JSON.stringify(savedAccounts));
 
     document.getElementById('auth-gate').classList.add('hidden');
     document.getElementById('dev-role-bar').classList.remove('hidden');
@@ -699,10 +738,11 @@ function logout() {
     currentUserSession = null;
     document.getElementById('auth-gate').classList.remove('hidden');
     document.getElementById('dev-role-bar').classList.add('hidden');
-    document.getElementById('reg-name').value = '';
-    document.getElementById('reg-contact').value = '';
-    document.getElementById('reg-age').value = '';
-    document.getElementById('reg-parent-contact').value = '';
+    // Show login form, hide register form
+    document.getElementById('login-form-container').classList.remove('hidden');
+    document.getElementById('register-form-container').classList.add('hidden');
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
     speak("تم تسجيل الخروج بنجاح.");
 }
 
@@ -1871,6 +1911,23 @@ function bindAllEvents() {
 
     // Logout
     document.querySelector('[data-action="logout"]')?.addEventListener('click', logout);
+
+    // Login form
+    document.querySelector('[data-action="login-form"]')?.addEventListener('submit', handleLoginSubmit);
+
+    // Toggle between login and register
+    document.getElementById('btn-show-register')?.addEventListener('click', () => {
+        document.getElementById('login-form-container').classList.add('hidden');
+        document.getElementById('register-form-container').classList.remove('hidden');
+        document.getElementById('auth-warning-box').classList.add('hidden');
+        speak("نموذج إنشاء حساب جديد. اختر نوع الحساب وأدخل بياناتك.");
+    });
+    document.getElementById('btn-show-login')?.addEventListener('click', () => {
+        document.getElementById('register-form-container').classList.add('hidden');
+        document.getElementById('login-form-container').classList.remove('hidden');
+        document.getElementById('auth-warning-box').classList.add('hidden');
+        speak("العودة لنموذج تسجيل الدخول.");
+    });
 
     // Registration
     document.getElementById('reg-role')?.addEventListener('change', toggleRegFields);

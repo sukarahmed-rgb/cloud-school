@@ -41,55 +41,91 @@
                 <p id="auth-warning-text" class="font-bold text-lg leading-relaxed text-yellow-300"></p>
             </div>
 
-            <form data-action="auth-form" class="space-y-4">
-                <div>
-                    <label for="reg-name" class="block font-bold mb-1">الاسم الكامل للمستخدم:</label>
-                    <input type="text" id="reg-name" required class="w-full p-3 rounded-lg font-bold" placeholder="مثل: فيصل بن خالد">
-                </div>
+            <!-- ========== نموذج تسجيل الدخول (Login) ========== -->
+            <div id="login-form-container">
+                <form data-action="login-form" class="space-y-4">
+                    <div>
+                        <label for="login-username" class="block font-bold mb-1">📧 اسم المستخدم أو البريد الإلكتروني:</label>
+                        <input type="text" id="login-username" required class="w-full p-3 rounded-lg font-bold" placeholder="أدخل اسم المستخدم أو بريدك الإلكتروني">
+                    </div>
 
-                <div>
-                    <label for="reg-contact" class="block font-bold mb-1">رقم الجوال أو البريد الإلكتروني الخاص بك:</label>
-                    <input type="text" id="reg-contact" required class="w-full p-3 rounded-lg font-bold" placeholder="مثل: 05xxxxxxxx أو mail@cloudschool.com">
-                </div>
+                    <div>
+                        <label for="login-password" class="block font-bold mb-1">🔒 كلمة المرور:</label>
+                        <input type="password" id="login-password" required class="w-full p-3 rounded-lg font-bold" placeholder="أدخل كلمة المرور">
+                    </div>
 
-                <div>
-                    <label for="reg-role" class="block font-bold mb-1">نوع الحساب (الدور التعليمي):</label>
-                    <select id="reg-role" class="w-full p-3 rounded-lg font-bold text-black bg-white">
-                        <option value="student">طالب (Student)</option>
-                        <option value="parent">ولي أمر (Parent)</option>
-                        <option value="teacher">معلم (Teacher)</option>
-                        <option value="admin">إدارة مدرسة (School Administrator)</option>
-                    </select>
-                </div>
+                    <div class="pt-4 space-y-3">
+                        <button type="submit" id="btn-login-submit" class="w-full p-4 bg-yellow-400 text-black font-black text-xl rounded-xl large-touch-target hover:bg-yellow-300 transition btn-interactive">
+                            تسجيل الدخول 🔑
+                        </button>
+                        <button type="button" id="btn-show-register" class="w-full p-3 bg-gray-800 border-2 border-current text-current font-bold rounded-xl btn-interactive">
+                            إنشاء حساب جديد 📝
+                        </button>
+                        <button type="button" data-action="bypass-demo" class="w-full p-3 bg-gray-900 border-2 border-yellow-400 text-yellow-400 font-bold rounded-xl btn-interactive">
+                            تسجيل دخول تجريبي سريع كطالب 🚀
+                        </button>
+                    </div>
+                </form>
+            </div>
 
-                <div id="age-field-container">
-                    <label for="reg-age" class="block font-bold mb-1">العمر الحالي بالسنوات:</label>
-                    <input type="number" id="reg-age" required min="5" max="100" class="w-full p-3 rounded-lg font-bold" placeholder="مثال: 14">
-                </div>
+            <!-- ========== نموذج إنشاء حساب جديد (Register) ========== -->
+            <div id="register-form-container" class="hidden">
+                <form data-action="auth-form" class="space-y-4">
+                    <h2 class="text-2xl font-black text-center border-b-2 border-current pb-3">📝 إنشاء حساب جديد</h2>
 
-                <div id="student-linked-fields" class="space-y-2">
-                    <label id="label-parent-contact" for="reg-parent-contact" class="block font-bold mb-1 text-yellow-300">
-                        حساب ولي أمرك (حقل إجباري - اكتب رقم هاتف، بريد، أو ID ولي الأمر المسجل) *
-                    </label>
-                    <input type="text" id="reg-parent-contact" class="w-full p-3 rounded-lg font-bold border-red-500" placeholder="اكتب بريد، جوال، أو معرف حساب ولي أمرك على المنصة">
-                    <p class="text-xs text-red-400 font-bold leading-relaxed">يتوجب عليك ربط حسابك بولي أمرك للموافقة على تأكيد حل الاختبارات وتلقي الواجبات والدرجات، هذا الحقل لا يمكن تجاوزه أبداً.</p>
-                </div>
+                    <div>
+                        <label for="reg-name" class="block font-bold mb-1">الاسم الكامل للمستخدم:</label>
+                        <input type="text" id="reg-name" required class="w-full p-3 rounded-lg font-bold" placeholder="مثل: فيصل بن خالد">
+                    </div>
 
-                <div id="parent-linked-fields" class="space-y-2 hidden">
-                    <label for="reg-child-contact" class="block font-bold mb-1 text-yellow-300">بريد إلكتروني، جوال، أو ID الابن المراد مراقبته والاطلاع عليه:</label>
-                    <input type="text" id="reg-child-contact" class="w-full p-3 rounded-lg font-bold" placeholder="مثال: 05xxxxxxxx">
-                </div>
+                    <div>
+                        <label for="reg-contact" class="block font-bold mb-1">البريد الإلكتروني أو رقم الجوال:</label>
+                        <input type="text" id="reg-contact" required class="w-full p-3 rounded-lg font-bold" placeholder="مثل: 05xxxxxxxx أو mail@cloudschool.com">
+                    </div>
 
-                <div class="pt-4 space-y-2">
-                    <button type="submit" id="btn-auth-submit" data-i18n="login" class="w-full p-4 bg-yellow-400 text-black font-black text-xl rounded-xl large-touch-target hover:bg-yellow-300 transition btn-interactive">
-                        تسجيل الدخول والتحقق الآمن 🔑
-                    </button>
-                    <!-- [إصلاح #7] إصلاح إملائي: "مرتبط" بدلاً من "مرتبك" -->
-                    <button type="button" data-action="bypass-demo" class="w-full p-3 bg-gray-900 border-2 border-yellow-400 text-yellow-400 font-bold rounded-xl btn-interactive">
-                        تسجيل دخول تجريبي سريع كطالب (≥ 12 سنة مع ولي أمر مرتبط) 🚀
-                    </button>
-                </div>
-            </form>
+                    <div>
+                        <label for="reg-password-new" class="block font-bold mb-1">🔒 كلمة المرور:</label>
+                        <input type="password" id="reg-password-new" required class="w-full p-3 rounded-lg font-bold" placeholder="اختر كلمة مرور قوية">
+                    </div>
+
+                    <div>
+                        <label for="reg-role" class="block font-bold mb-1">نوع الحساب (الدور التعليمي):</label>
+                        <select id="reg-role" class="w-full p-3 rounded-lg font-bold text-black bg-white">
+                            <option value="student">طالب (Student)</option>
+                            <option value="parent">ولي أمر (Parent)</option>
+                            <option value="teacher">معلم (Teacher)</option>
+                            <option value="admin">إدارة مدرسة (School Administrator)</option>
+                        </select>
+                    </div>
+
+                    <div id="age-field-container">
+                        <label for="reg-age" class="block font-bold mb-1">العمر الحالي بالسنوات:</label>
+                        <input type="number" id="reg-age" required min="5" max="100" class="w-full p-3 rounded-lg font-bold" placeholder="مثال: 14">
+                    </div>
+
+                    <div id="student-linked-fields" class="space-y-2">
+                        <label id="label-parent-contact" for="reg-parent-contact" class="block font-bold mb-1 text-yellow-300">
+                            حساب ولي أمرك (حقل إجباري - اكتب رقم هاتف، بريد، أو ID ولي الأمر المسجل) *
+                        </label>
+                        <input type="text" id="reg-parent-contact" class="w-full p-3 rounded-lg font-bold border-red-500" placeholder="اكتب بريد، جوال، أو معرف حساب ولي أمرك على المنصة">
+                        <p class="text-xs text-red-400 font-bold leading-relaxed">يتوجب عليك ربط حسابك بولي أمرك للموافقة على تأكيد حل الاختبارات وتلقي الواجبات والدرجات، هذا الحقل لا يمكن تجاوزه أبداً.</p>
+                    </div>
+
+                    <div id="parent-linked-fields" class="space-y-2 hidden">
+                        <label for="reg-child-contact" class="block font-bold mb-1 text-yellow-300">بريد إلكتروني، جوال، أو ID الابن المراد مراقبته والاطلاع عليه:</label>
+                        <input type="text" id="reg-child-contact" class="w-full p-3 rounded-lg font-bold" placeholder="مثال: 05xxxxxxxx">
+                    </div>
+
+                    <div class="pt-4 space-y-3">
+                        <button type="submit" id="btn-auth-submit" class="w-full p-4 bg-green-500 text-black font-black text-xl rounded-xl large-touch-target hover:bg-green-400 transition btn-interactive">
+                            إنشاء الحساب والدخول ✅
+                        </button>
+                        <button type="button" id="btn-show-login" class="w-full p-3 bg-gray-800 border-2 border-current text-current font-bold rounded-xl btn-interactive">
+                            لدي حساب بالفعل؟ تسجيل الدخول ←
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
