@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud School | المنصة السحابية التعليمية الشاملة للمكفوفين</title>
+    <meta name="description" content="منصة تعليمية سحابية شاملة مصممة للطلاب المكفوفين وضعاف البصر مع دعم كامل للذكاء الاصطناعي ولغة برايل">
+
+    <!-- إعدادات تطبيق الويب التقدمي (PWA) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#fbbf24">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/fbbf24/000000?text=CS">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- ملف CSS المنفصل -->
+    <link rel="stylesheet" href="cloud_school_styles.css">
+</head>
+<body class="theme-dark-high-contrast min-h-screen dynamic-text flex flex-col">
+    <!-- ARIA live region for screen reader announcements -->
+    <div id="aria-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <a href="#main-content" class="sr-only focus:not-only-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-yellow-400 focus:text-black focus:font-bold focus:rounded-xl focus:outline-none">
+        انتقل مباشرة إلى المحتوى التعليمي الأساسي
+    </a>
+
+    <!-- منبه الإشعارات -->
+    <div id="toast-message" class="fixed bottom-4 right-4 z-50 p-4 bg-yellow-400 text-black font-bold rounded-xl shadow-xl hidden text-xl border-2 border-black" role="alert"></div>
+
+    <!-- ==================== بوابة التسجيل والمصادقة ==================== -->
+    <div id="auth-gate" class="fixed inset-0 bg-black z-50 overflow-y-auto flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+        <div class="card p-8 rounded-3xl w-full max-w-xl space-y-6 text-right border-4 border-current">
+            <div class="text-center">
+                <svg class="w-16 h-16 mx-auto text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+                <h1 id="auth-title" data-i18n="authTitle" class="text-4xl font-black mt-3">كلاود سكول | Cloud School</h1>
+                <p class="text-yellow-400 font-bold mt-1">المنصة التعليمية المتكاملة لضعاف البصر والمكفوفين</p>
+            </div>
+
+            <div id="auth-warning-box" class="p-4 bg-red-950 border-2 border-red-500 rounded-xl text-white hidden">
+                <p id="auth-warning-text" class="font-bold text-lg leading-relaxed text-yellow-300"></p>
+            </div>
+
+            <form data-action="auth-form" class="space-y-4">
+                <div>
+                    <label for="reg-name" class="block font-bold mb-1">الاسم الكامل للمستخدم:</label>
+                    <input type="text" id="reg-name" required class="w-full p-3 rounded-lg font-bold" placeholder="مثل: فيصل بن خالد">
+                </div>
+
+                <div>
+                    <label for="reg-contact" class="block font-bold mb-1">رقم الجوال أو البريد الإلكتروني الخاص بك:</label>
+                    <input type="text" id="reg-contact" required class="w-full p-3 rounded-lg font-bold" placeholder="مثل: 05xxxxxxxx أو mail@cloudschool.com">
+                </div>
+
+                <div>
+                    <label for="reg-role" class="block font-bold mb-1">نوع الحساب (الدور التعليمي):</label>
+                    <select id="reg-role" class="w-full p-3 rounded-lg font-bold text-black bg-white">
+                        <option value="student">طالب (Student)</option>
+                        <option value="parent">ولي أمر (Parent)</option>
+                        <option value="teacher">معلم (Teacher)</option>
+                        <option value="admin">إدارة مدرسة (School Administrator)</option>
+                    </select>
+                </div>
+
+                <div id="age-field-container">
+                    <label for="reg-age" class="block font-bold mb-1">العمر الحالي بالسنوات:</label>
+                    <input type="number" id="reg-age" required min="5" max="100" class="w-full p-3 rounded-lg font-bold" placeholder="مثال: 14">
+                </div>
+
+                <div id="student-linked-fields" class="space-y-2">
+                    <label id="label-parent-contact" for="reg-parent-contact" class="block font-bold mb-1 text-yellow-300">
+                        حساب ولي أمرك (حقل إجباري - اكتب رقم هاتف، بريد، أو ID ولي الأمر المسجل) *
+                    </label>
+                    <input type="text" id="reg-parent-contact" class="w-full p-3 rounded-lg font-bold border-red-500" placeholder="اكتب بريد، جوال، أو معرف حساب ولي أمرك على المنصة">
+                    <p class="text-xs text-red-400 font-bold leading-relaxed">يتوجب عليك ربط حسابك بولي أمرك للموافقة على تأكيد حل الاختبارات وتلقي الواجبات والدرجات، هذا الحقل لا يمكن تجاوزه أبداً.</p>
+                </div>
+
+                <div id="parent-linked-fields" class="space-y-2 hidden">
+                    <label for="reg-child-contact" class="block font-bold mb-1 text-yellow-300">بريد إلكتروني، جوال، أو ID الابن المراد مراقبته والاطلاع عليه:</label>
+                    <input type="text" id="reg-child-contact" class="w-full p-3 rounded-lg font-bold" placeholder="مثال: 05xxxxxxxx">
+                </div>
+
+                <div class="pt-4 space-y-2">
+                    <button type="submit" id="btn-auth-submit" data-i18n="login" class="w-full p-4 bg-yellow-400 text-black font-black text-xl rounded-xl large-touch-target hover:bg-yellow-300 transition btn-interactive">
+                        تسجيل الدخول والتحقق الآمن 🔑
+                    </button>
+                    <!-- [إصلاح #7] إصلاح إملائي: "مرتبط" بدلاً من "مرتبك" -->
+                    <button type="button" data-action="bypass-demo" class="w-full p-3 bg-gray-900 border-2 border-yellow-400 text-yellow-400 font-bold rounded-xl btn-interactive">
+                        تسجيل دخول تجريبي سريع كطالب (≥ 12 سنة مع ولي أمر مرتبط) 🚀
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== الشريط العلوي ==================== -->
+    <header class="border-b-4 border-current p-4 sticky top-0 z-40 bg-inherit shadow-md">
+        <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3 flex-wrap">
+                <div class="p-2 border-2 border-current rounded-lg font-black text-2xl tracking-wider flex items-center gap-2">
+                    <svg class="w-8 h-8 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+                    <span>Cloud School</span>
+                </div>
+                <span class="text-xs bg-red-600 text-white px-2 py-1 rounded-full font-bold animate-pulse" aria-hidden="true">
+                    المساعد الصوتي نشط
+                </span>
+
+                <div id="audio-visual-wave" class="flex items-center h-8" aria-hidden="true">
+                    <div class="audio-wave-bar"></div>
+                    <div class="audio-wave-bar"></div>
+                    <div class="audio-wave-bar"></div>
+                    <div class="audio-wave-bar"></div>
+                    <div class="audio-wave-bar"></div>
+                </div>
+
+                <span id="user-id-display" class="text-xs border border-current px-2 py-1 rounded-full font-mono" aria-label="معرف المستخدم السحابي">
+                    جاري الاتصال السحابي...
+                </span>
+                <span id="active-user-badge" class="text-xs bg-yellow-500 text-black font-bold px-2 py-1 rounded-full"></span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="أدوات الوصول الفوري">
+                <button id="lang-toggle" class="p-2 border-2 border-blue-500 rounded text-xs font-bold" aria-label="تبديل اللغة بين العربية والإنجليزية">English</button>
+                <button id="tts-engine-toggle" class="p-2 border-2 border-yellow-500 rounded text-xs font-bold" aria-label="تبديل محرك الصوت بين المتصفح وذكاء Gemini الاصطناعي">
+                    🎙️ صوت القراءة: ذكاء اصطناعي (Gemini)
+                </button>
+
+                <button data-theme="dark-hc" class="p-2 border border-current rounded text-xs font-bold" aria-label="النمط الداكن عالي التباين">أصفر/أسود</button>
+                <button data-theme="light-hc" class="p-2 border border-current rounded text-xs font-bold" aria-label="النمط الفاتح عالي التباين">أسود/أبيض</button>
+                <button data-theme="classic" class="p-2 border border-current rounded text-xs font-bold" aria-label="النمط الكلاسيكي الأزرق">كلاسيك</button>
+
+                <div class="flex border border-current rounded overflow-hidden">
+                    <button data-size-dir="1" class="px-3 py-1 text-lg font-black" aria-label="تكبير الخط">+</button>
+                    <button data-size-dir="-1" class="px-3 py-1 text-lg font-black" aria-label="تصغير الخط">-</button>
+                </div>
+
+                <button id="btn-screen-reader-mode" class="p-2 border-2 border-red-500 rounded text-xs font-bold flex items-center gap-1" aria-pressed="false">
+                    🔊 قارئ الشاشة الخارجي: معطل
+                </button>
+                <button id="audio-co-pilot-toggle" class="p-2 border-2 border-green-500 rounded text-xs font-bold flex items-center gap-1" aria-pressed="true">
+                    🔊 المساعد الداخلي: مفعل
+                </button>
+                <button data-action="logout" data-i18n="logout" class="p-2 bg-red-600 text-white text-xs font-bold rounded">تسجيل خروج 🚪</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- شريط محاكاة الأدوار -->
+    <div id="dev-role-bar" class="bg-amber-500 text-black p-2 font-bold flex flex-wrap justify-center items-center gap-4 text-sm hidden" role="region" aria-label="محاكي أدوار المنصة">
+        <span>⚙️ محاكاة الأدوار للمعاينة:</span>
+        <button data-role-switch="student" id="role-btn-student" class="px-3 py-1 rounded bg-black text-white hover:bg-gray-800 transition">الطالب (المساعد الصوتي وبرايل)</button>
+        <button data-role-switch="teacher" id="role-btn-teacher" class="px-3 py-1 rounded bg-gray-200 text-black hover:bg-gray-300 transition">المعلم (صناعة المناهج والواجبات)</button>
+        <button data-role-switch="parent" id="role-btn-parent" class="px-3 py-1 rounded bg-gray-200 text-black hover:bg-gray-300 transition">ولي الأمر (الاطلاع على نشاط الطالب)</button>
+        <button data-role-switch="admin" id="role-btn-admin" class="px-3 py-1 rounded bg-gray-200 text-black hover:bg-gray-300 transition">إدارة المدرسة (رموز الدخول السريعة)</button>
+    </div>
+
+    <!-- ==================== المحتوى الأساسي ==================== -->
+    <main id="main-content" class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-8">
+
+        <!-- ==================== 1. واجهة الطالب ==================== -->
+        <section id="view-student" class="space-y-8 hidden">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-4xl font-extrabold tracking-tight" id="student-welcome-msg">مرحباً بك يا بطل في كلاود سكول</h2>
+                    <p class="mt-2 text-lg">استخدم لوحة المفاتيح أو اللمس للتنقل. المساعد الصوتي يقرأ لك كل شيء بالذكاء الاصطناعي فائق الوضوح.</p>
+                </div>
+                <div class="p-3 border-2 border-current rounded-xl font-bold flex flex-col gap-1 text-center">
+                    <span>🔑 رمز دخولك السريع:</span>
+                    <span class="text-2xl tracking-widest" id="student-pin-display">7429</span>
+                </div>
+            </div>
+
+            <!-- أزرار الأقسام الرئيسية -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <button data-student-section="books" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="تصفح الكتب والمقررات الدراسية المرفوعة">
+                    <svg class="w-10 h-10 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    <span class="text-2xl font-black mt-4 block group-hover:underline">المناهج والكتب</span>
+                    <span class="text-sm mt-2">استمع للمقررات بصوت الذكاء الاصطناعي الطبيعي</span>
+                </button>
+
+                <button data-student-section="assignments" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="حل الواجبات والاختبارات المتاحة">
+                    <svg class="w-10 h-10 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    <span class="text-2xl font-black mt-4 block group-hover:underline">الواجبات والاختبارات</span>
+                    <span class="text-sm mt-2">اختبارات صوتية تفاعلية وكتابة ببرايل</span>
+                </button>
+
+                <button data-student-section="image-describer" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="واصف المخططات والرسوم البيانية بالذكاء الاصطناعي">
+                    <svg class="w-10 h-10 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    <span class="text-2xl font-black mt-4 block group-hover:underline">واصف الرسوم البيانية</span>
+                    <span class="text-sm mt-2">ارفع أي رسم بياني أو شكل توضيحي ليقوم Gemini بوصفه صوتياً</span>
+                </button>
+
+                <button data-student-section="games" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="قسم الألعاب التنافسية والذكاء الصوتي">
+                    <svg class="w-10 h-10 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                    <span class="text-2xl font-black mt-4 block group-hover:underline">ساحة الألعاب والقصص</span>
+                    <span class="text-sm mt-2">تحدي الثواني والراوي والقصص التفاعلية الذكية</span>
+                </button>
+
+                <button data-student-section="ai-tutor" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="المعلم الافتراضي الصوتي المتاح دائماً">
+                    <svg class="w-10 h-10 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    <span class="text-2xl font-black mt-4 block group-hover:underline">المعلم الذكي الافتراضي</span>
+                    <span class="text-sm mt-2">تحدث مباشرة وسل معلمك المساعد عن أي درس</span>
+                </button>
+            </div>
+
+            <!-- منطقة عرض المكونات الفرعية -->
+            <div id="student-section-container" class="mt-8 hidden card p-6 rounded-2xl border-4 border-current">
+                <div class="flex justify-between items-center border-b-2 border-current pb-4 mb-6">
+                    <h3 id="student-section-title" class="text-3xl font-black">عنوان القسم</h3>
+                    <button data-action="close-section" class="px-6 py-2 bg-red-600 text-white font-black rounded-lg text-lg large-touch-target btn-interactive">إغلاق ❌</button>
+                </div>
+
+                <!-- 1. المناهج والكتب -->
+                <div id="student-sub-books" class="hidden space-y-4">
+                    <p class="font-bold text-xl">اختر كتاباً من المقررات الدراسية المتاحة:</p>
+                    <div id="student-books-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    <div id="audiobook-player" class="hidden p-4 bg-black text-white border-2 border-current rounded-xl mt-6 bg-slate-900">
+                        <p class="font-bold text-lg text-yellow-300" id="audiobook-playing-title">جاري تشغيل: كيمياء الصف العاشر</p>
+                        <div class="flex items-center gap-4 mt-4 flex-wrap">
+                            <button data-action="audiobook-tts" class="p-3 bg-yellow-500 text-black font-bold rounded btn-interactive">تشغيل النطق بالذكاء الاصطناعي 🔊</button>
+                            <button data-action="summarize-book" class="p-3 bg-purple-600 text-white font-bold rounded btn-interactive">تلخيص ذكي للمنهج ✨</button>
+                            <button data-action="audiobook-stop" class="p-3 bg-red-600 text-white font-bold rounded btn-interactive">إيقاف نهائي 🛑</button>
+                        </div>
+                        <div id="book-ai-summary-box" class="mt-4 p-4 bg-slate-800 border-2 border-purple-500 rounded-lg hidden">
+                            <h4 class="text-xl font-bold text-purple-400">📝 تلخيص ذكي مسموع:</h4>
+                            <p id="book-ai-summary-text" class="text-white mt-2 leading-relaxed font-bold"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. الواجبات والاختبارات -->
+                <div id="student-sub-assignments" class="hidden space-y-6">
+                    <p class="font-bold text-xl">الاختبارات المتاحة لك حالياً:</p>
+                    <div id="student-assignments-list" class="space-y-4"></div>
+
+                    <div id="active-quiz-panel" class="hidden p-6 border-2 border-current rounded-xl space-y-6">
+                        <div class="flex justify-between items-center flex-wrap gap-4 bg-black text-yellow-300 p-4 rounded-lg">
+                            <h4 class="text-2xl font-black" id="active-quiz-title">اختبار العلوم الأول</h4>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">⏱️ العداد الصوتي:</span>
+                                <span id="active-quiz-timer" class="text-2xl font-bold">10:00</span>
+                            </div>
+                        </div>
+
+                        <div id="quiz-question-container" class="space-y-4">
+                            <p id="quiz-question-text" class="text-2xl font-bold">السؤال هنا...</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <button id="btn-opt-A" class="p-6 text-right border-4 border-current hover:bg-yellow-400 hover:text-black rounded-xl text-xl font-bold large-touch-target flex items-center justify-between btn-interactive">
+                                    <span>أ) خيار واحد</span>
+                                    <span class="text-sm font-mono">[مساحة لمسية أ]</span>
+                                </button>
+                                <button id="btn-opt-B" class="p-6 text-right border-4 border-current hover:bg-yellow-400 hover:text-black rounded-xl text-xl font-bold large-touch-target flex items-center justify-between btn-interactive">
+                                    <span>ب) خيار اثنين</span>
+                                    <span class="text-sm font-mono">[مساحة لمسية ب]</span>
+                                </button>
+                                <button id="btn-opt-C" class="p-6 text-right border-4 border-current hover:bg-yellow-400 hover:text-black rounded-xl text-xl font-bold large-touch-target flex items-center justify-between btn-interactive">
+                                    <span>ج) خيار ثلاثة</span>
+                                    <span class="text-sm font-mono">[مساحة لمسية ج]</span>
+                                </button>
+                                <button id="btn-opt-D" class="p-6 text-right border-4 border-current hover:bg-yellow-400 hover:text-black rounded-xl text-xl font-bold large-touch-target flex items-center justify-between btn-interactive">
+                                    <span>د) خيار أربعة</span>
+                                    <span class="text-sm font-mono">[مساحة لمسية د]</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="quiz-text-input-section" class="border-t-2 border-current pt-6 space-y-4 hidden">
+                            <p class="font-bold text-xl">اكتب إجابتك النصية للواجب أدناه باستخدام إحدى الوسائل المتاحة:</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button id="btn-mic-input" class="p-3 bg-blue-600 text-white font-bold rounded-lg flex items-center gap-2 btn-interactive">🎤 إجابة صوتية (Speech-to-Text)</button>
+                                <button data-action="toggle-screen-braille" class="p-3 bg-purple-600 text-white font-bold rounded-lg btn-interactive">⌨️ كيبورد برايل للشاشة (أزرار ضخمة)</button>
+                                <button data-action="toggle-perkins" class="p-3 bg-teal-600 text-white font-bold rounded-lg btn-interactive">💻 محاكي Perkins (F,D,S - J,K,L)</button>
+                                <button data-action="braille-evaluate" class="p-3 bg-yellow-500 text-black font-bold rounded-lg hover:bg-yellow-400 btn-interactive">✨ تدقيق ومصحح برايل الذكي</button>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label for="assignment-student-answer" class="block font-bold text-lg">النص المكتوب حالياً ببرايل أو بالصوت:</label>
+                                <textarea id="assignment-student-answer" rows="4" class="w-full p-4 rounded-xl text-xl font-bold border-2 border-current bg-black text-white" placeholder="إجابتك ستظهر هنا..."></textarea>
+                            </div>
+
+                            <div id="braille-evaluation-box" class="p-4 bg-slate-900 border-2 border-yellow-500 rounded-lg hidden">
+                                <h4 class="text-lg font-bold text-yellow-400">🤖 تقييم وتصحيح لغة برايل من Gemini:</h4>
+                                <p id="braille-evaluation-text" class="text-white mt-2 leading-relaxed font-bold"></p>
+                            </div>
+
+                            <!-- لوحة برايل الشاشة -->
+                            <div id="screen-braille-keyboard" class="hidden p-4 border-2 border-dashed border-purple-500 rounded-xl space-y-4 bg-slate-900">
+                                <p class="text-center font-bold text-white">اضغط على النقاط لتشكيل الحرف العربي، ثم انقر على (أدخل الحرف)</p>
+                                <div class="grid grid-cols-2 gap-4 max-w-xs mx-auto">
+                                    <div class="flex flex-col gap-4">
+                                        <button id="dot-1" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">1</button>
+                                        <button id="dot-2" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">2</button>
+                                        <button id="dot-3" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">3</button>
+                                    </div>
+                                    <div class="flex flex-col gap-4">
+                                        <button id="dot-4" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">4</button>
+                                        <button id="dot-5" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">5</button>
+                                        <button id="dot-6" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">6</button>
+                                    </div>
+                                </div>
+                                <div class="flex justify-center gap-2 mt-4 flex-wrap">
+                                    <button data-action="enter-braille" class="p-3 bg-green-600 text-white font-bold rounded btn-interactive">إدخل الحرف ✍️</button>
+                                    <button data-action="clear-braille" class="p-3 bg-gray-600 text-white font-bold rounded btn-interactive">مسح الخلايا 🧹</button>
+                                    <button data-action="add-space" class="p-3 bg-indigo-600 text-white font-bold rounded btn-interactive">مسافة ⌴</button>
+                                    <button data-action="delete-char" class="p-3 bg-red-600 text-white font-bold rounded btn-interactive">مسح حرف ⌫</button>
+                                </div>
+                                <div class="text-center text-yellow-300 font-bold" id="braille-char-preview">الحرف المشكل حالياً: لا يوجد</div>
+                            </div>
+
+                            <!-- محاكي Perkins -->
+                            <div id="perkins-braille-keyboard" class="hidden p-4 border-2 border-dashed border-teal-500 rounded-xl space-y-2 bg-slate-900 text-white">
+                                <p class="font-bold text-yellow-300">🎮 وضع Perkins مفعل الآن!</p>
+                                <p class="text-sm">ضع أصابع يدك اليسرى على <kbd class="px-2 py-1 bg-gray-700 rounded text-red-400">F, D, S</kbd> (تمثل النقاط 1، 2، 3) وأصابع يدك اليمنى على <kbd class="px-2 py-1 bg-gray-700 rounded text-red-400">J, K, L</kbd> (تمثل النقاط 4, 5, 6).</p>
+                                <p class="text-sm">اضغط على المفاتيح معاً في نفس الوقت لتوليد الأحرف باللغة العربية! واضغط <kbd class="px-2 py-1 bg-gray-700 rounded">Space</kbd> للمسافة و <kbd class="px-2 py-1 bg-gray-700 rounded">Backspace</kbd> للحذف.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-4">
+                            <button data-action="submit-quiz" class="p-4 bg-green-600 text-white font-bold text-xl rounded-xl w-full md:w-auto large-touch-target btn-interactive">إرسال الإجابة النهائية 🚀</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. واصف الرسوم -->
+                <div id="student-sub-image-describer" class="hidden space-y-6">
+                    <p class="font-bold text-xl">ارفع أو اختر أي صورة لمخطط بياني، رسمة توضيحية، أو درس في كتابك وسيقوم الذكاء الاصطناعي بوصفها لك بذكاء وتفصيل شديد بالصوت:</p>
+                    <div class="card p-6 rounded-xl border-2 border-dashed border-current space-y-4">
+                        <label for="vision-image-input" class="block font-bold text-lg mb-2">📸 اختر ملف الصورة (PNG, JPG):</label>
+                        <input type="file" id="vision-image-input" accept="image/*" class="w-full p-3 rounded">
+                        <div id="vision-preview-container" class="hidden text-center">
+                            <p class="font-bold text-green-400 mb-2">تم تحميل الصورة بنجاح</p>
+                            <img id="vision-image-preview" src="" alt="صورة توضيحية للرفع" class="max-h-64 mx-auto border-4 border-current rounded-lg" loading="lazy">
+                        </div>
+                        <button data-action="analyze-image" id="btn-analyze-image" class="w-full p-4 bg-purple-600 text-white font-black text-xl rounded-xl btn-interactive">تحليل ووصف الصورة بالذكاء الاصطناعي ✨</button>
+                    </div>
+                    <div id="vision-response-box" class="hidden p-6 border-2 border-purple-500 bg-slate-900 rounded-xl space-y-4">
+                        <div class="flex justify-between items-center flex-wrap gap-2">
+                            <span class="text-purple-400 font-bold text-lg">👁️ الوصف اللفظي التفصيلي للصورة:</span>
+                            <button data-action="speak-vision" class="px-4 py-2 bg-yellow-400 text-black font-bold rounded btn-interactive">🔊 قراءة الوصف بصوت عالٍ</button>
+                        </div>
+                        <p id="vision-response-text" class="text-xl font-bold leading-relaxed text-white">جاري إرسال الصورة لـ Gemini وتوليد التقرير الصوتي...</p>
+                    </div>
+                </div>
+
+                <!-- 4. ساحة الألعاب -->
+                <div id="student-sub-games" class="hidden space-y-6">
+                    <!-- لوحة تعليم برايل -->
+                    <div class="p-6 bg-slate-950 border-2 border-amber-500 rounded-2xl space-y-4">
+                        <h4 class="text-2xl font-black text-amber-400 flex items-center gap-2">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                            <span>لوحة تعليم لغة برايل التفاعلية للمبتدئين 🧑‍🏫</span>
+                        </h4>
+                        <p class="text-sm">انقر على النقاط الستة بالأسفل لتشكيل الحرف العربي وسماع نطق الحرف فوراً بالذكاء الاصطناعي لتدريب أصابعك!</p>
+                        <div class="grid grid-cols-2 gap-3 max-w-xs mx-auto">
+                            <div class="flex flex-col gap-3">
+                                <button id="cheat-dot-1" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">1</button>
+                                <button id="cheat-dot-2" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">2</button>
+                                <button id="cheat-dot-3" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">3</button>
+                            </div>
+                            <div class="flex flex-col gap-3">
+                                <button id="cheat-dot-4" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">4</button>
+                                <button id="cheat-dot-5" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">5</button>
+                                <button id="cheat-dot-6" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">6</button>
+                            </div>
+                        </div>
+                        <div class="flex justify-center gap-2">
+                            <button data-action="pronounce-cheat" class="p-3 bg-amber-500 text-black font-black rounded-lg text-sm btn-interactive">انطق الحرف المشكّل 🔊</button>
+                            <button data-action="clear-cheat" class="p-3 bg-gray-800 text-white font-bold rounded-lg text-sm btn-interactive">مسح اللوحة 🧹</button>
+                        </div>
+                        <div class="text-center font-bold text-yellow-300 text-lg" id="cheat-char-preview">الحرف المشكل حالياً: لا يوجد</div>
+                    </div>
+
+                    <p class="font-bold text-lg">اختر لعبة للتنافس وتحسين مهاراتك بطريقة تفاعلية:</p>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <button data-game-type="seconds" class="p-6 border-2 border-current rounded-xl text-right hover:bg-yellow-400 hover:text-black transition btn-interactive">
+                            <span class="text-3xl block mb-2">⏱️</span>
+                            <span class="text-xl font-bold block">لعبة تحدي الثواني</span>
+                            <span class="text-xs mt-1 block">أجب على أسئلة صح أم خطأ ضد عقارب الساعة ومؤثرات صوتية!</span>
+                        </button>
+                        <button data-game-type="hero" class="p-6 border-2 border-current rounded-xl text-right hover:bg-yellow-400 hover:text-black transition btn-interactive">
+                            <span class="text-3xl block mb-2">🏆</span>
+                            <span class="text-xl font-bold block">لعبة البطل ضد الوقت</span>
+                            <span class="text-xs mt-1 block">تحدي فردي لكسر رقمك القياسي الشخصي في الإجابات المتتالية.</span>
+                        </button>
+                        <button data-game-type="pvp" class="p-6 border-2 border-current rounded-xl text-right hover:bg-yellow-400 hover:text-black transition btn-interactive">
+                            <span class="text-3xl block mb-2">⚔️</span>
+                            <span class="text-xl font-bold block">المبارزة الثنائية (Live PvP)</span>
+                            <span class="text-xs mt-1 block">تحدي مباشر ضد زميل محاكى، الأسرع في الإجابة يحقق الفوز!</span>
+                        </button>
+                        <button data-game-type="ai-story" class="p-6 border-2 border-purple-500 rounded-xl text-right hover:bg-purple-800 hover:text-white transition btn-interactive">
+                            <span class="text-3xl block mb-2">📖</span>
+                            <span class="text-xl font-bold block text-purple-400">الحكواتي الذكي التفاعلي ✨</span>
+                            <span class="text-xs mt-1 block text-gray-300">عش مغامرة وقصة تعليمية يولدها الذكاء الاصطناعي بالصوت وتخوضها بنفسك!</span>
+                        </button>
+                    </div>
+
+                    <div id="active-game-panel" class="hidden p-6 border-2 border-current rounded-xl space-y-6 bg-black text-white">
+                        <div class="flex justify-between items-center border-b-2 border-gray-700 pb-4">
+                            <h4 id="game-title" class="text-2xl font-black text-yellow-300">اسم اللعبة</h4>
+                            <div class="flex gap-4">
+                                <span class="text-xl">النتيجة: <span id="game-score" class="font-bold">0</span></span>
+                                <span class="text-xl" id="game-timer-wrapper">الوقت: <span id="game-timer" class="font-bold">30</span></span>
+                            </div>
+                        </div>
+                        <div id="game-arena" class="space-y-6 text-center">
+                            <p id="game-question" class="text-3xl font-bold">السؤال هنا؟</p>
+                            <div id="game-binary-options" class="flex flex-col md:flex-row gap-4 justify-center">
+                                <button data-action="answer-true" class="flex-1 p-8 bg-green-600 text-white font-black text-3xl rounded-2xl hover:bg-green-700 large-touch-target btn-interactive">نعم (صح) 👍</button>
+                                <button data-action="answer-false" class="flex-1 p-8 bg-red-600 text-white font-black text-3xl rounded-2xl hover:bg-red-700 large-touch-target btn-interactive">لا (خطأ) 👎</button>
+                            </div>
+                            <div id="game-story-options" class="hidden grid grid-cols-1 gap-4 max-w-2xl mx-auto"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. المعلم الافتراضي -->
+                <div id="student-sub-ai-tutor" class="hidden space-y-6">
+                    <p class="font-bold text-xl">مرحباً! أنا معلمك الذكي المدعوم بـ <span class="text-yellow-400 font-black">Gemini</span>. اسألني أي سؤال في المناهج وسأجيبك فوراً بالصوت والنص الطبيعي.</p>
+                    <div class="flex gap-2">
+                        <button data-action="ai-tutor-speech" class="p-4 bg-blue-600 text-white font-black rounded-xl flex items-center gap-2 btn-interactive">🎤 اضغط للتحدث بالصوت</button>
+                        <p class="text-xs self-center" id="ai-voice-status">اضغط وتحدث وسأقوم بتحويل صوتك وكتابة السؤال تلقائياً.</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="ai-tutor-query" class="block font-bold text-lg">اكتب سؤالك هنا يدوياً أو دع الإدخال الصوتي يملأه:</label>
+                        <textarea id="ai-tutor-query" rows="3" class="w-full p-4 rounded-xl border-2 border-current bg-black text-white text-xl font-bold" placeholder="مثال: اشرح لي كيف تتكون الروابط الأيونية؟"></textarea>
+                    </div>
+                    <button data-action="ask-ai" id="btn-ask-ai" class="w-full p-4 bg-yellow-500 text-black font-black text-xl rounded-xl btn-interactive">إرسال السؤال إلى المعلم ✨</button>
+                    <div id="ai-tutor-response-box" class="hidden p-6 border-2 border-green-500 bg-slate-900 rounded-xl space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-green-400 font-bold">🤖 إجابة المعلم الافتراضي الذكي:</span>
+                            <button data-action="speak-ai-response" class="px-4 py-2 bg-yellow-400 text-black font-bold rounded btn-interactive">🔊 قراءة الإجابة بصوت عالٍ</button>
+                        </div>
+                        <p id="ai-tutor-response-text" class="text-xl font-bold leading-relaxed text-white">جاري التفكير وتحضير الإجابة...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 2. واجهة المعلم ==================== -->
+        <section id="view-teacher" class="space-y-8 hidden">
+            <h2 class="text-3xl font-bold">🏫 لوحة تحكم المعلم (رفع المناهج والاختبارات)</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="card p-6 rounded-2xl border-2 border-current space-y-4">
+                    <h3 class="text-2xl font-bold">📚 رفع كتاب أو وحدة تعليمية جديدة</h3>
+                    <form data-action="teacher-book-form" class="space-y-4">
+                        <div>
+                            <label class="block font-bold mb-1">عنوان الكتاب/المقرر الدراسي:</label>
+                            <input type="text" id="teacher-book-title" required class="w-full p-3 rounded" placeholder="مثل: جغرافيا الوطن العربي">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">رابط المادة الصوتية (Audiobook URL - اختياري):</label>
+                            <input type="url" id="teacher-book-audio" class="w-full p-3 rounded" placeholder="https://example.com/audiobook.mp3">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">المحتوى النصي الكامل للمقرر:</label>
+                            <textarea id="teacher-book-content" required rows="6" class="w-full p-3 rounded" placeholder="اكتب أو الصق محتوى الوحدة بالتفصيل ليتمكن القارئ الآلي من قراءته للطالب بسلاسة."></textarea>
+                        </div>
+                        <button type="submit" class="w-full p-4 bg-green-600 text-white font-bold rounded-xl btn-interactive">حفظ ونشر المقرر 🚀</button>
+                    </form>
+                </div>
+
+                <div class="card p-6 rounded-2xl border-2 border-current space-y-4">
+                    <div class="flex justify-between items-center flex-wrap gap-2">
+                        <!-- [إصلاح #7] إصلاح إملائي: "الاختبار" بدلاً من "الافتبار" -->
+                        <h3 class="text-2xl font-bold">✏️ إنشاء واجب أو اختبار تفاعلي</h3>
+                        <button data-action="generate-ai-quiz" id="btn-ai-generate" class="px-3 py-1 bg-purple-600 text-white text-xs font-bold rounded btn-interactive">توليد ذكي بالذكاء الاصطناعي ✨</button>
+                    </div>
+                    <form data-action="teacher-quiz-form" class="space-y-4">
+                        <div>
+                            <label class="block font-bold mb-1">عنوان الواجب/الاختبار:</label>
+                            <input type="text" id="teacher-quiz-title" required class="w-full p-3 rounded" placeholder="مثل: اختبار الكيمياء الأسبوعي">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">نوع السؤال الرئيسي:</label>
+                            <select id="teacher-quiz-type" class="w-full p-3 rounded text-black bg-white font-bold">
+                                <option value="mcq">اختيار من متعدد (MCQ) - صوتي تفاعلي</option>
+                                <option value="text">سؤال مقالي نصي (يتطلب حل ببرايل أو بالصوت)</option>
+                            </select>
+                        </div>
+                        <div id="teacher-mcq-fields" class="space-y-3">
+                            <div>
+                                <label class="block font-bold mb-1">السؤال:</label>
+                                <input type="text" id="teacher-quiz-q" class="w-full p-3 rounded" placeholder="ما هي الصيغة الكيميائية للماء؟">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="teacher-quiz-oa" class="p-3 rounded" placeholder="الخيار أ">
+                                <input type="text" id="teacher-quiz-ob" class="p-3 rounded" placeholder="الخيار ب">
+                                <input type="text" id="teacher-quiz-oc" class="p-3 rounded" placeholder="الخيار ج">
+                                <input type="text" id="teacher-quiz-od" class="p-3 rounded" placeholder="الخيار د">
+                            </div>
+                            <div>
+                                <label class="block font-bold mb-1">الخيار الصحيح:</label>
+                                <select id="teacher-quiz-correct" class="w-full p-3 rounded text-black bg-white font-bold">
+                                    <option value="A">أ</option>
+                                    <option value="B">ب</option>
+                                    <option value="C">ج</option>
+                                    <option value="D">د</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="teacher-text-fields" class="space-y-3 hidden">
+                            <div>
+                                <label class="block font-bold mb-1">السؤال المقالي:</label>
+                                <input type="text" id="teacher-quiz-text-q" class="w-full p-3 rounded" placeholder="تحدث عن أهمية الأكسجين للحياة؟">
+                            </div>
+                            <div>
+                                <label class="block font-bold mb-1">الإجابة النموذجية (لتقييم الذكاء الاصطناعي):</label>
+                                <textarea id="teacher-quiz-ideal-ans" rows="3" class="w-full p-3 rounded" placeholder="الإجابة النموذجية التي سيقوم مصحح الذكاء الاصطناعي بالمقارنة بناءً عليها..."></textarea>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full p-4 bg-blue-600 text-white font-bold rounded-xl btn-interactive">حفظ ونشر الواجب 🚀</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card p-6 rounded-2xl border-2 border-current">
+                <h3 class="text-2xl font-bold mb-4">✍️ إجابات الطلاب المرفوعة والمصححة في الوقت الفعلي</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse border border-current">
+                        <thead>
+                            <tr class="bg-gray-800 text-white">
+                                <th class="p-3 border border-current">الطالب</th>
+                                <th class="p-3 border border-current">الواجب/الاختبار</th>
+                                <th class="p-3 border border-current">الإجابة المرفوعة</th>
+                                <th class="p-3 border border-current">التقييم الفوري للـ AI والمصحح</th>
+                                <th class="p-3 border border-current">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacher-submissions-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 3. بوابة ولي الأمر ==================== -->
+        <section id="view-parent" class="space-y-8 hidden">
+            <h2 class="text-3xl font-bold">👪 بوابة ولي الأمر لمتابعة الطالب</h2>
+            <p class="text-lg">مرحباً بك في لوحة تحكم ولي الأمر لمدرسة سكول. يمكنك هنا الاطلاع على أداء الابن ودرجاته، وتلقي التوجيهات المخصصة لصعوبات التعلم.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="card p-6 rounded-2xl border-2 border-current space-y-4">
+                    <h3 class="text-2xl font-bold">📊 سجل درجات واختبارات الابن: <span id="parent-linked-child-name" class="text-yellow-400">عبد الرحمن الشمري</span></h3>
+                    <div id="parent-grades-list" class="space-y-3"></div>
+                </div>
+                <div class="card p-6 rounded-2xl border-2 border-current space-y-4 bg-slate-950 text-white">
+                    <div class="flex items-center gap-2">
+                        <span class="text-3xl">🧠</span>
+                        <h3 class="text-2xl font-bold text-yellow-300">تقرير الذكاء الاصطناعي لتشخيص صعوبات التعلم</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">يقوم نظام الذكاء الاصطناعي بتحليل سلوك الطالب على المنصة لإصدار هذا التقرير التوجيهي الذكي:</p>
+                    <div class="p-4 bg-slate-900 border border-yellow-500 rounded-xl space-y-3" id="ai-analytics-report-box">
+                        <p class="font-bold text-green-400">📝 توصيات الطبيب المعرفي للذكاء الاصطناعي ✨:</p>
+                        <ul class="list-disc pr-6 space-y-2 text-sm text-gray-200" id="ai-analytics-bullets">
+                            <li>لوحظ تردد بنسبة 42% لدى الطالب عند تشكيل الحروف التي تتضمن النقطتين (4, 5) في لوحة برايل. يوصى بتمارين إضافية على حرفي (ج) و (و).</li>
+                            <li>يقوم الطالب بإعادة الاستماع إلى المناهج الصوتية لمادة الكيمياء بمعدل 3 مرات لكل وحدة. يشير ذلك إلى أسلوب تعلم سمعي مكثف.</li>
+                            <li>حقق الطالب معدل تفوق كامل (100%) في الألعاب التنافسية مثل "تحدي الثواني" مما يعني أهمية مواصلة اللعب والتعلم الممتع لديه.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 4. لوحة تحكم الإدارة ==================== -->
+        <section id="view-admin" class="space-y-8 hidden">
+            <h2 class="text-3xl font-bold">⚙️ لوحة تحكم إدارة مدرسة سكول</h2>
+            <p class="text-lg">توليد وإدارة حسابات الطلاب وتوزيعهم، مع توليد فوري لرموز الدخول السريعة (PIN 4 أرقام) لتمكين الطالب الكفيف من تسجيل الدخول بلمسة واحدة.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="card p-6 rounded-2xl border-2 border-current space-y-4">
+                    <h3 class="text-2xl font-bold">➕ إضافة طالب جديد للمنصة</h3>
+                    <form data-action="admin-student-form" class="space-y-4">
+                        <div>
+                            <label class="block font-bold mb-1">اسم الطالب رباعي:</label>
+                            <input type="text" id="admin-student-name" required class="w-full p-3 rounded" placeholder="مثل: علي أحمد الغامدي">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">الصف الدراسي:</label>
+                            <input type="text" id="admin-student-grade" required class="w-full p-3 rounded" placeholder="مثل: الصف العاشر">
+                        </div>
+                        <button type="submit" class="w-full p-4 bg-yellow-500 text-black font-black rounded-xl btn-interactive">توليد الحساب والرمز السري 🔒</button>
+                    </form>
+                </div>
+                <div class="card p-6 rounded-2xl border-2 border-current space-y-4">
+                    <h3 class="text-2xl font-bold">📋 سجل الطلاب المفعلين والرموز</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-sm">
+                            <thead>
+                                <tr class="bg-gray-800 text-white">
+                                    <th class="p-2 border">اسم الطالب</th>
+                                    <th class="p-2 border">الصف الدراسي</th>
+                                    <th class="p-2 border">رمز الدخول PIN</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-students-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- إضافة إعدادات الأمان -->
+            <div class="card p-6 rounded-2xl border-2 border-current mt-8 bg-slate-900 text-white space-y-4">
+                <h3 class="text-2xl font-bold text-yellow-400">🔐 إعدادات أمان الذكاء الاصطناعي (API Security)</h3>
+                <p class="text-sm">لحماية مفتاحك السري، لا تقم بوضعه في كود المصدر. قم بإدخاله هنا وسيتم تشفيره وحفظه محلياً ليعمل الذكاء الاصطناعي الخاص بالمنصة.</p>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <input type="password" id="admin-api-key-input" class="flex-grow p-3 rounded text-black font-mono" placeholder="أدخل مفتاح Gemini API هنا...">
+                    <button id="btn-save-api-key" class="px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded">حفظ المفتاح ✔️</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="border-t-4 border-current p-4 text-center mt-auto text-sm">
+        <p>© 2026 منصة Cloud School السحابية للمكفوفين. صُممت بنسبة تباين متوافقة مع معايير WCAG AAA العالمية ودعم كامل لـ Gemini API.</p>
+    </footer>
+
+    <!-- تسجيل Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./cloud_school.js').then((registration) => {
+                    console.log('PWA ServiceWorker registration successful!');
+                }, (err) => {
+                    console.log('PWA ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+
+    <!-- ملف JavaScript الرئيسي المنفصل -->
+    <script type="module" src="cloud_school_app.js"></script>
+</body>
+</html>
