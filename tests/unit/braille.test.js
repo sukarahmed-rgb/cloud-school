@@ -1,6 +1,8 @@
 import { getBrailleChar, getBraillePreview } from '../../src/braille.js';
 
 describe('Braille Module', () => {
+  const { getBrailleChar, getBraillePreview } = braille;
+
   test('getBrailleChar returns correct Arabic char for dot pattern', () => {
     const dots = new Set([1]);
     expect(getBrailleChar(dots)).toBe('ا');
