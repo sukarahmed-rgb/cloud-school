@@ -4,7 +4,7 @@
   "description": "منصة تعليمية سحابية للطلاب المكفوفين",
   "main": "cloud_school_app.js",
   "scripts": {
-    "test": "jest",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "test:ui": "playwright test",
     "dev": "live-server . --open=./index.html",
     "proxy": "node proxy/server.js",
