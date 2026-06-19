@@ -3,4 +3,5 @@ module.exports = {
   testMatch: ['**/tests/unit/**/*.test.js'],
   verbose: true,
   transform: {},
+  extensionsToTreatAsEsm: ['.js'],
 };
