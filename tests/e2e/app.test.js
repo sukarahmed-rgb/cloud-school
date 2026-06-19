@@ -6,7 +6,7 @@ test.describe('Cloud School E2E', () => {
   });
 
   test('should load and show auth gate with login form', async ({ page }) => {
-    await expect(page).toHaveTitle(/كلاود سكول/);
+    await expect(page).toHaveTitle(/Cloud School/);
 
     const authGate = page.locator('#auth-gate');
     await expect(authGate).toBeVisible();
