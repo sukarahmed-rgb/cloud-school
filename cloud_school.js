@@ -12,7 +12,9 @@ const ASSETS_TO_CACHE = [
   './index.html',
   './cloud_school_styles.css',
   './cloud_school_app.js',
-  './manifest.json'
+  './manifest.json',
+  './i18n/ar.json',
+  './i18n/en.json'
 ];
 
 // حدث التثبيت - تخزين الملفات الأساسية عند أول تشغيل

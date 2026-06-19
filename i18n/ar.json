@@ -1,5 +1,26 @@
 {
+  "authTitle": "كلاود سكول | Cloud School",
+  "authSubtitle": "المنصة التعليمية المتكاملة لضعاف البصر والمكفوفين",
   "welcome": "مرحباً بك يا بطل في كلاود سكول",
   "login": "تسجيل الدخول والتحقق الآمن 🔑",
-  "authTitle": "كلاود سكول | Cloud School"
+  "loginUsername": "📧 اسم المستخدم أو البريد الإلكتروني:",
+  "loginPassword": "🔒 كلمة المرور:",
+  "loginSubmit": "تسجيل الدخول 🔑",
+  "registerNew": "إنشاء حساب جديد 📝",
+  "demoLogin": "تسجيل دخول تجريبي سريع كطالب 🚀",
+  "registerTitle": "📝 إنشاء حساب جديد",
+  "registerName": "الاسم الكامل للمستخدم:",
+  "registerContact": "البريد الإلكتروني أو رقم الجوال:",
+  "registerPassword": "🔒 كلمة المرور:",
+  "registerRole": "نوع الحساب (الدور التعليمي):",
+  "logout": "تسجيل خروج 🚪",
+  "skipToContent": "انتقل مباشرة إلى المحتوى التعليمي الأساسي",
+  "themeDark": "أصفر/أسود",
+  "themeLight": "أسود/أبيض",
+  "themeClassic": "كلاسيك",
+  "fontIncrease": "تكبير الخط",
+  "fontDecrease": "تصغير الخط",
+  "proxyStatus": "الخادم الوسيط",
+  "proxyConnected": "متصل 🟢",
+  "proxyDisconnected": "غير متصل 🔴"
 }

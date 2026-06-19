@@ -1,4 +1,3 @@
-// playwright.config.js
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
@@ -18,8 +17,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run proxy & npx live-server ./cloud_school.html --port=8080 --no-browser',
+    command: 'npx live-server . --port=8080 --no-browser',
     url: 'http://127.0.0.1:8080',
     reuseExistingServer: !process.env.CI,
+    timeout: 10000,
   },
 });

@@ -1,5 +1,26 @@
 {
-  "welcome": "Welcome to Cloud School",
+  "authTitle": "Cloud School",
+  "authSubtitle": "The comprehensive educational platform for the visually impaired and blind",
+  "welcome": "Welcome hero to Cloud School",
   "login": "Secure Login 🔑",
-  "authTitle": "Cloud School"
+  "loginUsername": "📧 Username or Email:",
+  "loginPassword": "🔒 Password:",
+  "loginSubmit": "Login 🔑",
+  "registerNew": "Create New Account 📝",
+  "demoLogin": "Quick Demo Login as Student 🚀",
+  "registerTitle": "📝 Create New Account",
+  "registerName": "Full Name:",
+  "registerContact": "Email or Phone Number:",
+  "registerPassword": "🔒 Password:",
+  "registerRole": "Account Type (Educational Role):",
+  "logout": "Logout 🚪",
+  "skipToContent": "Skip to main educational content",
+  "themeDark": "Yellow/Black",
+  "themeLight": "Black/White",
+  "themeClassic": "Classic",
+  "fontIncrease": "Increase font size",
+  "fontDecrease": "Decrease font size",
+  "proxyStatus": "Proxy Server",
+  "proxyConnected": "Connected 🟢",
+  "proxyDisconnected": "Disconnected 🔴"
 }

@@ -6,18 +6,26 @@
   "scripts": {
     "test": "jest",
     "test:ui": "playwright test",
-    "dev": "live-server ./cloud_school.html --open=./cloud_school.html",
+    "dev": "live-server . --open=./index.html",
     "proxy": "node proxy/server.js",
-    "build": "echo 'No build step needed for plain HTML/JS'"
+    "build": "echo 'No build step needed for plain HTML/JS'",
+    "deploy:rules": "npx firebase deploy --only firestore:rules",
+    "deploy:hosting": "npx firebase deploy --only hosting",
+    "deploy": "npx firebase deploy"
   },
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "cors": "^2.8.5"
+  },
   "devDependencies": {
     "jest": "^29.0.0",
     "jest-environment-jsdom": "^29.0.0",
     "playwright": "^1.35.0",
     "@playwright/test": "^1.35.0",
     "dotenv": "^16.0.0",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "live-server": "^1.2.2"
   }
 }

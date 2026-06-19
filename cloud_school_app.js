@@ -12,19 +12,22 @@
  * 7. تحويل inline onclick إلى addEventListener
  * 8. تنظيم الكود بنمط Module Pattern
  * 9. إضافة دعم اللغات (i18n)
+ * 10. إعادة هيكلة إلى وحدات منفصلة (src/*.js)
+ * 11. معالج أخطاء مركزي
+ * 12. إدارة تركيز محسّنة
  */
 
-// ==================== Firebase Imports ====================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, addDoc, setDoc, getDocs, deleteDoc, onSnapshot, collection, query, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// ==================== Module Imports ====================
+import { initFirebase as initFirebaseModule, syncFromFirebase, saveBook, saveQuiz, saveSubmission, saveStudent } from './src/firebase.js';
+import { initI18n, loadLocale, i18n, applyTranslations, getCurrentLang, setCurrentLang } from './src/i18n.js';
+import { arabicBrailleMap as braileMap, getBrailleChar, getBraillePreview } from './src/braille.js';
+import { speakWithGeminiTTS, transcribeAudio, describeImage, askTutor, summarizeBook, evaluateBraille, generateQuiz, generateStory, gradeAnswer, callGemini } from './src/gemini.js';
+import { handleError, setupGlobalErrorHandler, wrapAsync } from './src/errors.js';
+import * as ui from './src/ui.js';
 
 // ==================== تهيئة المتغيرات العامة ====================
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'cloud-school-blind-v1';
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-let app, db, auth;
 let userId = null;
 let isAuthReady = false;
 
@@ -72,53 +75,20 @@ let uploadedImageMime = null;
 let currentSizeOffset = 0;
 let perkinsKeysPressed = {};
 
-// [إصلاح #2] AbortController لمنع تسرب الذاكرة في setupAccessibleVoices
+// متغيرات الصوت والسمات — تديرها ui module
 let accessibleVoicesController = null;
-
-// [إصلاح #4] إعادة استخدام AudioContext واحد
-let sharedAudioContext = null;
-function getAudioContext() {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return null;
-    if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
-        sharedAudioContext = new AudioContextClass();
-    }
-    if (sharedAudioContext.state === 'suspended') {
-        sharedAudioContext.resume();
-    }
-    return sharedAudioContext;
-}
-
-// ==================== [إصلاح #9] Language Support ====================
-const i18n = {};
-function applyTranslations() {
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (i18n[key]) {
-      el.textContent = i18n[key];
-    }
-  });
-}
-function loadLocale(lang) {
-  fetch(`i18n/${lang}.json`)
-    .then(r => r.json())
-    .then(data => {
-      Object.assign(i18n, data);
-      applyTranslations();
-    })
-    .catch(err => console.error('Failed to load locale', err));
-}
-let currentLang = localStorage.getItem('cloudSchoolLang') || 'ar';
-loadLocale(currentLang);
+// ==================== [إصلاح #9] Language Support (via module) ====================
+// Uses imported i18n module functions — see ./src/i18n.js
+loadLocale(getCurrentLang());
 const langToggleBtn = document.getElementById('lang-toggle');
 if (langToggleBtn) {
   langToggleBtn.addEventListener('click', () => {
-    currentLang = currentLang === 'ar' ? 'en' : 'ar';
-    localStorage.setItem('cloudSchoolLang', currentLang);
-    loadLocale(currentLang);
-    langToggleBtn.textContent = currentLang === 'ar' ? 'English' : 'العربية';
+    const newLang = getCurrentLang() === 'ar' ? 'en' : 'ar';
+    setCurrentLang(newLang);
+    loadLocale(newLang);
+    langToggleBtn.textContent = newLang === 'ar' ? 'English' : 'العربية';
   });
-  langToggleBtn.textContent = currentLang === 'ar' ? 'English' : 'العربية';
+  langToggleBtn.textContent = getCurrentLang() === 'ar' ? 'English' : 'العربية';
 }
 
 // ==================== قاموس برايل العربية ====================
@@ -155,425 +125,58 @@ const arabicBrailleMap = {
     '2,5,6': '؟'
 };
 
-// ==================== [إصلاح #5] دوال مؤشر التحميل ====================
-function showLoadingSpinner(targetElementId, message) {
-    const el = document.getElementById(targetElementId);
-    if (el) {
-        el.innerHTML = `<div class="loading-overlay"><span class="loading-spinner"></span><span>${message}</span></div>`;
-    }
-}
+// ==================== دوال أمان ومنع XSS (via module) ====================
+const escapeHtml = ui.escapeHtml;
 
-// ==================== دوال النطق والصوت ====================
+// ==================== [إصلاح #5] دوال مؤشر التحميل (via module) ====================
+const showLoadingSpinner = ui.showLoading;
+
+// ==================== دوال النطق والصوت (via module) ====================
 
 function showToast(text) {
-    const toast = document.getElementById('toast-message');
-    toast.textContent = text;
-    toast.classList.remove('hidden');
-    setTimeout(() => {
-        toast.classList.add('hidden');
-    }, 4000);
-}
-
-function getGeminiApiKey() {
-    return localStorage.getItem('geminiApiKey') || "";
+    ui.showToast(text);
 }
 
 function speak(text) {
-    if (!audioCoPilotEnabled) return;
-    
-    const ariaLive = document.getElementById('aria-live');
-    if (ariaLive) ariaLive.textContent = text;
-
-    if (screenReaderMode) return; // Skip custom audio if screen reader mode is ON
-
-    if (activeAudioElement) {
-        activeAudioElement.pause();
-        activeAudioElement = null;
-    }
-    window.speechSynthesis.cancel();
-
-    const wave = document.getElementById('audio-visual-wave');
-    if (wave) wave.classList.add('playing');
-
-    if (ttsEngineMode === 'gemini') {
-        speakWithGeminiTTS(text);
-    } else {
-        try {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ar-EG';
-            utterance.rate = 1.1;
-            utterance.onend = () => { if (wave) wave.classList.remove('playing'); };
-            window.speechSynthesis.speak(utterance);
-        } catch (e) {
-            console.warn("SpeechSynthesis failed:", e);
-            if (wave) wave.classList.remove('playing');
-        }
-    }
+    ui.speak(text);
 }
 window.speak = speak;
 
 function toggleTtsEngine() {
-    if (ttsEngineMode === 'gemini') {
-        ttsEngineMode = 'browser';
-        document.getElementById('tts-engine-toggle').textContent = "🎙️ صوت القراءة: قارئ المتصفح المحلي";
-        speak("تم التبديل لمشغل الصوت المحلي للمتصفح.");
-    } else {
-        ttsEngineMode = 'gemini';
-        document.getElementById('tts-engine-toggle').textContent = "🎙️ صوت القراءة: ذكاء اصطناعي (Gemini)";
-        speak("تم التبديل لمشغل النطق فائق الجودة بالذكاء الاصطناعي.");
-    }
+    ui.toggleTtsEngine();
+    // Sync the local variable
+    ttsEngineMode = ui.ttsEngineMode;
 }
 
 function toggleScreenReaderMode() {
-    screenReaderMode = !screenReaderMode;
-    const btn = document.getElementById('btn-screen-reader-mode');
-    if (screenReaderMode) {
-        if (btn) btn.textContent = "🔇 قارئ الشاشة الخارجي: مفعل (تم كتم صوت المنصة)";
-        if (activeAudioElement) activeAudioElement.pause();
-        window.speechSynthesis.cancel();
-        // Use aria-live to confirm activation silently
-        const ariaLive = document.getElementById('aria-live');
-        if (ariaLive) ariaLive.textContent = "تم تفعيل وضع التوافق مع قارئ الشاشة الخارجي.";
-    } else {
-        if (btn) btn.textContent = "🔊 قارئ الشاشة الخارجي: معطل";
-        speak("تم إيقاف وضع قارئ الشاشة الخارجي وتفعيل المساعد الصوتي للمنصة.");
-    }
+    ui.toggleScreenReaderMode();
+    screenReaderMode = ui.screenReaderMode;
 }
 
-async function speakWithGeminiTTS(text) {
-    const wave = document.getElementById('audio-visual-wave');
-    try {
-        const apiKey = getGeminiApiKey();
-        if (!apiKey) {
-            fallbackLocalSpeak(text);
-            return;
-        }
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-
-        const payload = {
-            contents: [{
-                parts: [{ text: `تحدث باللغة العربية الفصحى بصوت دافئ وودود للغاية ومعبّر للأطفال المكفوفين: ${text}` }]
-            }],
-            generationConfig: {
-                responseModalities: ["AUDIO"],
-                speechConfig: {
-                    voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName: "Puck" }
-                    }
-                }
-            }
-        };
-
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-        const part = result?.candidates?.[0]?.content?.parts?.[0];
-        const audioData = part?.inlineData?.data;
-        const mimeType = part?.inlineData?.mimeType;
-
-        if (audioData && mimeType && mimeType.startsWith("audio/")) {
-            const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)?.[1] || "24000", 10);
-            const pcmBuffer = base64ToArrayBuffer(audioData);
-            const wavBlob = pcmToWav(pcmBuffer, sampleRate);
-            const audioUrl = URL.createObjectURL(wavBlob);
-
-            if (activeAudioElement) {
-                activeAudioElement.pause();
-            }
-            activeAudioElement = new Audio(audioUrl);
-            activeAudioElement.onended = () => { if (wave) wave.classList.remove('playing'); };
-            activeAudioElement.play().catch(error => {
-                console.warn("Autoplay policy blocked Audio.play():", error);
-                if (wave) wave.classList.remove('playing');
-                showAutoplayPrompt(text);
-            });
-        } else {
-            fallbackLocalSpeak(text);
-        }
-    } catch (error) {
-        console.error("Gemini TTS Error:", error);
-        fallbackLocalSpeak(text);
-    }
-}
-
-function showAutoplayPrompt(pendingText) {
-    let prompt = document.getElementById('autoplay-unlock-prompt');
-    if (!prompt) {
-        prompt = document.createElement('div');
-        prompt.id = 'autoplay-unlock-prompt';
-        prompt.className = 'fixed inset-0 bg-black bg-opacity-95 z-50 flex flex-col items-center justify-center p-4 text-center';
-        prompt.innerHTML = `
-            <div class="card p-8 rounded-3xl max-w-md border-4 border-yellow-400 space-y-6 bg-slate-900 text-yellow-400">
-                <svg class="w-16 h-16 mx-auto text-yellow-400 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
-                <h1 id="auth-title" class="text-4xl font-black mt-3" data-i18n="authTitle">كلاود سكول | Cloud School</h1>
-                <p class="text-white font-bold text-lg">يرجى الضغط على الزر أدناه لتفعيل الصوت والمساعد الصوتي التفاعلي لـ Cloud School.</p>
-                <button id="btn-unlock-audio" class="w-full p-4 bg-yellow-400 text-black font-black text-xl rounded-xl large-touch-target hover:bg-yellow-300 transition btn-interactive">
-                    تشغيل الصوت والمساعد 🎙️
-                </button>
-            </div>
-        `;
-        document.body.appendChild(prompt);
-
-        const unlockBtn = document.getElementById('btn-unlock-audio');
-        unlockBtn.addEventListener('click', () => {
-            prompt.remove();
-            const silentAudio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAAA");
-            silentAudio.play().then(() => {
-                speak(pendingText);
-            }).catch(e => {
-                console.warn("Autoplay bypass welcome failed, trying speak directly:", e);
-                speak(pendingText);
-            });
-        });
-        setupAccessibleVoices();
-    }
-}
-
-function fallbackLocalSpeak(text) {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ar-EG';
-    utterance.onend = () => {
-        const wave = document.getElementById('audio-visual-wave');
-        if (wave) wave.classList.remove('playing');
-    };
-    window.speechSynthesis.speak(utterance);
-}
-
-function base64ToArrayBuffer(base64) {
-    const binaryString = window.atob(base64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes.buffer;
-}
-
-function pcmToWav(pcm16Buffer, sampleRate) {
-    const buffer = new ArrayBuffer(44 + pcm16Buffer.byteLength);
-    const view = new DataView(buffer);
-
-    view.setUint32(0, 0x52494646, false);
-    view.setUint32(4, 36 + pcm16Buffer.byteLength, true);
-    view.setUint32(8, 0x57415645, false);
-    view.setUint32(12, 0x666d7420, false);
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 1 * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    view.setUint32(36, 0x64617461, false);
-    view.setUint32(40, pcm16Buffer.byteLength, true);
-
-    const pcmView = new Int16Array(pcm16Buffer);
-    for (let i = 0; i < pcmView.length; i++) {
-        view.setInt16(44 + i * 2, pcmView[i], true);
-    }
-
-    return new Blob([buffer], { type: 'audio/wav' });
-}
+async // TTS, Audio, and conversion functions — managed by src/ui.js and src/gemini.js modules
 
 function setupAccessibleVoices() {
-    if (accessibleVoicesController) {
-        accessibleVoicesController.abort();
-    }
-    accessibleVoicesController = new AbortController();
-    const signal = accessibleVoicesController.signal;
-
-    document.querySelectorAll('button, a, input, textarea, select, [role="button"]').forEach(el => {
-        el.addEventListener('focus', () => {
-            const textToSpeak = el.getAttribute('aria-label') || el.innerText || el.placeholder || el.value || '';
-            if (textToSpeak) {
-                speak(textToSpeak);
-            }
-        }, { signal });
-
-        el.addEventListener('mouseenter', () => {
-            if (activeRole === 'student') {
-                const textToSpeak = el.getAttribute('aria-label') || el.innerText || el.placeholder || el.value || '';
-                if (textToSpeak) {
-                    speak(textToSpeak);
-                }
-            }
-        }, { signal });
-    });
+    ui.setupAccessibleVoices();
 }
 
 function toggleAudioCoPilot() {
-    audioCoPilotEnabled = !audioCoPilotEnabled;
-    const btn = document.getElementById('audio-co-pilot-toggle');
-    if (audioCoPilotEnabled) {
-        btn.textContent = "🔊 قارئ الشاشة: مفعل";
-        btn.setAttribute('aria-pressed', 'true');
-        speak("تم تفعيل القارئ الصوتي المدمج بنجاح.");
-    } else {
-        btn.textContent = "🔇 قارئ الشاشة: معطل";
-        btn.setAttribute('aria-pressed', 'false');
-        window.speechSynthesis.cancel();
-        if (activeAudioElement) {
-            activeAudioElement.pause();
-            activeAudioElement = null;
-        }
-    }
+    ui.toggleAudioCoPilot();
 }
 
 function adjustTextSize(direction) {
-    currentSizeOffset += direction;
-    if (currentSizeOffset < -2) currentSizeOffset = -2;
-    if (currentSizeOffset > 6) currentSizeOffset = 6;
-
-    const baseSizes = [1, 1.125, 1.25, 1.5, 1.75, 2, 2.5, 3];
-    const chosenSize = baseSizes[1 + currentSizeOffset] || 1.125;
-    document.documentElement.style.setProperty('--base-text-size', `${chosenSize}rem`);
-
-    speak(`تم تعديل حجم الخط بنسبة ${Math.round(chosenSize * 100)} في المئة.`);
+    ui.adjustTextSize(direction);
 }
 
 function setTheme(theme) {
-    const body = document.body;
-    body.className = body.className.replace(/theme-\S+/g, '');
-    if (theme === 'dark-hc') {
-        body.classList.add('theme-dark-high-contrast');
-        speak("تم تفعيل وضع التباين الداكن الموصى به.");
-    } else if (theme === 'light-hc') {
-        body.classList.add('theme-light-high-contrast');
-        speak("تم تفعيل وضع التباين الفاتح.");
-    } else if (theme === 'classic') {
-        body.classList.add('theme-classic');
-        speak("تم تفعيل السمة الزرقاء الكلاسيكية.");
-    }
+    ui.setTheme(theme);
 }
-
-let audioRecorderMimeType = 'audio/webm'; // Default, will be updated by browser
 
 function toggleAudioRecording() {
-    const micBtn = document.getElementById('btn-mic-input');
-    const aiMicBtn = document.getElementById('btn-ai-mic'); // Just in case AI tutor has one
-
-    if (isRecording) {
-        if (mediaRecorder && mediaRecorder.state !== "inactive") {
-            mediaRecorder.stop();
-        }
-        isRecording = false;
-        if (micBtn) micBtn.classList.remove('bg-red-600', 'animate-pulse');
-        if (aiMicBtn) aiMicBtn.classList.remove('bg-red-600', 'animate-pulse');
-        speak("انتهى التسجيل. جاري تفريغ الصوت عبر الذكاء الاصطناعي، يرجى الانتظار...");
-    } else {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            speak("عذراً، الميكروفون غير مدعوم في هذا المتصفح.");
-            return;
-        }
-
-        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-            mediaRecorder = new MediaRecorder(stream);
-            audioRecorderMimeType = mediaRecorder.mimeType || 'audio/webm';
-            audioChunks = [];
-            
-            mediaRecorder.ondataavailable = e => {
-                if (e.data.size > 0) {
-                    audioChunks.push(e.data);
-                }
-            };
-
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: audioRecorderMimeType });
-                audioChunks = [];
-                
-                try {
-                    const base64Audio = await blobToBase64(audioBlob);
-                    await transcribeAudioWithGemini(base64Audio, audioRecorderMimeType);
-                } catch (err) {
-                    console.error("Error processing audio:", err);
-                    speak("حدث خطأ أثناء معالجة الصوت.");
-                }
-            };
-
-            mediaRecorder.start();
-            isRecording = true;
-            if (micBtn) micBtn.classList.add('bg-red-600', 'animate-pulse');
-            if (aiMicBtn) aiMicBtn.classList.add('bg-red-600', 'animate-pulse');
-            speak("بدأ التسجيل. تحدث الآن ثم اضغط زر الميكروفون مرة أخرى للإيقاف.");
-        }).catch(err => {
-            console.error("Microphone access error:", err);
-            speak("عذراً، لم أتمكن من الوصول إلى الميكروفون. يرجى السماح بالصلاحيات.");
-        });
-    }
+    ui.toggleAudioRecording();
+    isRecording = ui.getIsRecording();
 }
 
-function blobToBase64(blob) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
-}
-
-async function transcribeAudioWithGemini(base64Audio, mimeType) {
-    const apiKey = getGeminiApiKey();
-    if (!apiKey) {
-        speak("يرجى إضافة مفتاح Gemini السري من لوحة الإدارة أولاً لتفعيل هذه الميزة.");
-        return;
-    }
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-    const payload = {
-        contents: [{
-            parts: [
-                { text: "أنت تستمع إلى مقطع صوتي. قم بتفريغ ما يقال حرفياً باللغة العربية مع تصحيح أي أخطاء إملائية. أكتب النص المفرغ فقط بدون أي إضافات أو تعليقات خارجية." },
-                {
-                    inlineData: {
-                        mimeType: mimeType,
-                        data: base64Audio
-                    }
-                }
-            ]
-        }]
-    };
-
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            
-            if (text.trim()) {
-                const subAssignments = document.getElementById('student-sub-assignments');
-                const ansTextarea = document.getElementById('assignment-student-answer');
-                if (ansTextarea && subAssignments && !subAssignments.classList.contains('hidden')) {
-                    ansTextarea.value += (ansTextarea.value ? " " : "") + text.trim();
-                    speak("تم التقاط الصوت بنجاح.");
-                }
-
-                const subAiTutor = document.getElementById('student-sub-ai-tutor');
-                const aiQueryTextarea = document.getElementById('ai-tutor-query');
-                if (aiQueryTextarea && subAiTutor && !subAiTutor.classList.contains('hidden')) {
-                    aiQueryTextarea.value = text.trim();
-                    speak("تم كتابة سؤالك بنجاح.");
-                }
-            } else {
-                 speak("لم أتمكن من سماع شيء واضح. حاول مرة أخرى.");
-            }
-        } else {
-             speak("تعذر تفريغ الصوت عبر الذكاء الاصطناعي. حاول مجدداً.");
-        }
-    } catch (error) {
-        console.error("Audio Transcription Error:", error);
-        speak("حدث خطأ أثناء الاتصال بالخادم لتفريغ الصوت.");
-    }
-}
+// Audio transcription — managed by src/ui.js module
 
 function toggleRegFields() {
     const role = document.getElementById('reg-role').value;
@@ -787,43 +390,24 @@ function switchRole(role) {
         renderAdminDashboard();
     }
 
-    setTimeout(setupAccessibleVoices, 200);
+    // نقل التركيز إلى عنوان الواجهة الجديدة
+    setTimeout(() => {
+        setupAccessibleVoices();
+        const viewMap = { student: 'student-welcome-msg', teacher: 'view-teacher', parent: 'view-parent', admin: 'view-admin' };
+        const targetId = viewMap[role];
+        if (targetId) {
+            const el = document.getElementById(targetId);
+            if (el && el.tagName === 'H2') el.focus();
+        }
+    }, 200);
 }
 
 async function callGeminiAPI(userQuery, systemPrompt, maxRetries = 5) {
-    const apiKey = getGeminiApiKey();
-    if (!apiKey) {
-        return "يرجى إضافة مفتاح Gemini من لوحة التحكم لتتمكن من استخدام هذه الميزة.";
-    }
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-    const payload = {
-        contents: [{ parts: [{ text: userQuery }] }],
-        systemInstruction: {
-            parts: [{ text: systemPrompt }]
-        }
-    };
-
-    let delay = 1000;
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                return result.candidates?.[0]?.content?.parts?.[0]?.text || "لا تتوفر إجابة حالياً.";
-            }
-        } catch (error) {
-            if (i === maxRetries - 1) {
-                throw new Error("فشل الاتصال بخادم الذكاء الاصطناعي بعد عدة محاولات.");
-            }
-        }
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2;
+    try {
+        return await callGemini(userQuery, systemPrompt, maxRetries);
+    } catch (error) {
+        handleError('GeminiAPI', error);
+        return "عذراً، تعذر الاتصال بخادم الذكاء الاصطناعي.";
     }
 }
 
@@ -928,49 +512,22 @@ async function startAiStoryRound(choiceIndex = null) {
 
 async function analyzeImageWithGemini() {
     if (!uploadedImageBase64) {
-        speak("الرجاء تحديد ملف صورة توضيحية أولاً من خلال الزر المتاح.");
+        speak("الرجاء تحديد ملف صورة توضيحية أولاً.");
         return;
     }
 
     const responseBox = document.getElementById('vision-response-box');
     responseBox.classList.remove('hidden');
-    showLoadingSpinner('vision-response-text', 'جاري إرسال الصورة إلى Gemini لتحليلها...');
-    speak("بدأ محلل الرسوم المخطط له، يرجى الصبر ريثما يتم إنتاج الشرح الصوتي.");
+    showLoadingSpinner('vision-response-text', 'جاري تحليل الصورة...');
+    speak("بدأ التحليل، يرجى الانتظار.");
 
     try {
-        const apiKey = "";
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-        const payload = {
-            contents: [{
-                parts: [
-                    { text: "أنت خبير في تبسيط ووصف الصور التعليمية، المخططات، الخلايا، الجداول، والخرائط الجغرافية للأطفال والطلاب المكفوفين وضعاف البصر. قدم وصفاً لفظياً مفصلاً ودقيقاً للغاية لهذه الصورة، موضحاً العناصر، التسميات، والعلاقات بينها، بحيث يستطيع الكفيف تماماً تخيلها وفهم المضمون العلمي الذي بداخلها كأنه يراها. تحدث بلغة عربية فصحى مشوقة وتجنب الرموز المعقدة." },
-                    {
-                        inlineData: {
-                            mimeType: uploadedImageMime,
-                            data: uploadedImageBase64
-                        }
-                    }
-                ]
-            }]
-        };
-
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-        const description = result.candidates?.[0]?.content?.parts?.[0]?.text || "تعذر توليد وصف للصورة حالياً.";
-
+        const description = await describeImage(uploadedImageBase64, uploadedImageMime);
         document.getElementById('vision-response-text').textContent = description;
         speak(description);
-
     } catch (error) {
-        console.error("Gemini Vision Error:", error);
-        document.getElementById('vision-response-text').textContent = "حدث خطأ في الاتصال بنظام تحليل الرسوم بالذكاء الاصطناعي.";
-        speak("عذراً، تعذر تحليل الصورة.");
+        handleError('analyzeImage', error);
+        document.getElementById('vision-response-text').textContent = "تعذر تحليل الصورة.";
     }
 }
 
@@ -1097,12 +654,24 @@ function openStudentSection(section) {
     }
 
     container.scrollIntoView({ behavior: 'smooth' });
-    setTimeout(setupAccessibleVoices, 200);
+    // تحسين إمكانية الوصول — نقل التركيز إلى عنوان القسم
+    setTimeout(() => {
+        setupAccessibleVoices();
+        ui.focusElement('student-section-title');
+    }, 200);
 }
 
 function closeStudentSection() {
     document.getElementById('student-section-container').classList.add('hidden');
     controlAudiobook('stop');
+    // إعادة التركيز إلى زر القسم المفتوح سابقاً
+    const sections = ['books', 'assignments', 'image-describer', 'games', 'ai-tutor'];
+    const activeBtn = document.querySelector(`[data-student-section].bg-yellow-400`);
+    if (activeBtn) {
+        activeBtn.focus();
+    } else {
+        document.getElementById('main-content')?.focus();
+    }
     speak("تم العودة إلى الشاشة الرئيسية للطالب.");
 }
 
@@ -1114,11 +683,11 @@ function renderStudentBooks() {
         const item = document.createElement('div');
         item.className = 'card p-6 rounded-xl flex flex-col justify-between items-start gap-4';
         item.innerHTML = `
-            <h4 class="text-2xl font-black">${b.title}</h4>
-            <p class="text-sm line-clamp-3">${b.content}</p>
+            <h4 class="text-2xl font-black">${escapeHtml(b.title)}</h4>
+            <p class="text-sm line-clamp-3">${escapeHtml(b.content)}</p>
             <div class="flex gap-2 w-full flex-wrap">
-                <button data-action="read-book" data-book-id="${b.id}" class="flex-1 p-3 bg-yellow-500 text-black font-bold rounded hover:bg-yellow-400 btn-interactive">📖 قراءة بذكاء اصطناعي فائق</button>
-                <button data-action="play-book" data-book-id="${b.id}" class="flex-1 p-3 bg-blue-600 text-white font-bold rounded hover:bg-blue-500 btn-interactive">🎧 الاستماع للكتاب الصوتي</button>
+                <button data-action="read-book" data-book-id="${escapeHtml(b.id)}" class="flex-1 p-3 bg-yellow-500 text-black font-bold rounded hover:bg-yellow-400 btn-interactive">📖 قراءة بذكاء اصطناعي فائق</button>
+                <button data-action="play-book" data-book-id="${escapeHtml(b.id)}" class="flex-1 p-3 bg-blue-600 text-white font-bold rounded hover:bg-blue-500 btn-interactive">🎧 الاستماع للكتاب الصوتي</button>
             </div>
         `;
         grid.appendChild(item);
@@ -1180,10 +749,10 @@ function renderStudentAssignments() {
         item.className = 'card p-6 rounded-xl flex justify-between items-center flex-wrap gap-4';
         item.innerHTML = `
             <div>
-                <h4 class="text-2xl font-black">${a.title}</h4>
+                <h4 class="text-2xl font-black">${escapeHtml(a.title)}</h4>
                 <span class="text-sm px-2 py-1 bg-yellow-400 text-black rounded font-bold">${a.type === 'mcq' ? 'اختبار اختيار من متعدد' : 'واجب مقالي نصي'}</span>
             </div>
-            <button data-action="start-quiz" data-quiz-id="${a.id}" class="p-4 bg-green-600 text-white font-black text-lg rounded-xl hover:bg-green-500 large-touch-target btn-interactive">بدء الحل الفوري 🏁</button>
+            <button data-action="start-quiz" data-quiz-id="${escapeHtml(a.id)}" class="p-4 bg-green-600 text-white font-black text-lg rounded-xl hover:bg-green-500 large-touch-target btn-interactive">بدء الحل الفوري 🏁</button>
         `;
         list.appendChild(item);
     });
@@ -1554,45 +1123,10 @@ function endGame() {
 }
 
 function playSuccessChime() {
-    try {
-        const ctx = getAudioContext();
-        if (!ctx) return;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(523.25, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.2);
-
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.3);
-    } catch (e) { console.log(e); }
+    ui.playSuccessChime();
 }
-
 function playFailChime() {
-    try {
-        const ctx = getAudioContext();
-        if (!ctx) return;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(80, ctx.currentTime + 0.3);
-
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.3);
-    } catch (e) { console.log(e); }
+    ui.playFailChime();
 }
 
 function startAITutorSpeech() {
@@ -1692,12 +1226,12 @@ function renderTeacherSubmissions() {
     localData.submissions.forEach((s, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="p-3 border border-current font-bold">${s.studentName}</td>
-            <td class="p-3 border border-current">${s.quizTitle}</td>
-            <td class="p-3 border border-current font-mono text-xs">${s.studentAnswer}</td>
+            <td class="p-3 border border-current font-bold">${escapeHtml(s.studentName)}</td>
+            <td class="p-3 border border-current">${escapeHtml(s.quizTitle)}</td>
+            <td class="p-3 border border-current font-mono text-xs">${escapeHtml(s.studentAnswer)}</td>
             <td class="p-3 border border-current">
-                <span class="font-bold text-yellow-400">الدرجة: ${s.initialScore}</span><br>
-                <span class="text-xs text-gray-300 block max-w-xs overflow-hidden text-ellipsis">${s.graderFeedback}</span>
+                <span class="font-bold text-yellow-400">الدرجة: ${escapeHtml(String(s.initialScore))}</span><br>
+                <span class="text-xs text-gray-300 block max-w-xs overflow-hidden text-ellipsis">${escapeHtml(s.graderFeedback)}</span>
             </td>
             <td class="p-3 border border-current">
                 <button data-action="grade-ai" data-index="${idx}" class="px-2 py-1 bg-purple-600 text-white font-bold rounded text-xs btn-interactive">🤖 تصحيح وتغذية AI</button>
@@ -1734,10 +1268,10 @@ function renderParentDashboard() {
         item.className = 'p-4 border-2 border-current rounded-xl flex justify-between items-center';
         item.innerHTML = `
             <div>
-                <h4 class="font-bold text-xl">${s.quizTitle}</h4>
-                <p class="text-xs text-gray-300">وقت الحل: ${s.timestamp}</p>
+                <h4 class="font-bold text-xl">${escapeHtml(s.quizTitle)}</h4>
+                <p class="text-xs text-gray-300">وقت الحل: ${escapeHtml(s.timestamp)}</p>
             </div>
-            <span class="text-2xl font-black text-yellow-400">${s.initialScore} / 100</span>
+            <span class="text-2xl font-black text-yellow-400">${escapeHtml(String(s.initialScore))} / 100</span>
         `;
         list.appendChild(item);
     });
@@ -1778,121 +1312,45 @@ function renderAdminDashboard() {
 // ==================== Firebase ====================
 
 function initFirebase() {
-    if (Object.keys(firebaseConfig).length > 0) {
-        app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        
-        // تفعيل الأوفلاين
-        enableIndexedDbPersistence(db).catch((err) => {
-            if (err.code == 'failed-precondition') {
-                console.warn('Multiple tabs open, offline persistence disabled.');
-            } else if (err.code == 'unimplemented') {
-                console.warn('Browser does not support offline persistence.');
-            }
-        });
-
-        auth = getAuth(app);
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                isAuthReady = true;
-                const userIdDisplay = document.getElementById('user-id-display');
-                if (userIdDisplay) {
-                    userIdDisplay.textContent = `ID: ${userId.substring(0, 8)}`;
-                }
-                syncFromFirebase();
-            } else {
-                try {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (e) {
-                    console.error("Authentication failed: ", e);
-                }
-            }
-        });
-    }
+    initFirebaseModule();
 }
 
-async function saveBookToFirebase(book) {
-    if (!isAuthReady || !db) return;
-    try {
-        const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'curriculum_modules');
-        await addDoc(colRef, { ...book, createdAt: serverTimestamp() });
-    } catch (e) { console.error(e); }
-}
+function saveBookToFirebase(book) { saveBook(book); }
+function saveQuizToFirebase(quiz) { saveQuiz(quiz); }
+function saveSubmissionToFirebase(sub) { saveSubmission(sub); }
+function saveStudentToFirebase(student) { saveStudent(student); }
 
-async function saveQuizToFirebase(quiz) {
-    if (!isAuthReady || !db) return;
-    try {
-        const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'assignments');
-        await addDoc(colRef, { ...quiz, createdAt: serverTimestamp() });
-    } catch (e) { console.error(e); }
-}
-
-async function saveSubmissionToFirebase(sub) {
-    if (!isAuthReady || !db) return;
-    try {
-        const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'submissions');
-        await addDoc(colRef, { ...sub, userId: userId, createdAt: serverTimestamp() });
-    } catch (e) { console.error(e); }
-}
-
-async function saveStudentToFirebase(student) {
-    if (!isAuthReady || !db) return;
-    try {
-        const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'students');
-        await addDoc(colRef, { ...student, createdAt: serverTimestamp() });
-    } catch (e) { console.error(e); }
-}
-
-async function syncFromFirebase() {
-    if (!isAuthReady || !db) return;
-
-    try {
-        const booksCol = collection(db, 'artifacts', appId, 'public', 'data', 'curriculum_modules');
-        onSnapshot(booksCol, (snapshot) => {
-            let cloudBooks = [];
-            snapshot.forEach(doc => cloudBooks.push({ id: doc.id, ...doc.data() }));
-            if (cloudBooks.length > 0) {
-                localData.books = cloudBooks;
-                // [إصلاح #3] استخدام classList.contains بدلاً من style.display
-                if (!document.getElementById('student-sub-books').classList.contains('hidden')) {
-                    renderStudentBooks();
-                }
+function syncFromFirebase() {
+    syncFromFirebaseModule((collectionName, items) => {
+        if (collectionName === 'books') {
+            localData.books = items;
+            if (!document.getElementById('student-sub-books')?.classList.contains('hidden')) {
+                renderStudentBooks();
             }
-        }, (err) => console.log(err));
-
-        const quizCol = collection(db, 'artifacts', appId, 'public', 'data', 'assignments');
-        onSnapshot(quizCol, (snapshot) => {
-            let cloudQuizzes = [];
-            snapshot.forEach(doc => cloudQuizzes.push({ id: doc.id, ...doc.data() }));
-            if (cloudQuizzes.length > 0) {
-                localData.assignments = cloudQuizzes;
-                if (!document.getElementById('student-sub-assignments').classList.contains('hidden')) {
-                    renderStudentAssignments();
-                }
+        } else if (collectionName === 'assignments') {
+            localData.assignments = items;
+            if (!document.getElementById('student-sub-assignments')?.classList.contains('hidden')) {
+                renderStudentAssignments();
             }
-        }, (err) => console.log(err));
-
-        const subCol = collection(db, 'artifacts', appId, 'public', 'data', 'submissions');
-        onSnapshot(subCol, (snapshot) => {
-            let cloudSubs = [];
-            snapshot.forEach(doc => cloudSubs.push(doc.data()));
-            if (cloudSubs.length > 0) {
-                localData.submissions = cloudSubs;
-                renderTeacherSubmissions();
-                renderParentDashboard();
-            }
-        }, (err) => console.log(err));
-
-    } catch (e) { console.error("مزامنة Firestore غير مكتملة: ", e); }
+        } else if (collectionName === 'submissions') {
+            localData.submissions = items;
+            renderTeacherSubmissions();
+            renderParentDashboard();
+        }
+    });
 }
 
 // ==================== [إصلاح #11] ربط الأحداث عبر addEventListener ====================
+
+function updateProxyStatus() {
+    ui.checkProxyHealth().then((ok) => {
+        document.getElementById('proxy-status-icon').textContent = ok ? '🟢' : '🔴';
+        const el = document.getElementById('proxy-status');
+        if (el) {
+            el.textContent = ok ? (i18n.proxyConnected || 'متصل') : (i18n.proxyDisconnected || 'غير متصل');
+        }
+    });
+}
 
 function bindAllEvents() {
     // Header controls
@@ -1970,11 +1428,28 @@ function bindAllEvents() {
     // Screen Reader Mode Toggle
     document.getElementById('btn-screen-reader-mode')?.addEventListener('click', toggleScreenReaderMode);
 
-    // Save API Key
-    document.getElementById('btn-save-api-key')?.addEventListener('click', () => {
-        const key = document.getElementById('admin-api-key-input').value.trim();
-        localStorage.setItem('geminiApiKey', key);
-        alert('تم حفظ المفتاح محلياً بنجاح!');
+    // Proxy health check
+    const savedProxyUrl = localStorage.getItem('cloudSchoolProxyUrl');
+    const proxyUrlInput = document.getElementById('proxy-url-input');
+    if (proxyUrlInput) {
+        proxyUrlInput.value = savedProxyUrl || 'http://127.0.0.1:3001';
+    }
+    updateProxyStatus();
+
+    // Proxy URL save/reset
+    document.getElementById('btn-save-proxy-url')?.addEventListener('click', () => {
+        const val = document.getElementById('proxy-url-input')?.value.trim();
+        if (val) {
+            localStorage.setItem('cloudSchoolProxyUrl', val);
+            updateProxyStatus();
+            speak('تم حفظ رابط الخادم الوسيط');
+        }
+    });
+    document.getElementById('btn-reset-proxy-url')?.addEventListener('click', () => {
+        localStorage.removeItem('cloudSchoolProxyUrl');
+        if (proxyUrlInput) proxyUrlInput.value = 'http://127.0.0.1:3001';
+        updateProxyStatus();
+        speak('تم إعادة تعيين رابط الخادم الوسيط إلى الإعدادات الافتراضية');
     });
 
     // Screen braille dots
@@ -2023,19 +1498,28 @@ function bindAllEvents() {
 // ==================== تهيئة التطبيق ====================
 
 window.onload = function () {
+    // تهيئة معالج الأخطاء العام
+    setupGlobalErrorHandler();
+
+    // تحميل السمات وحجم الخط المحفوظ
+    ui.loadTheme();
+    ui.loadTextSize();
+
+    // تهيئة Firebase
     initFirebase();
-    // initSpeechRecognition(); // Removed in favor of MediaRecorder + Gemini
+
+    // تهيئة الصوت وبرايل
     setupAccessibleVoices();
     setupPerkinsKeyboard();
     toggleRegFields();
     
-    // Load saved API key into input if it exists
-    const savedKey = localStorage.getItem('geminiApiKey');
-    if (savedKey) {
-        const keyInput = document.getElementById('admin-api-key-input');
-        if (keyInput) keyInput.value = savedKey;
-    }
     bindAllEvents();
+
+    // تحسين إمكانية الوصول — إدارة التركيز
+    document.addEventListener('section-opened', (e) => {
+        const sectionTitle = document.getElementById('student-section-title');
+        if (sectionTitle) setTimeout(() => sectionTitle.focus(), 100);
+    });
 
     speak("مرحباً بك في منصة كلاود سكول التعليمية المحدثة لضعاف البصر والمكفوفين. يرجى تسجيل الدخول أولاً للبدء.");
 };

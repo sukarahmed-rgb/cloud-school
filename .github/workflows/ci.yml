@@ -28,13 +28,13 @@ jobs:
         run: npm ci || npm install
 
       - name: Run Unit Tests (Jest)
-        run: npm test || true  # We use || true in case we haven't mocked DOM fully
+        run: npm test
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
-        
+
       - name: Run E2E Tests (Playwright)
-        run: npx playwright test --project=chromium || true
+        run: npx playwright test --project=chromium
 
   deploy:
     name: Deploy to GitHub Pages
@@ -59,3 +59,15 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  notify:
+    name: Notify Deployment
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "✅ Cloud School deployed successfully!"
+          echo "📅 Date: $(date)"
+          echo "🔗 URL: https://$(echo ${{ github.repository }} | cut -d'/' -f1).github.io/$(echo ${{ github.repository }} | cut -d'/' -f2)/"

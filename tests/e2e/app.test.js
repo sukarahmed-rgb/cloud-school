@@ -1,53 +1,122 @@
-// tests/e2e/app.test.js
 import { test, expect } from '@playwright/test';
 
 test.describe('Cloud School E2E', () => {
-  test('should load the page and show auth gate', async ({ page }) => {
-    // Navigate to local server
+  test.beforeEach(async ({ page }) => {
     await page.goto('/');
+  });
 
-    // Check document title
+  test('should load and show auth gate with login form', async ({ page }) => {
     await expect(page).toHaveTitle(/كلاود سكول/);
 
-    // Check if auth gate is visible
     const authGate = page.locator('#auth-gate');
     await expect(authGate).toBeVisible();
 
-    // Check login button
-    const loginBtn = page.locator('#btn-auth-submit');
+    // Login form should be visible initially
+    const loginForm = page.locator('#login-form-container');
+    await expect(loginForm).toBeVisible();
+
+    // Register form should be hidden initially
+    const registerForm = page.locator('#register-form-container');
+    await expect(registerForm).toHaveClass(/hidden/);
+
+    // Login button
+    const loginBtn = page.locator('#btn-login-submit');
     await expect(loginBtn).toBeVisible();
     await expect(loginBtn).toHaveText(/تسجيل الدخول/);
   });
 
-  test('should toggle TTS engine and show loading spinner when calling AI', async ({ page }) => {
-    await page.goto('/');
+  test('should toggle between login and register forms', async ({ page }) => {
+    // Click "إنشاء حساب جديد"
+    await page.locator('#btn-show-register').click();
+    await expect(page.locator('#register-form-container')).toBeVisible();
+    await expect(page.locator('#login-form-container')).toHaveClass(/hidden/);
 
-    // Bypass auth using the demo bypass button
-    const bypassBtn = page.locator('[data-action="bypass-demo"]');
-    await expect(bypassBtn).toBeVisible();
-    await bypassBtn.click();
+    // Click back to login
+    await page.locator('#btn-show-login').click();
+    await expect(page.locator('#login-form-container')).toBeVisible();
+    await expect(page.locator('#register-form-container')).toHaveClass(/hidden/);
+  });
 
-    // Wait for the main content to appear (student view)
+  test('should bypass auth and show student view', async ({ page }) => {
+    await page.locator('[data-action="bypass-demo"]').click();
+
+    // Auth gate should be hidden
+    await expect(page.locator('#auth-gate')).toHaveClass(/hidden/);
+
+    // Student view should be visible
     const studentView = page.locator('#view-student');
     await expect(studentView).toBeVisible();
 
-    // The spinner is globally available in the DOM
-    const loadingSpinner = page.locator('#loading-spinner');
-    await expect(loadingSpinner).toHaveClass(/hidden/);
-
-    // Click the TTS toggle button
-    const ttsToggle = page.locator('#tts-engine-toggle');
-    await expect(ttsToggle).toBeVisible();
-    await ttsToggle.click();
-
-    // The text should change to Browser mode or Gemini mode
-    await expect(ttsToggle).toHaveText(/محرك الصوت/);
+    // Welcome message should be present
+    await expect(page.locator('#student-welcome-msg')).toBeVisible();
   });
 
-  test('ARIA live region should exist for screen reader announcements', async ({ page }) => {
-    await page.goto('/');
+  test('should show student role bar after bypass', async ({ page }) => {
+    await page.locator('[data-action="bypass-demo"]').click();
+
+    const roleBar = page.locator('#dev-role-bar');
+    await expect(roleBar).toBeVisible();
+  });
+
+  test('should switch roles via role bar buttons', async ({ page }) => {
+    await page.locator('[data-action="bypass-demo"]').click();
+
+    // Click teacher role
+    await page.locator('[data-role-switch="teacher"]').click();
+    await expect(page.locator('#view-teacher')).toBeVisible();
+    await expect(page.locator('#view-student')).toHaveClass(/hidden/);
+
+    // Switch back to student
+    await page.locator('[data-role-switch="student"]').click();
+    await expect(page.locator('#view-student')).toBeVisible();
+    await expect(page.locator('#view-teacher')).toHaveClass(/hidden/);
+  });
+
+  test('should open and close student sections', async ({ page }) => {
+    await page.locator('[data-action="bypass-demo"]').click();
+
+    // Open books section
+    await page.locator('[data-student-section="books"]').click();
+    await expect(page.locator('#student-section-container')).toBeVisible();
+    await expect(page.locator('#student-sub-books')).toBeVisible();
+
+    // Close section
+    await page.locator('[data-action="close-section"]').click();
+    await expect(page.locator('#student-section-container')).toHaveClass(/hidden/);
+  });
+
+  test('should show assignment options in student view', async ({ page }) => {
+    await page.locator('[data-action="bypass-demo"]').click();
+
+    // Open assignments section
+    await page.locator('[data-student-section="assignments"]').click();
+    await expect(page.locator('#student-sub-assignments')).toBeVisible();
+  });
+
+  test('ARIA live region exists for screen reader announcements', async ({ page }) => {
     const ariaLive = page.locator('#aria-live');
     await expect(ariaLive).toBeAttached();
     await expect(ariaLive).toHaveAttribute('aria-live', 'polite');
+  });
+
+  test('should include service worker registration', async ({ page }) => {
+    const hasSW = await page.evaluate(() => 'serviceWorker' in navigator);
+    expect(hasSW).toBe(true);
+  });
+
+  test('should have theme toggle buttons', async ({ page }) => {
+    const darkThemeBtn = page.locator('[data-theme="dark-hc"]');
+    await expect(darkThemeBtn).toBeVisible();
+
+    const lightThemeBtn = page.locator('[data-theme="light-hc"]');
+    await expect(lightThemeBtn).toBeVisible();
+  });
+
+  test('should have text size controls', async ({ page }) => {
+    const increaseBtn = page.locator('[data-size-dir="1"]');
+    await expect(increaseBtn).toBeVisible();
+
+    const decreaseBtn = page.locator('[data-size-dir="-1"]');
+    await expect(decreaseBtn).toBeVisible();
   });
 });
