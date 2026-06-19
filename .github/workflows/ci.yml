@@ -35,7 +35,7 @@ jobs:
           node-version: 20
       - run: npm install
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test --project=chromium
+      - run: npx playwright test --project=chromium --reporter=list 2>&1
 
   deploy:
     name: Deploy to GitHub Pages
