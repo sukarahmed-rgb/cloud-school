@@ -21,8 +21,7 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: npx jest --version
-      - run: npx jest tests/unit/simple.test.js --verbose 2>&1
+      - run: npx jest --verbose 2>&1
 
   e2e-tests:
     name: E2E Tests
@@ -35,7 +34,7 @@ jobs:
           node-version: 20
       - run: npm install
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test --project=chromium --reporter=list 2>&1
+      - run: DEBUG=pw:api npx playwright test --project=chromium --reporter=list 2>&1
 
   deploy:
     name: Deploy to GitHub Pages

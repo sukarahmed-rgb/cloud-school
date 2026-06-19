@@ -18,8 +18,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npx http-server . --port 8080 --silent',
-    url: 'http://127.0.0.1:8080',
+    command: 'npx live-server . --port=8080 --no-browser',
+    url: 'http://127.0.0.1:8080/index.html',
     reuseExistingServer: !process.env.CI,
     timeout: 15000,
   },
