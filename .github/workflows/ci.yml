@@ -21,7 +21,10 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: npm test
+      - run: ls node_modules/.bin/
+      - run: node node_modules/.bin/jest --version
+      - run: node node_modules/.bin/jest --showConfig 2>&1 | head -30
+      - run: node node_modules/.bin/jest --verbose 2>&1
 
   e2e-tests:
     name: E2E Tests
