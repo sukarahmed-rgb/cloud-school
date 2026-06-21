@@ -682,5 +682,28 @@
 
     <!-- ملف JavaScript الرئيسي المنفصل -->
     <script type="module" src="cloud_school_app.js"></script>
+    <script>
+        window.addEventListener('error', function(e) {
+            var box = document.createElement('div');
+            box.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:red;color:white;padding:20px;z-index:9999;font-size:18px;direction:ltr';
+            box.textContent = '🚨 ' + (e.error?.message || e.message || 'Unknown error');
+            document.body.appendChild(box);
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            var box = document.createElement('div');
+            box.style.cssText = 'position:fixed;bottom:60px;left:0;right:0;background:orange;color:black;padding:20px;z-index:9999;font-size:18px;direction:ltr';
+            box.textContent = '⚠️ ' + (e.reason?.message || 'Unhandled Promise rejection');
+            document.body.appendChild(box);
+        });
+        setTimeout(function() {
+            var ok = document.getElementById('btn-show-register');
+            if (!ok) {
+                var box = document.createElement('div');
+                box.style.cssText = 'position:fixed;top:0;left:0;right:0;background:blue;color:white;padding:20px;z-index:9999;font-size:18px';
+                box.textContent = '⏳ Module not loaded yet...';
+                document.body.appendChild(box);
+            }
+        }, 5000);
+    </script>
 </body>
 </html>

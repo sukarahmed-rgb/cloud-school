@@ -194,8 +194,15 @@ function toggleRegFields() {
         studentFields.classList.add('hidden');
         parentFields.classList.remove('hidden');
         document.getElementById('reg-parent-contact').required = false;
+    } else if (role === 'admin') {
+        ageField.classList.add('hidden');
+        document.getElementById('reg-age').required = false;
+        studentFields.classList.add('hidden');
+        parentFields.classList.add('hidden');
+        document.getElementById('reg-parent-contact').required = false;
     } else {
         ageField.classList.remove('hidden');
+        document.getElementById('reg-age').required = true;
         studentFields.classList.add('hidden');
         parentFields.classList.add('hidden');
         document.getElementById('reg-parent-contact').required = false;

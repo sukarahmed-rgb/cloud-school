@@ -1,9 +1,5 @@
 /** Firebase module - المصادقة والتخزين السحابي */
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, addDoc, collection, onSnapshot, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
 let app = null;
 let db = null;
 let auth = null;
@@ -12,7 +8,8 @@ let isAuthReady = false;
 let snapshotUnsubscribers = [];
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'cloud-school-blind-v1';
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const rawConfig = typeof __firebase_config !== 'undefined' ? __firebase_config : {};
+const firebaseConfig = typeof rawConfig === 'string' ? JSON.parse(rawConfig) : rawConfig;
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 export function getUserId() { return userId; }
@@ -20,32 +17,44 @@ export function isReady() { return isAuthReady; }
 export function getDb() { return db; }
 export function getAppId() { return appId; }
 
-export function initFirebase() {
+async function loadFirebaseSDK() {
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
+  const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+  const { getFirestore, addDoc, collection, onSnapshot, serverTimestamp, enableIndexedDbPersistence } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+  return { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, addDoc, collection, onSnapshot, serverTimestamp, enableIndexedDbPersistence };
+}
+
+export async function initFirebase() {
   if (Object.keys(firebaseConfig).length === 0) return;
 
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
+  try {
+    const fb = await loadFirebaseSDK();
+    app = fb.initializeApp(firebaseConfig);
+    db = fb.getFirestore(app);
 
-  enableIndexedDbPersistence(db).catch(err => {
-    if (err.code === 'failed-precondition') console.warn('Firebase: multiple tabs open, offline disabled.');
-    else if (err.code === 'unimplemented') console.warn('Firebase: browser does not support persistence.');
-  });
+    fb.enableIndexedDbPersistence(db).catch(err => {
+      if (err.code === 'failed-precondition') console.warn('Firebase: multiple tabs open, offline disabled.');
+      else if (err.code === 'unimplemented') console.warn('Firebase: browser does not support persistence.');
+    });
 
-  auth = getAuth(app);
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      userId = user.uid;
-      isAuthReady = true;
-      const el = document.getElementById('user-id-display');
-      if (el) el.textContent = `ID: ${userId.substring(0, 8)}`;
-      syncFromFirebase();
-    } else {
-      try {
-        if (initialAuthToken) await signInWithCustomToken(auth, initialAuthToken);
-        else await signInAnonymously(auth);
-      } catch (e) { console.error('Firebase auth failed:', e); }
-    }
-  });
+    auth = fb.getAuth(app);
+    fb.onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        userId = user.uid;
+        isAuthReady = true;
+        const el = document.getElementById('user-id-display');
+        if (el) el.textContent = `ID: ${userId.substring(0, 8)}`;
+        syncFromFirebase();
+      } else {
+        try {
+          if (initialAuthToken) await fb.signInWithCustomToken(auth, initialAuthToken);
+          else await fb.signInAnonymously(auth);
+        } catch (e) { console.error('Firebase auth failed:', e); }
+      }
+    });
+  } catch (e) {
+    console.warn('Firebase SDK not available (offline or blocked):', e.message);
+  }
 }
 
 function getCollection(path) {
