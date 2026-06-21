@@ -153,7 +153,7 @@ function toggleScreenReaderMode() {
     screenReaderMode = ui.screenReaderMode;
 }
 
-async // TTS, Audio, and conversion functions — managed by src/ui.js and src/gemini.js modules
+// TTS, Audio, and conversion functions — managed by src/ui.js and src/gemini.js modules
 
 function setupAccessibleVoices() {
     ui.setupAccessibleVoices();
