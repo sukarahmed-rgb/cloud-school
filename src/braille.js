@@ -1,6 +1,6 @@
 /** Braille module - لغة برايل */
 
-export const arabicBrailleMap = {
+const arabicBrailleMap = {
   '1': 'ا', '1,2': 'ب', '2,3,4,5': 'ت', '1,4,5,6': 'ث',
   '2,4,5': 'ج', '1,5,6': 'ح', '1,3,4,6': 'خ', '1,4,5': 'د',
   '2,3,4,6': 'ذ', '1,2,3,5': 'ر', '1,3,5,6': 'ز', '2,3,4': 'س',
@@ -11,12 +11,12 @@ export const arabicBrailleMap = {
   '2,3,5': '!', '2,5,6': '؟'
 };
 
-export function getBrailleChar(dotsSet) {
+function getBrailleChar(dotsSet) {
   const sorted = Array.from(dotsSet).sort((a, b) => a - b);
   return arabicBrailleMap[sorted.join(',')] || null;
 }
 
-export function getBraillePreview(dotsSet) {
+function getBraillePreview(dotsSet) {
   const sorted = Array.from(dotsSet).sort((a, b) => a - b);
   const keyString = sorted.join(',');
   const mapped = arabicBrailleMap[keyString] || (dotsSet.size > 0 ? 'غير مكتمل' : 'لا يوجد');

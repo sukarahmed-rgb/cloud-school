@@ -5,15 +5,15 @@ const STORAGE_KEYS = {
   theme: 'cloudSchoolTheme',
 };
 
-export let audioCoPilotEnabled = true;
-export let screenReaderMode = false;
-export let ttsEngineMode = localStorage.getItem('cloudSchoolTtsEngine') || 'gemini';
-export let activeAudioElement = null;
-export let accessibleVoicesController = null;
+let audioCoPilotEnabled = true;
+let screenReaderMode = false;
+let ttsEngineMode = localStorage.getItem('cloudSchoolTtsEngine') || 'gemini';
+let activeAudioElement = null;
+let accessibleVoicesController = null;
 let sharedAudioContext = null;
 
 // ====== Audio Context Singleton ======
-export function getAudioContext() {
+function getAudioContext() {
   const Ctor = window.AudioContext || window.webkitAudioContext;
   if (!Ctor) return null;
   if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
@@ -24,7 +24,7 @@ export function getAudioContext() {
 }
 
 // ====== Toast ======
-export function showToast(text) {
+function showToast(text) {
   const toast = document.getElementById('toast-message');
   if (!toast) return;
   toast.textContent = text;
@@ -33,19 +33,19 @@ export function showToast(text) {
 }
 
 // ====== Loading Spinner ======
-export function showLoading(elementId, message) {
+function showLoading(elementId, message) {
   const el = document.getElementById(elementId);
   if (!el) return;
   el.innerHTML = `<div class="loading-overlay"><span class="loading-spinner"></span><span>${escapeHtml(message)}</span></div>`;
 }
 
-export function hideLoading(elementId) {
+function hideLoading(elementId) {
   const el = document.getElementById(elementId);
   if (el) el.innerHTML = '';
 }
 
 // ====== Escape HTML (XSS Protection) ======
-export function escapeHtml(str) {
+function escapeHtml(str) {
   if (!str && str !== 0) return '';
   const div = document.createElement('div');
   div.textContent = String(str);
@@ -53,7 +53,7 @@ export function escapeHtml(str) {
 }
 
 // ====== Speech ======
-export function speak(text) {
+function speak(text) {
   if (!audioCoPilotEnabled) return;
 
   const ariaLive = document.getElementById('aria-live');
@@ -84,7 +84,6 @@ function stopAllAudio() {
 async function speakWithGemini(text) {
   const wave = document.getElementById('audio-visual-wave');
   try {
-    const { speakWithGeminiTTS } = await import('./gemini.js');
     const audioUrl = await speakWithGeminiTTS(text);
     if (!audioUrl) return fallbackSpeak(text, wave);
 
@@ -141,7 +140,7 @@ function showAutoplayPrompt(pendingText) {
 }
 
 // ====== TTS Engine Toggle ======
-export function toggleTtsEngine() {
+function toggleTtsEngine() {
   ttsEngineMode = ttsEngineMode === 'gemini' ? 'browser' : 'gemini';
   localStorage.setItem('cloudSchoolTtsEngine', ttsEngineMode);
   const btn = document.getElementById('tts-engine-toggle');
@@ -154,7 +153,7 @@ export function toggleTtsEngine() {
 }
 
 // ====== Screen Reader Mode ======
-export function toggleScreenReaderMode() {
+function toggleScreenReaderMode() {
   screenReaderMode = !screenReaderMode;
   const btn = document.getElementById('btn-screen-reader-mode');
   if (!btn) return;
@@ -170,7 +169,7 @@ export function toggleScreenReaderMode() {
 }
 
 // ====== Audio Co-Pilot ======
-export function toggleAudioCoPilot() {
+function toggleAudioCoPilot() {
   audioCoPilotEnabled = !audioCoPilotEnabled;
   const btn = document.getElementById('audio-co-pilot-toggle');
   if (!btn) return;
@@ -186,7 +185,7 @@ export function toggleAudioCoPilot() {
 }
 
 // ====== Text Size ======
-export function adjustTextSize(direction) {
+function adjustTextSize(direction) {
   let offset = parseInt(localStorage.getItem(STORAGE_KEYS.sizeOffset) || '0', 10);
   offset += direction;
   if (offset < -2) offset = -2;
@@ -199,7 +198,7 @@ export function adjustTextSize(direction) {
   speak(`${Math.round(chosen * 100)}%`);
 }
 
-export function loadTextSize() {
+function loadTextSize() {
   const offset = parseInt(localStorage.getItem(STORAGE_KEYS.sizeOffset) || '0', 10);
   const sizes = [1, 1.125, 1.25, 1.5, 1.75, 2, 2.5, 3];
   const chosen = sizes[1 + Math.min(Math.max(offset, -2), 6)] || 1.125;
@@ -207,20 +206,20 @@ export function loadTextSize() {
 }
 
 // ====== Themes ======
-export function setTheme(theme) {
+function setTheme(theme) {
   const body = document.body;
   body.className = body.className.replace(/theme-\S+/g, '');
   body.classList.add(`theme-${theme === 'dark-hc' ? 'dark-high-contrast' : theme === 'light-hc' ? 'light-high-contrast' : 'classic'}`);
   localStorage.setItem(STORAGE_KEYS.theme, theme);
 }
 
-export function loadTheme() {
+function loadTheme() {
   const saved = localStorage.getItem(STORAGE_KEYS.theme);
   if (saved) setTheme(saved);
 }
 
 // ====== Accessible Voices (Hover/Focus) ======
-export function setupAccessibleVoices() {
+function setupAccessibleVoices() {
   if (accessibleVoicesController) accessibleVoicesController.abort();
   accessibleVoicesController = new AbortController();
   const signal = accessibleVoicesController.signal;
@@ -242,7 +241,7 @@ export function setupAccessibleVoices() {
 }
 
 // ====== Proxy URL Configuration ======
-export function getProxyBaseUrl() {
+function getProxyBaseUrl() {
   // Allow override via localStorage for development
   const devOverride = localStorage.getItem('cloudSchoolProxyUrl');
   if (devOverride) return devOverride;
@@ -251,7 +250,7 @@ export function getProxyBaseUrl() {
   return 'http://127.0.0.1:3001';
 }
 
-export async function checkProxyHealth() {
+async function checkProxyHealth() {
   try {
     const base = getProxyBaseUrl();
     const res = await fetch(`${base}/api/health`);
@@ -267,9 +266,9 @@ let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
 
-export function getIsRecording() { return isRecording; }
+function getIsRecording() { return isRecording; }
 
-export function toggleAudioRecording() {
+function toggleAudioRecording() {
   const micBtn = document.getElementById('btn-mic-input');
   if (isRecording) {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
@@ -289,7 +288,6 @@ export function toggleAudioRecording() {
         const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
         audioChunks = [];
         try {
-          const { transcribeAudio } = await import('./gemini.js');
           const base64 = await blobToBase64(blob);
           const text = await transcribeAudio(base64, mediaRecorder.mimeType);
           if (text?.trim()) {
@@ -321,11 +319,11 @@ function blobToBase64(blob) {
 }
 
 // ====== Sound Effects ======
-export function playSuccessChime() {
+function playSuccessChime() {
   playTone(523.25, 880, 'sine', 0.3);
 }
 
-export function playFailChime() {
+function playFailChime() {
   playTone(150, 80, 'sawtooth', 0.3);
 }
 
@@ -348,7 +346,7 @@ function playTone(startFreq, endFreq, type, duration) {
 }
 
 // ====== Focus Management ======
-export function focusElement(elementId) {
+function focusElement(elementId) {
   const el = document.getElementById(elementId);
   if (el) {
     el.focus();
@@ -356,7 +354,7 @@ export function focusElement(elementId) {
   }
 }
 
-export function announceToScreenReader(text) {
+function announceToScreenReader(text) {
   const ariaLive = document.getElementById('aria-live');
   if (!ariaLive) return;
   ariaLive.textContent = '';

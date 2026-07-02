@@ -3,12 +3,9 @@
    منصة تعليمية للطلاب المكفوفين وضعاف البصر
    =================================== */
 
-/* استيراد خط تجوال العربي بأوزان متعددة */
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
-
-/* إعدادات الخط الأساسي مع انتقالات سلسة للسمات */
+/* إعدادات الخط الأساسي — خطوط النظام لضمان العمل بدون إنترنت */
 body {
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 

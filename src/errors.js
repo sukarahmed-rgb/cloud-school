@@ -4,7 +4,7 @@ const ERROR_LEVELS = { INFO: 'info', WARN: 'warn', ERROR: 'error', FATAL: 'fatal
 
 const listeners = [];
 
-export function onError(callback) {
+function onError(callback) {
   listeners.push(callback);
 }
 
@@ -31,7 +31,7 @@ function showToast(message, isError = true) {
   setTimeout(() => toast.classList.add('hidden'), 5000);
 }
 
-export function handleError(context, error) {
+function handleError(context, error) {
   const message = error?.message || String(error);
   const level = error?.fatal ? ERROR_LEVELS.FATAL : ERROR_LEVELS.ERROR;
 
@@ -65,7 +65,7 @@ export function handleError(context, error) {
   return { level, context, message };
 }
 
-export function wrapAsync(fn, context) {
+function wrapAsync(fn, context) {
   return async (...args) => {
     try {
       return await fn(...args);
@@ -75,7 +75,7 @@ export function wrapAsync(fn, context) {
   };
 }
 
-export function setupGlobalErrorHandler() {
+function setupGlobalErrorHandler() {
   window.addEventListener('unhandledrejection', (event) => {
     handleError('unhandledRejection', event.reason);
   });

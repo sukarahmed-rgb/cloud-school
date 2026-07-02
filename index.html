@@ -6,16 +6,7 @@
     <title>Cloud School | المنصة السحابية التعليمية الشاملة للمكفوفين</title>
     <meta name="description" content="منصة تعليمية سحابية شاملة مصممة للطلاب المكفوفين وضعاف البصر مع دعم كامل للذكاء الاصطناعي ولغة برايل">
 
-    <!-- إعدادات تطبيق الويب التقدمي (PWA) -->
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#fbbf24">
-    <link rel="apple-touch-icon" href="https://placehold.co/192x192/fbbf24/000000?text=CS">
-
-    <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://www.gstatic.com https://generativelanguage.googleapis.com; style-src 'self' https://fonts.googleapis.com https://cdn.tailwindcss.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://placehold.co data:; connect-src 'self' http://127.0.0.1:3001 https://www.gstatic.com https://generativelanguage.googleapis.com https://firestore.googleapis.com; media-src 'self' blob:;">
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- ملف CSS المنفصل -->
     <link rel="stylesheet" href="cloud_school_styles.css">
@@ -61,10 +52,10 @@
                         <button type="submit" id="btn-login-submit" class="w-full p-4 bg-yellow-400 text-black font-black text-xl rounded-xl large-touch-target hover:bg-yellow-300 transition btn-interactive" data-i18n="loginSubmit">
                             تسجيل الدخول 🔑
                         </button>
-                        <button type="button" id="btn-show-register" class="w-full p-3 bg-gray-800 border-2 border-current text-current font-bold rounded-xl btn-interactive" data-i18n="registerNew">
+                        <button type="button" id="btn-show-register" onclick="document.getElementById('login-form-container').classList.add('hidden');document.getElementById('register-form-container').classList.remove('hidden');document.getElementById('auth-warning-box').classList.add('hidden');try{speak('نموذج إنشاء حساب جديد. اختر نوع الحساب وأدخل بياناتك.');}catch(e){}" class="w-full p-3 bg-gray-800 border-2 border-current text-current font-bold rounded-xl btn-interactive" data-i18n="registerNew">
                             إنشاء حساب جديد 📝
                         </button>
-                        <button type="button" data-action="bypass-demo" class="w-full p-3 bg-gray-900 border-2 border-yellow-400 text-yellow-400 font-bold rounded-xl btn-interactive" data-i18n="demoLogin">
+                        <button type="button" data-action="bypass-demo" onclick="try{var s=function(u){try{window.speak(u);}catch(e){}};window.currentUserSession={name:'علي أحمد الغامدي (طالب)',contact:'0555555555',role:'student',age:14,parentContact:'parent@cloudschool.com'};document.getElementById('auth-gate').classList.add('hidden');document.getElementById('dev-role-bar').classList.remove('hidden');document.getElementById('active-user-badge').textContent='المستخدم: علي أحمد الغامدي (طالب تجريبي)';if(typeof switchRole==='function')switchRole('student');s('تم تسجيل الدخول التجريبي كطالب.');}catch(e){console.error(e);}" class="w-full p-3 bg-gray-900 border-2 border-yellow-400 text-yellow-400 font-bold rounded-xl btn-interactive" data-i18n="demoLogin">
                             تسجيل دخول تجريبي سريع كطالب 🚀
                         </button>
                     </div>
@@ -210,7 +201,7 @@
             </div>
 
             <!-- أزرار الأقسام الرئيسية -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-6">
                 <button data-student-section="books" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="تصفح الكتب والمقررات الدراسية المرفوعة">
                     <svg class="w-10 h-10 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                     <span class="text-2xl font-black mt-4 block group-hover:underline">المناهج والكتب</span>
@@ -239,6 +230,18 @@
                     <svg class="w-10 h-10 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                     <span class="text-2xl font-black mt-4 block group-hover:underline">المعلم الذكي الافتراضي</span>
                     <span class="text-sm mt-2">تحدث مباشرة وسل معلمك المساعد عن أي درس</span>
+                </button>
+
+                <button data-student-section="dialogic-classroom" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group border-2 border-green-400" aria-label="التعليم بالحوار الصوتي الذكي">
+                    <svg class="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                    <span class="text-2xl font-black mt-4 block group-hover:underline text-green-400">الفصل الذكي الحواري</span>
+                    <span class="text-sm mt-2">تعلّم بالحوار الصوتي التفاعلي — المدرس الخصوصي الذكي</span>
+                </button>
+
+                <button data-student-section="study-group" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group border-2 border-purple-400" aria-label="المذاكر الجماعي الصوتي">
+                    <svg class="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <span class="text-2xl font-black mt-4 block group-hover:underline text-purple-400">المذاكر الجماعي الصوتي</span>
+                    <span class="text-sm mt-2">ناقش زملاءك والوسيط الذكي في جلسة صوتية جماعية</span>
                 </button>
             </div>
 
@@ -472,6 +475,70 @@
                         <p id="ai-tutor-response-text" class="text-xl font-bold leading-relaxed text-white">جاري التفكير وتحضير الإجابة...</p>
                     </div>
                 </div>
+
+                <!-- 6. الفصل الذكي الحواري (Dialogic Learning) -->
+                <div id="student-sub-dialogic-classroom" class="hidden space-y-6">
+                    <div class="flex items-center gap-2 text-green-400">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                        <span class="text-2xl font-black">التعليم بالحوار الصوتي الذكي</span>
+                    </div>
+                    <p class="font-bold text-lg">تحدّث مع المدرس الخصوصي الذكي — يطرح أسئلة، يستمع لإجاباتك، ويقدّم شرحاً مصمّماً لمستوى فهمك.</p>
+
+                    <div id="dialogic-status-bar" class="p-4 border-2 border-green-600 rounded-xl bg-slate-900 text-center">
+                        <p id="dialogic-status-text" class="text-lg font-bold text-green-400">اضغط "بدء الفصل الذكي" للبدء</p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-4">
+                        <button id="btn-dialogic-start" class="p-4 bg-green-600 text-white font-black text-xl rounded-xl flex-1 btn-interactive">🎙️ بدء الفصل الذكي</button>
+                        <button id="btn-dialogic-stop" class="p-4 bg-red-600 text-white font-black text-xl rounded-xl flex-1 btn-interactive hidden">🛑 إنهاء الجلسة</button>
+                    </div>
+
+                    <div id="dialogic-conversation" class="hidden space-y-4 p-4 border-2 border-current rounded-xl bg-slate-950">
+                        <h4 class="text-xl font-bold text-yellow-300">📝 نص الحوار:</h4>
+                        <div id="dialogic-transcript" class="space-y-2 max-h-80 overflow-y-auto"></div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button id="btn-dialogic-speak" class="p-4 bg-blue-600 text-white font-bold rounded-xl flex-1 btn-interactive">🎤 تحدث الآن</button>
+                        <p class="text-sm self-center" id="dialogic-voice-status">الميكروفون جاهز. انتظر حتى يطرح المدرس السؤال ثم تحدث.</p>
+                    </div>
+                </div>
+
+                <!-- 7. المذاكر الجماعي الصوتي (Study Group) -->
+                <div id="student-sub-study-group" class="hidden space-y-6">
+                    <div class="flex items-center gap-2 text-purple-400">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        <span class="text-2xl font-black">المذاكر الجماعي الصوتي</span>
+                    </div>
+                    <p class="font-bold text-lg">جلسة مذاكرة جماعية بوساطة الذكاء الاصطناعي — يناقش الطلاب سؤالاً ويوجّههم المعلّم الذكي.</p>
+
+                    <div id="study-group-status-bar" class="p-4 border-2 border-purple-600 rounded-xl bg-slate-900 text-center">
+                        <p id="study-group-status-text" class="text-lg font-bold text-purple-400">اختر موضوعاً وابدأ جلسة جماعية</p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-4">
+                        <div class="flex-1 space-y-2">
+                            <label for="study-group-topic" class="block font-bold">موضوع الجلسة:</label>
+                            <input type="text" id="study-group-topic" class="w-full p-3 rounded-lg font-bold" placeholder="مثال: شرح قانون نيوتن الثالث" value="شرح قانون نيوتن الثالث">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-4">
+                        <button id="btn-study-group-start" class="p-4 bg-purple-600 text-white font-black text-xl rounded-xl flex-1 btn-interactive">👥 بدء الجلسة الجماعية</button>
+                        <button id="btn-study-group-stop" class="p-4 bg-red-600 text-white font-black text-xl rounded-xl flex-1 btn-interactive hidden">🛑 إنهاء الجلسة</button>
+                    </div>
+
+                    <div id="study-group-conversation" class="hidden space-y-4 p-4 border-2 border-current rounded-xl bg-slate-950">
+                        <h4 class="text-xl font-bold text-yellow-300">📝 محضر الجلسة:</h4>
+                        <div id="study-group-transcript" class="space-y-2 max-h-80 overflow-y-auto"></div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <button id="btn-study-group-speak" class="p-4 bg-blue-600 text-white font-bold rounded-xl flex-1 btn-interactive">🎤 تحدث الآن</button>
+                        <button id="btn-study-group-next" class="p-4 bg-yellow-500 text-black font-bold rounded-xl btn-interactive">⏭️ دور الزميل التالي</button>
+                        <p class="text-sm self-center" id="study-group-voice-status">الميكروفون جاهز. اضغط "تحدث الآن" للمشاركة.</p>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -660,50 +727,97 @@
         <p>© 2026 منصة Cloud School السحابية للمكفوفين. صُممت بنسبة تباين متوافقة مع معايير WCAG AAA العالمية ودعم كامل لـ Gemini API.</p>
     </footer>
 
-    <!-- تعريف المتغيرات العامة للمنصة -->
+    <!-- متغيرات المنصة + تشخيص التحميل -->
     <script>
         var __app_id = 'cloud-school-blind-v1';
         var __firebase_config = {};
         var __initial_auth_token = null;
+        console.log('[CS] page vars set');
     </script>
 
-    <!-- تسجيل Service Worker -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./cloud_school.js').then((registration) => {
-                    console.log('PWA ServiceWorker registration successful!');
-                }, (err) => {
-                    console.log('PWA ServiceWorker registration failed: ', err);
-                });
-            });
-        }
-    </script>
+    <!-- ملف JavaScript الرئيسي -->
+    <script src="cloud_school_app.js"></script>
+    <!-- ميزات الفصل الذكي والمذاكر الجماعي -->
+    <script src="features.js"></script>
 
-    <!-- ملف JavaScript الرئيسي المنفصل -->
-    <script type="module" src="cloud_school_app.js"></script>
+    <!-- تشخيص + تهيئة احتياطية مباشرة (تعمل حتى لو فشل window.onload) -->
     <script>
-        window.addEventListener('error', function(e) {
-            var box = document.createElement('div');
-            box.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:red;color:white;padding:20px;z-index:9999;font-size:18px;direction:ltr';
-            box.textContent = '🚨 ' + (e.error?.message || e.message || 'Unknown error');
-            document.body.appendChild(box);
-        });
-        window.addEventListener('unhandledrejection', function(e) {
-            var box = document.createElement('div');
-            box.style.cssText = 'position:fixed;bottom:60px;left:0;right:0;background:orange;color:black;padding:20px;z-index:9999;font-size:18px;direction:ltr';
-            box.textContent = '⚠️ ' + (e.reason?.message || 'Unhandled Promise rejection');
-            document.body.appendChild(box);
-        });
-        setTimeout(function() {
-            var ok = document.getElementById('btn-show-register');
-            if (!ok) {
-                var box = document.createElement('div');
-                box.style.cssText = 'position:fixed;top:0;left:0;right:0;background:blue;color:white;padding:20px;z-index:9999;font-size:18px';
-                box.textContent = '⏳ Module not loaded yet...';
-                document.body.appendChild(box);
+        console.log('[CS] post-scripts inline block running');
+        (function fireproofInit() {
+            // 1) مهلة قصيرة ثم طباعة تقرير التهيئة في Console
+            setTimeout(function diagnostic() {
+                var ok = typeof bindAllEvents === 'function';
+                console.log('[CS] bindAllEvents exists:', ok);
+                console.log('[CS] window.onload:', typeof window.onload);
+                console.log('[CS] window.speak:', typeof window.speak);
+            }, 500);
+
+            // 2) إذا bindAllEvents موجودة ومش شغالة — شغلها مباشرة
+            var MAX_RETRIES = 5;
+            var retries = 0;
+            function tryBind() {
+                if (typeof bindAllEvents === 'function') {
+                    try { bindAllEvents(); console.log('[CS] bindAllEvents OK'); } catch (e) { console.error('[CS] bindAllEvents error:', e); }
+                } else if (retries++ < MAX_RETRIES) {
+                    setTimeout(tryBind, 1000);
+                } else {
+                    console.error('[CS] bindAllEvents not found after ' + MAX_RETRIES + ' retries');
+                }
             }
-        }, 5000);
+            setTimeout(tryBind, 100);
+
+            // 3) ربط مباشر للأزرار يدوياً كخطة احتياطية نهائية
+            function safeSpeak(msg) { try { if (typeof window.speak === 'function') window.speak(msg); } catch(e){} }
+            function hook(id, fn) {
+                var el = document.getElementById(id);
+                if (el) { el.addEventListener('click', fn); }
+            }
+
+            // دالة تسجيل الدخول التجريبي (منسوخة من cloud_school_app.js)
+            function demoLoginFallback() {
+                try {
+                    window.currentUserSession = { name: 'علي أحمد الغامدي (طالب)', contact: '0555555555', role: 'student', age: 14, parentContact: 'parent@cloudschool.com' };
+                    var gate = document.getElementById('auth-gate');
+                    if (gate) gate.classList.add('hidden');
+                    var bar = document.getElementById('dev-role-bar');
+                    if (bar) bar.classList.remove('hidden');
+                    var badge = document.getElementById('active-user-badge');
+                    if (badge) badge.textContent = 'المستخدم: علي أحمد الغامدي (طالب تجريبي)';
+                    try { if (typeof switchRole === 'function') switchRole('student'); } catch(e){}
+                    safeSpeak('تم تسجيل الدخول التجريبي كطالب.');
+                    console.log('[CS] demoLoginFallback OK');
+                } catch(e) { console.error('[CS] demoLoginFallback error:', e); }
+            }
+
+            // انتظر شوي عشان DOM يتأكد
+            setTimeout(function() {
+                hook('btn-login-submit', function(e) {
+                    e.preventDefault();
+                    safeSpeak('محاولة تسجيل الدخول. يرجى إدخال اسم المستخدم وكلمة المرور.');
+                });
+                hook('btn-show-register', function() {
+                    var loginC = document.getElementById('login-form-container');
+                    var regC = document.getElementById('register-form-container');
+                    if (loginC) loginC.classList.add('hidden');
+                    if (regC) regC.classList.remove('hidden');
+                    safeSpeak('نموذج إنشاء حساب جديد.');
+                });
+                hook('btn-show-login', function() {
+                    var loginC = document.getElementById('login-form-container');
+                    var regC = document.getElementById('register-form-container');
+                    if (regC) regC.classList.add('hidden');
+                    if (loginC) loginC.classList.remove('hidden');
+                    safeSpeak('نموذج تسجيل الدخول.');
+                });
+                var demoBtn = document.querySelector('[data-action="bypass-demo"]');
+                if (demoBtn) {
+                    demoBtn.addEventListener('click', demoLoginFallback);
+                    // Also set onclick as attribute for redundancy
+                    demoBtn.setAttribute('onclick', '');
+                }
+                console.log('[CS] fallback hooks installed');
+            }, 200);
+        })();
     </script>
 </body>
 </html>

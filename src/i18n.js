@@ -1,20 +1,20 @@
 /** i18n module - الترجمة */
 
-export const i18n = {};
+const i18n = {};
 let currentLang = localStorage.getItem('cloudSchoolLang') || 'ar';
 
-export function getCurrentLang() {
+function getCurrentLang() {
   return currentLang;
 }
 
-export function setCurrentLang(lang) {
+function setCurrentLang(lang) {
   currentLang = lang;
   localStorage.setItem('cloudSchoolLang', lang);
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
 }
 
-export function applyTranslations() {
+function applyTranslations() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (i18n[key]) {
@@ -23,7 +23,7 @@ export function applyTranslations() {
   });
 }
 
-export function loadLocale(lang) {
+function loadLocale(lang) {
   return fetch(`i18n/${lang}.json`)
     .then(r => {
       if (!r.ok) throw new Error(`Failed to load locale: ${lang}`);
@@ -36,7 +36,7 @@ export function loadLocale(lang) {
     .catch(err => console.error('i18n load error:', err));
 }
 
-export function initI18n() {
+function initI18n() {
   loadLocale(currentLang);
   const langToggleBtn = document.getElementById('lang-toggle');
   if (langToggleBtn) {

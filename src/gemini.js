@@ -55,7 +55,7 @@ function extractAudio(result) {
 }
 
 /** استدعاء Gemini نصوص مع إعادة محاولة */
-export async function callGemini(userQuery, systemPrompt, maxRetries = 3) {
+async function callGemini(userQuery, systemPrompt, maxRetries = 3) {
   const payload = buildTextPayload(userQuery, systemPrompt);
   let delay = 1000;
 
@@ -79,7 +79,7 @@ async function callGeminiWithMedia(parts, systemPrompt, endpoint = 'vision') {
 }
 
 /** تحويل النص إلى كلام عبر Gemini TTS */
-export async function speakWithGeminiTTS(text) {
+async function speakWithGeminiTTS(text) {
   try {
     const payload = {
       contents: [{
@@ -110,7 +110,7 @@ export async function speakWithGeminiTTS(text) {
 }
 
 /** تفريغ الصوت إلى نص */
-export async function transcribeAudio(base64Audio, mimeType) {
+async function transcribeAudio(base64Audio, mimeType) {
   const text = await callGeminiWithMedia(
     [
       { text: 'فرغ ما يقال حرفياً بالعربية بدون إضافات.' },
@@ -123,7 +123,7 @@ export async function transcribeAudio(base64Audio, mimeType) {
 }
 
 /** تحليل الصور */
-export async function describeImage(base64Image, mimeType) {
+async function describeImage(base64Image, mimeType) {
   return callGeminiWithMedia([
     { text: 'صف هذه الصورة بالتفصيل لطالب كفيف بالعربية.' },
     { inlineData: { mimeType, data: base64Image } },
@@ -131,12 +131,12 @@ export async function describeImage(base64Image, mimeType) {
 }
 
 /** سؤال المعلم الافتراضي */
-export async function askTutor(question) {
+async function askTutor(question) {
   return callGemini(question, 'أنت معلم ودود تشرح للطلاب المكفوفين ببساطة.');
 }
 
 /** تلخيص كتاب */
-export async function summarizeBook(content) {
+async function summarizeBook(content) {
   return callGemini(
     `لخص: "${content}" مع 3 أسئلة مراجعة.`,
     'أنت خبير تلخيص مناهج للمكفوفين.'
@@ -144,7 +144,7 @@ export async function summarizeBook(content) {
 }
 
 /** تقييم إجابة برايل */
-export async function evaluateBraille(text) {
+async function evaluateBraille(text) {
   return callGemini(
     `صحح النص: "${text}" وقدم تقريراً تشجيعياً.`,
     'أنت معلم لغة عربية وخبير برايل.'
@@ -152,7 +152,7 @@ export async function evaluateBraille(text) {
 }
 
 /** توليد اختبار */
-export async function generateQuiz() {
+async function generateQuiz() {
   const json = await callGemini(
     'ولد سؤال اختيار من متعدد في العلوم. أخرج JSON فقط: {question, A, B, C, D, correct}.',
     'أنت مصمم اختبارات.'
@@ -161,7 +161,7 @@ export async function generateQuiz() {
 }
 
 /** قصة تفاعلية */
-export async function generateStory(choiceIndex) {
+async function generateStory(choiceIndex) {
   const prompt =
     choiceIndex === null
       ? 'اصنع قصة تفاعلية عن الفضاء بـ JSON: {story, options:[]}. 3 خيارات.'
@@ -172,7 +172,7 @@ export async function generateStory(choiceIndex) {
 }
 
 /** تصحيح إجابة مقالية */
-export async function gradeAnswer(studentAnswer) {
+async function gradeAnswer(studentAnswer) {
   return callGemini(
     `قيم الإجابة: "${studentAnswer}" وأعط درجة من 100 مع تعليق.`,
     'أنت مصحح.'

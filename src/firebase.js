@@ -12,10 +12,10 @@ const rawConfig = typeof __firebase_config !== 'undefined' ? __firebase_config :
 const firebaseConfig = typeof rawConfig === 'string' ? JSON.parse(rawConfig) : rawConfig;
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-export function getUserId() { return userId; }
-export function isReady() { return isAuthReady; }
-export function getDb() { return db; }
-export function getAppId() { return appId; }
+function getUserId() { return userId; }
+function isReady() { return isAuthReady; }
+function getDb() { return db; }
+function getAppId() { return appId; }
 
 async function loadFirebaseSDK() {
   const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
@@ -24,7 +24,7 @@ async function loadFirebaseSDK() {
   return { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, addDoc, collection, onSnapshot, serverTimestamp, enableIndexedDbPersistence };
 }
 
-export async function initFirebase() {
+async function initFirebase() {
   if (Object.keys(firebaseConfig).length === 0) return;
 
   try {
@@ -69,10 +69,10 @@ async function saveToFirebase(path, data) {
   } catch (e) { console.error(`Firebase save error [${path}]:`, e); }
 }
 
-export function saveBook(book) { return saveToFirebase('curriculum_modules', book); }
-export function saveQuiz(quiz) { return saveToFirebase('assignments', quiz); }
-export function saveSubmission(sub) { return saveToFirebase('submissions', sub); }
-export function saveStudent(student) { return saveToFirebase('students', student); }
+function saveBook(book) { return saveToFirebase('curriculum_modules', book); }
+function saveQuiz(quiz) { return saveToFirebase('assignments', quiz); }
+function saveSubmission(sub) { return saveToFirebase('submissions', sub); }
+function saveStudent(student) { return saveToFirebase('students', student); }
 
 function listenToCollection(path, callback) {
   if (!isAuthReady || !db) return;
@@ -91,7 +91,7 @@ function cleanupSnapshots() {
   snapshotUnsubscribers = [];
 }
 
-export function syncFromFirebase(onData) {
+function syncFromFirebase(onData) {
   if (!isAuthReady || !db) return;
   cleanupSnapshots();
 
