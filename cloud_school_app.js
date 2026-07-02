@@ -274,7 +274,7 @@ function syncFromFirebase(onData) {
 
 function getProxyBase() {
   const override = localStorage.getItem('cloudSchoolProxyUrl');
-  return override || 'http://127.0.0.1:3001';
+  return override || 'http://localhost:3001';
 }
 
 async function proxyFetch(endpoint, payload) {
@@ -719,7 +719,7 @@ function getProxyBaseUrl() {
   if (devOverride) return devOverride;
   // In production, use the same origin with /api prefix via reverse proxy
   // For now, default to localhost:3001
-  return 'http://127.0.0.1:3001';
+  return 'http://localhost:3001';
 }
 
 async function checkProxyHealth() {
@@ -885,7 +885,7 @@ let activeGameTimer = null;
 let activeGameType = '';
 let currentGameScore = 0;
 let gameTimeLeft = 30;
-let ttsEngineMode = 'gemini';
+let ttsEngineMode = localStorage.getItem('cloudSchoolTtsEngine') || 'browser';
 let activeAudioElement = null;
 let currentUserSession = null;
 let currentlyPlayingBookId = null;
@@ -2075,25 +2075,7 @@ function saveQuizToFirebase(quiz) { saveQuiz(quiz); }
 function saveSubmissionToFirebase(sub) { saveSubmission(sub); }
 function saveStudentToFirebase(student) { saveStudent(student); }
 
-function syncFromFirebase_cb() {
-    syncFromFirebase((collectionName, items) => {
-        if (collectionName === 'books') {
-            localData.books = items;
-            if (!document.getElementById('student-sub-books')?.classList.contains('hidden')) {
-                renderStudentBooks();
-            }
-        } else if (collectionName === 'assignments') {
-            localData.assignments = items;
-            if (!document.getElementById('student-sub-assignments')?.classList.contains('hidden')) {
-                renderStudentAssignments();
-            }
-        } else if (collectionName === 'submissions') {
-            localData.submissions = items;
-            renderTeacherSubmissions();
-            renderParentDashboard();
-        }
-    });
-}
+// syncFromFirebase_cb was here — removed (dead code, never called)
 
 // ==================== [إصلاح #11] ربط الأحداث عبر addEventListener ====================
 
@@ -2187,7 +2169,7 @@ function bindAllEvents() {
     const savedProxyUrl = localStorage.getItem('cloudSchoolProxyUrl');
     const proxyUrlInput = document.getElementById('proxy-url-input');
     if (proxyUrlInput) {
-        proxyUrlInput.value = savedProxyUrl || 'http://127.0.0.1:3001';
+        proxyUrlInput.value = savedProxyUrl || 'http://localhost:3001';
     }
     updateProxyStatus();
 
@@ -2202,7 +2184,7 @@ function bindAllEvents() {
     });
     document.getElementById('btn-reset-proxy-url')?.addEventListener('click', () => {
         localStorage.removeItem('cloudSchoolProxyUrl');
-        if (proxyUrlInput) proxyUrlInput.value = 'http://127.0.0.1:3001';
+        if (proxyUrlInput) proxyUrlInput.value = 'http://localhost:3001';
         updateProxyStatus();
         speak('تم إعادة تعيين رابط الخادم الوسيط إلى الإعدادات الافتراضية');
     });
@@ -2252,6 +2234,8 @@ function bindAllEvents() {
 
 // ==================== تهيئة التطبيق ====================
 
+var INIT_RAN = false;
+
 function safeInit(fn, name) {
     try {
         fn();
@@ -2265,20 +2249,36 @@ function safeInit(fn, name) {
     }
 }
 
-window.onload = function () {
-    safeInit(setupGlobalErrorHandler, 'معالج الأخطاء');
-    safeInit(loadTheme, 'السمات');
-    safeInit(loadTextSize, 'حجم الخط');
-    safeInit(function(){ initFirebase(); }, 'Firebase');
-    safeInit(setupAccessibleVoices, 'الصوت');
-    safeInit(setupPerkinsKeyboard, 'برايل');
-    safeInit(toggleRegFields, 'الحقول');
-    safeInit(bindAllEvents, 'الأزرار');
+function runInit() {
+    if (INIT_RAN) return;
+    INIT_RAN = true;
+
+    // كل دالة بناديها عن طريق الاسم عشان نتأكد إنها موجودة
+    var steps = [
+        ['setupGlobalErrorHandler', 'معالج الأخطاء'],
+        ['loadTheme', 'السمات'],
+        ['loadTextSize', 'حجم الخط'],
+        ['initFirebase', 'Firebase'],
+        ['setupAccessibleVoices', 'الصوت'],
+        ['setupPerkinsKeyboard', 'برايل'],
+        ['toggleRegFields', 'الحقول'],
+        ['bindAllEvents', 'الأزرار']
+    ];
+
+    for (var i = 0; i < steps.length; i++) {
+        var fnName = steps[i][0];
+        var label = steps[i][1];
+        if (typeof window[fnName] === 'function') {
+            safeInit(window[fnName], label);
+        } else {
+            console.warn('[CS] Skipping ' + label + ': ' + fnName + ' not found');
+        }
+    }
 
     // تحسين إمكانية الوصول — إدارة التركيز
-    document.addEventListener('section-opened', (e) => {
-        const sectionTitle = document.getElementById('student-section-title');
-        if (sectionTitle) setTimeout(() => sectionTitle.focus(), 100);
+    document.addEventListener('section-opened', function(e) {
+        var sectionTitle = document.getElementById('student-section-title');
+        if (sectionTitle) setTimeout(function() { sectionTitle.focus(); }, 100);
     });
 
     try {
@@ -2286,5 +2286,15 @@ window.onload = function () {
     } catch (e) {
         console.error('Speak error:', e);
     }
+}
+
+// طريقة 1: window.onload
+window.onload = function () {
+    runInit();
 };
+
+// طريقة 2: لو load حصل قبل متعيين onload (احتمال ضعيف)
+if (document.readyState === 'complete') {
+    setTimeout(runInit, 0);
+}
 

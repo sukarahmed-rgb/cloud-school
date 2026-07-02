@@ -10,6 +10,36 @@
 
     <!-- ملف CSS المنفصل -->
     <link rel="stylesheet" href="cloud_school_styles.css">
+
+    <!-- متغيرات المنصة (في الـ head عشان أي حاجة تبدأ تحتاجهم) -->
+    <script>
+        var __app_id = 'cloud-school-blind-v1';
+        var __firebase_config = {};
+        var __initial_auth_token = null;
+
+        // error reporter صوتي فوري — يشتغل حتى لو السكريبت الرئيسي وقع
+        window.__csErrors = [];
+        window.onerror = function(msg, url, line) {
+            var text = 'خطأ: ' + msg;
+            window.__csErrors.push(text);
+            try {
+                var utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'ar-SA';
+                window.speechSynthesis.speak(utter);
+            } catch(e) {}
+            console.error('[CS early error]', msg, url, line);
+        };
+        window.addEventListener('unhandledrejection', function(e) {
+            var text = 'خطأ في الخلفية: ' + (e.reason && e.reason.message ? e.reason.message : 'غير معروف');
+            window.__csErrors.push(text);
+            try {
+                var utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'ar-SA';
+                window.speechSynthesis.speak(utter);
+            } catch(e) {}
+            console.error('[CS early rejection]', e.reason);
+        });
+    </script>
 </head>
 <body class="theme-dark-high-contrast min-h-screen dynamic-text flex flex-col">
     <!-- ARIA live region for screen reader announcements -->
@@ -712,7 +742,7 @@
                 <div class="space-y-2 pt-2">
                     <label for="proxy-url-input" class="block font-bold text-sm">رابط الخادم الوسيط:</label>
                     <div class="flex gap-2">
-                        <input type="url" id="proxy-url-input" class="flex-1 p-2 rounded text-black font-mono text-sm" placeholder="http://127.0.0.1:3001" dir="ltr">
+                        <input type="url" id="proxy-url-input" class="flex-1 p-2 rounded text-black font-mono text-sm" placeholder="http://localhost:3001" dir="ltr">
                         <button id="btn-save-proxy-url" class="px-4 py-2 bg-green-600 text-white font-bold rounded btn-interactive text-sm">حفظ</button>
                         <button id="btn-reset-proxy-url" class="px-4 py-2 bg-gray-600 text-white font-bold rounded btn-interactive text-sm">إعادة تعيين</button>
                     </div>
@@ -727,96 +757,26 @@
         <p>© 2026 منصة Cloud School السحابية للمكفوفين. صُممت بنسبة تباين متوافقة مع معايير WCAG AAA العالمية ودعم كامل لـ Gemini API.</p>
     </footer>
 
-    <!-- متغيرات المنصة + تشخيص التحميل -->
-    <script>
-        var __app_id = 'cloud-school-blind-v1';
-        var __firebase_config = {};
-        var __initial_auth_token = null;
-        console.log('[CS] page vars set');
-    </script>
-
     <!-- ملف JavaScript الرئيسي -->
     <script src="cloud_school_app.js"></script>
     <!-- ميزات الفصل الذكي والمذاكر الجماعي -->
     <script src="features.js"></script>
 
-    <!-- تشخيص + تهيئة احتياطية مباشرة (تعمل حتى لو فشل window.onload) -->
+    <!-- تهيئة احتياطية — لو فشل window.onload أو runInit -->
     <script>
-        console.log('[CS] post-scripts inline block running');
-        (function fireproofInit() {
-            // 1) مهلة قصيرة ثم طباعة تقرير التهيئة في Console
-            setTimeout(function diagnostic() {
-                var ok = typeof bindAllEvents === 'function';
-                console.log('[CS] bindAllEvents exists:', ok);
-                console.log('[CS] window.onload:', typeof window.onload);
-                console.log('[CS] window.speak:', typeof window.speak);
-            }, 500);
-
-            // 2) إذا bindAllEvents موجودة ومش شغالة — شغلها مباشرة
-            var MAX_RETRIES = 5;
-            var retries = 0;
-            function tryBind() {
-                if (typeof bindAllEvents === 'function') {
-                    try { bindAllEvents(); console.log('[CS] bindAllEvents OK'); } catch (e) { console.error('[CS] bindAllEvents error:', e); }
-                } else if (retries++ < MAX_RETRIES) {
-                    setTimeout(tryBind, 1000);
+        (function() {
+            var tries = 0;
+            function tryInit() {
+                if (typeof runInit === 'function' && !window.INIT_RAN) {
+                    try { runInit(); console.log('[CS] fallback runInit OK'); } catch(e) { console.error('[CS] fallback error:', e); }
+                } else if (tries++ < 8) {
+                    setTimeout(tryInit, 500);
                 } else {
-                    console.error('[CS] bindAllEvents not found after ' + MAX_RETRIES + ' retries');
+                    console.warn('[CS] fallback: runInit not found');
                 }
             }
-            setTimeout(tryBind, 100);
-
-            // 3) ربط مباشر للأزرار يدوياً كخطة احتياطية نهائية
-            function safeSpeak(msg) { try { if (typeof window.speak === 'function') window.speak(msg); } catch(e){} }
-            function hook(id, fn) {
-                var el = document.getElementById(id);
-                if (el) { el.addEventListener('click', fn); }
-            }
-
-            // دالة تسجيل الدخول التجريبي (منسوخة من cloud_school_app.js)
-            function demoLoginFallback() {
-                try {
-                    window.currentUserSession = { name: 'علي أحمد الغامدي (طالب)', contact: '0555555555', role: 'student', age: 14, parentContact: 'parent@cloudschool.com' };
-                    var gate = document.getElementById('auth-gate');
-                    if (gate) gate.classList.add('hidden');
-                    var bar = document.getElementById('dev-role-bar');
-                    if (bar) bar.classList.remove('hidden');
-                    var badge = document.getElementById('active-user-badge');
-                    if (badge) badge.textContent = 'المستخدم: علي أحمد الغامدي (طالب تجريبي)';
-                    try { if (typeof switchRole === 'function') switchRole('student'); } catch(e){}
-                    safeSpeak('تم تسجيل الدخول التجريبي كطالب.');
-                    console.log('[CS] demoLoginFallback OK');
-                } catch(e) { console.error('[CS] demoLoginFallback error:', e); }
-            }
-
-            // انتظر شوي عشان DOM يتأكد
-            setTimeout(function() {
-                hook('btn-login-submit', function(e) {
-                    e.preventDefault();
-                    safeSpeak('محاولة تسجيل الدخول. يرجى إدخال اسم المستخدم وكلمة المرور.');
-                });
-                hook('btn-show-register', function() {
-                    var loginC = document.getElementById('login-form-container');
-                    var regC = document.getElementById('register-form-container');
-                    if (loginC) loginC.classList.add('hidden');
-                    if (regC) regC.classList.remove('hidden');
-                    safeSpeak('نموذج إنشاء حساب جديد.');
-                });
-                hook('btn-show-login', function() {
-                    var loginC = document.getElementById('login-form-container');
-                    var regC = document.getElementById('register-form-container');
-                    if (regC) regC.classList.add('hidden');
-                    if (loginC) loginC.classList.remove('hidden');
-                    safeSpeak('نموذج تسجيل الدخول.');
-                });
-                var demoBtn = document.querySelector('[data-action="bypass-demo"]');
-                if (demoBtn) {
-                    demoBtn.addEventListener('click', demoLoginFallback);
-                    // Also set onclick as attribute for redundancy
-                    demoBtn.setAttribute('onclick', '');
-                }
-                console.log('[CS] fallback hooks installed');
-            }, 200);
+            if (document.readyState === 'complete') { setTimeout(tryInit, 100); }
+            else { window.addEventListener('load', function() { setTimeout(tryInit, 100); }); }
         })();
     </script>
 </body>
