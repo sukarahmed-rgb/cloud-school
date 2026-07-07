@@ -7,7 +7,7 @@
     <meta name="description" content="منصة تعليمية سحابية شاملة مصممة للطلاب المكفوفين وضعاف البصر مع دعم كامل للذكاء الاصطناعي ولغة برايل">
 
     <meta name="theme-color" content="#fbbf24">
-
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';">
     <!-- ملف CSS المنفصل -->
     <link rel="stylesheet" href="cloud_school_styles.css">
 
@@ -85,7 +85,7 @@
                         <button type="button" id="btn-show-register" onclick="document.getElementById('login-form-container').classList.add('hidden');document.getElementById('register-form-container').classList.remove('hidden');document.getElementById('auth-warning-box').classList.add('hidden');try{speak('نموذج إنشاء حساب جديد. اختر نوع الحساب وأدخل بياناتك.');}catch(e){}" class="w-full p-3 bg-gray-800 border-2 border-current text-current font-bold rounded-xl btn-interactive" data-i18n="registerNew">
                             إنشاء حساب جديد 📝
                         </button>
-                        <button type="button" data-action="bypass-demo" onclick="try{var s=function(u){try{window.speak(u);}catch(e){}};window.currentUserSession={name:'علي أحمد الغامدي (طالب)',contact:'0555555555',role:'student',age:14,parentContact:'parent@cloudschool.com'};document.getElementById('auth-gate').classList.add('hidden');document.getElementById('dev-role-bar').classList.remove('hidden');document.getElementById('active-user-badge').textContent='المستخدم: علي أحمد الغامدي (طالب تجريبي)';if(typeof switchRole==='function')switchRole('student');s('تم تسجيل الدخول التجريبي كطالب.');}catch(e){console.error(e);}" class="w-full p-3 bg-gray-900 border-2 border-yellow-400 text-yellow-400 font-bold rounded-xl btn-interactive" data-i18n="demoLogin">
+                        <button type="button" data-action="bypass-demo" style="display:none" onclick="try{var s=function(u){try{window.speak(u);}catch(e){}};window.currentUserSession={name:'أحمد خالد (طالب)',contact:'0587654321',role:'student',age:14,parentContact:'parent@cloudschool.com'};document.getElementById('auth-gate').classList.add('hidden');document.getElementById('dev-role-bar').classList.remove('hidden');document.getElementById('active-user-badge').textContent='المستخدم: أحمد خالد (طالب تجريبي)';if(typeof switchRole==='function')switchRole('student');s('تم تسجيل الدخول التجريبي كطالب.');}catch(e){console.error(e);}" class="w-full p-3 bg-gray-900 border-2 border-yellow-400 text-yellow-400 font-bold rounded-xl btn-interactive" data-i18n="demoLogin">
                             تسجيل دخول تجريبي سريع كطالب 🚀
                         </button>
                     </div>
@@ -103,13 +103,14 @@
                     </div>
 
                     <div>
-                        <label for="reg-contact" class="block font-bold mb-1">البريد الإلكتروني أو رقم الجوال:</label>
+                        <label for="reg-contact" class="block font-bold mb-1">البريد الإلكتروني أو رقم الهاتف:</label>
                         <input type="text" id="reg-contact" required class="w-full p-3 rounded-lg font-bold" placeholder="مثل: 05xxxxxxxx أو mail@cloudschool.com">
                     </div>
 
                     <div>
                         <label for="reg-password-new" class="block font-bold mb-1">🔒 كلمة المرور:</label>
                         <input type="password" id="reg-password-new" required class="w-full p-3 rounded-lg font-bold" placeholder="اختر كلمة مرور قوية">
+        <div id="pwd-strength" class="mt-2 text-sm font-bold text-yellow-400"></div>
                     </div>
 
                     <div>
@@ -132,7 +133,25 @@
                             حساب ولي أمرك (حقل إجباري - اكتب رقم هاتف، بريد، أو ID ولي الأمر المسجل) *
                         </label>
                         <input type="text" id="reg-parent-contact" class="w-full p-3 rounded-lg font-bold border-red-500" placeholder="اكتب بريد، جوال، أو معرف حساب ولي أمرك على المنصة">
-                        <p class="text-xs text-red-400 font-bold leading-relaxed">يتوجب عليك ربط حسابك بولي أمرك للموافقة على تأكيد حل الاختبارات وتلقي الواجبات والدرجات، هذا الحقل لا يمكن تجاوزه أبداً.</p>
+                        
+                        <div class="mb-4">
+                          <label class="block font-bold mb-1">طريقة التحقق:</label>
+                          <select id="otp-method" class="w-full p-3 rounded-lg font-bold text-black bg-white">
+                            <option value="email">البريد الإلكتروني</option>
+                            <option value="sms">رسالة نصية (SMS)</option>
+                          </select>
+                        </div>
+
+                        <button type="submit" id="btn-auth-submit" class="w-full p-4 bg-green-500 text-black font-black text-xl rounded-xl large-touch-target hover:bg-green-400 transition btn-interactive">إنشاء الحساب والدخول ✅</button>
+                        <button type="button" id="btn-show-login" class="w-full p-3 bg-gray-800 border-2 border-current text-current font-bold rounded-xl btn-interactive">لدي حساب بالفعل؟ تسجيل الدخول ←</button>
+                        <!-- OTP Section (initially hidden) -->
+                        <div id="otp-section" class="hidden mt-4">
+                          <p class="font-bold mb-2" id="otp-instruction">أدخل الرمز المرسل إلى بريدك الإلكتروني أو هاتفك.</p>
+                          <div class="flex space-x-2">
+                            <input type="text" id="otp-input" maxlength="6" class="flex-1 p-2 rounded-lg font-bold" placeholder="رمز OTP" />
+                            <button type="button" id="btn-verify-otp" class="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition">تحقق</button>
+                          </div>
+                        </div>
                     </div>
 
                     <div id="parent-linked-fields" class="space-y-2 hidden">
@@ -173,14 +192,14 @@
                     <div class="audio-wave-bar"></div>
                 </div>
 
-                <span id="user-id-display" class="text-xs border border-current px-2 py-1 rounded-full font-mono" aria-label="معرف المستخدم السحابي">
-                    جاري الاتصال السحابي...
+                <span id="user-id-display" class="text-xs border border-current px-2 py-1 rounded-full font-mono" aria-label="معرف المستخدم">
+                    مرحباً بك
                 </span>
                 <span id="active-user-badge" class="text-xs bg-yellow-500 text-black font-bold px-2 py-1 rounded-full"></span>
             </div>
 
             <div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="أدوات الوصول الفوري">
-                <button id="lang-toggle" class="p-2 border-2 border-blue-500 rounded text-xs font-bold" aria-label="تبديل اللغة بين العربية والإنجليزية">English</button>
+                <button id="lang-toggle" class="p-2 border-2 border-blue-500 rounded text-xs font-bold" aria-label="عربي / English">عربي / English</button>
                 <button id="tts-engine-toggle" class="p-2 border-2 border-yellow-500 rounded text-xs font-bold" aria-label="تبديل محرك الصوت بين المتصفح وذكاء Gemini الاصطناعي">
                     🎙️ صوت القراءة: ذكاء اصطناعي (Gemini)
                 </button>
@@ -188,6 +207,14 @@
                 <button data-theme="dark-hc" class="p-2 border border-current rounded text-xs font-bold" aria-label="النمط الداكن عالي التباين" data-i18n="themeDark">أصفر/أسود</button>
                 <button data-theme="light-hc" class="p-2 border border-current rounded text-xs font-bold" aria-label="النمط الفاتح عالي التباين" data-i18n="themeLight">أسود/أبيض</button>
                 <button data-theme="classic" class="p-2 border border-current rounded text-xs font-bold" aria-label="النمط الكلاسيكي الأزرق" data-i18n="themeClassic">كلاسيك</button>
+
+                <div class="relative flex items-center gap-1">
+                    <button id="btn-gemini-key-toggle" class="p-2 border-2 border-purple-500 rounded text-xs font-bold" aria-label="إعداد مفتاح Gemini API">🔑 Gemini API</button>
+                    <div id="gemini-key-input-container" class="hidden absolute top-full mt-1 left-0 z-50 p-2 bg-slate-900 border-2 border-purple-500 rounded-lg flex gap-1" style="min-width:320px">
+                        <input type="text" id="gemini-key-input" class="flex-1 p-1 text-xs rounded bg-black text-yellow-400 border border-purple-500" placeholder="أدخل مفتاح Gemini API (AIza...)" aria-label="مفتاح Gemini API">
+                        <button id="btn-gemini-key-save" class="px-2 py-1 bg-purple-600 text-white text-xs font-bold rounded">حفظ</button>
+                    </div>
+                </div>
 
                 <div class="flex border border-current rounded overflow-hidden">
                     <button data-size-dir="1" class="px-3 py-1 text-lg font-black" aria-label="تكبير الخط" data-i18n="fontIncrease">+</button>
@@ -454,6 +481,11 @@
                             <span class="text-xl font-bold block">لعبة البطل ضد الوقت</span>
                             <span class="text-xs mt-1 block">تحدي فردي لكسر رقمك القياسي الشخصي في الإجابات المتتالية.</span>
                         </button>
+                        <button data-game-type="audio-memory" class="p-6 border-2 border-purple-500 rounded-xl text-right hover:bg-purple-800 hover:text-white transition btn-interactive">
+                            <span class="text-3xl block mb-2">🧠</span>
+                            <span class="text-xl font-bold block text-purple-400">لعبة الذاكرة السمعية</span>
+                            <span class="text-xs mt-1 block text-gray-300">استمع إلى تسلسل أصوات، ثم كرره — درب ذاكرتك السمعية!</span>
+                        </button>
                         <button data-game-type="pvp" class="p-6 border-2 border-current rounded-xl text-right hover:bg-yellow-400 hover:text-black transition btn-interactive">
                             <span class="text-3xl block mb-2">⚔️</span>
                             <span class="text-xl font-bold block">المبارزة الثنائية (Live PvP)</span>
@@ -674,7 +706,7 @@
             <p class="text-lg">مرحباً بك في لوحة تحكم ولي الأمر لمدرسة سكول. يمكنك هنا الاطلاع على أداء الابن ودرجاته، وتلقي التوجيهات المخصصة لصعوبات التعلم.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="card p-6 rounded-2xl border-2 border-current space-y-4">
-                    <h3 class="text-2xl font-bold">📊 سجل درجات واختبارات الابن: <span id="parent-linked-child-name" class="text-yellow-400">عبد الرحمن الشمري</span></h3>
+                    <h3 class="text-2xl font-bold">📊 سجل درجات واختبارات الابن: <span id="parent-linked-child-name" class="text-yellow-400">عبد الرحمن</span></h3>
                     <div id="parent-grades-list" class="space-y-3"></div>
                 </div>
                 <div class="card p-6 rounded-2xl border-2 border-current space-y-4 bg-slate-950 text-white">
@@ -705,7 +737,7 @@
                     <form data-action="admin-student-form" class="space-y-4">
                         <div>
                             <label class="block font-bold mb-1">اسم الطالب رباعي:</label>
-                            <input type="text" id="admin-student-name" required class="w-full p-3 rounded" placeholder="مثل: علي أحمد الغامدي">
+                            <input type="text" id="admin-student-name" required class="w-full p-3 rounded" placeholder="مثل: أحمد خالد">
                         </div>
                         <div>
                             <label class="block font-bold mb-1">الصف الدراسي:</label>

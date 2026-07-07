@@ -16,7 +16,7 @@
 
 ```
 cloud_school/
-├── src/                    # كود المصدر المهيكل إلى وحدات
+├── cloud_school_app.js     # التطبيق الرئيسي (Braille, Errors, i18n, Firebase, Gemini, UI)
 │   ├── braille.js          # لغة برايل
 │   ├── errors.js           # معالج الأخطاء المركزي
 │   ├── firebase.js         # Firebase والتخزين السحابي
