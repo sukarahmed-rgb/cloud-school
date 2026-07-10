@@ -11,7 +11,7 @@ let isSpeechRecognitionActive = false;
 function initSpeechRecognition() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
-        speak("التعرف على الصوت غير مدعوم في هذا المتصفح.");
+        speak(__('micUnsupported'));
         return null;
     }
     const rec = new SR();
@@ -35,7 +35,7 @@ function startMicrophone() {
         isSpeechRecognitionActive = true;
         return speechRecognition;
     } catch (e) {
-        speak("خطأ في تشغيل الميكروفون.");
+        speak(__('micError'));
         return null;
     }
 }
@@ -53,9 +53,9 @@ function handleSpeechResult(event) {
 
 function handleSpeechError(event) {
     isSpeechRecognitionActive = false;
-    const msg = event.error === 'no-speech' ? 'لم يتم التقاط أي صوت.' :
+    const msg = event.error === 'no-speech' ? __('noSpeech') :
                 event.error === 'aborted' ? '' :
-                'حدث خطأ في التعرف على الصوت.';
+                __('speechError');
     if (msg) speak(msg);
     if (currentSpeechCallback) {
         currentSpeechCallback(null);
@@ -129,7 +129,7 @@ function addDialogicEntry(role, text) {
     const transcript = document.getElementById('dialogic-transcript');
     if (!transcript) return;
     const entry = document.createElement('div');
-    const roleLabel = role === 'ai' ? '🤖 المدرس' : '🎤 الطالب';
+    const roleLabel = role === 'ai' ? __('roleTeacher') : __('roleStudent');
     const color = role === 'ai' ? 'text-green-400' : 'text-blue-400';
     entry.className = `p-3 rounded-lg ${role === 'ai' ? 'bg-slate-800' : 'bg-slate-900 border border-blue-800'}`;
     entry.innerHTML = `<span class="font-bold ${color}">${roleLabel}:</span> <span class="text-white">${escapeHtml(text)}</span>`;
@@ -152,24 +152,24 @@ async function startDialogicClassroom() {
     document.getElementById('dialogic-conversation').classList.remove('hidden');
     clearDialogicTranscript();
 
-    updateDialogicStatus('🎙️ المدرس الذكي يبدأ الدرس...');
-    speak("مرحباً بك في الفصل الذكي. أنا مدرسك الخصوصي. سأطرح عليك أسئلة وأستمع لإجاباتك. اختر موضوعاً للدرس، أو سأبدأ بسؤال عام.");
-    addDialogicEntry('ai', 'مرحباً بك في الفصل الذكي! أنا مدرسك الخصوصي.');
+    updateDialogicStatus(__('dialogicStarting'));
+    speak(__('dialogicWelcome'));
+    addDialogicEntry('ai', __('dialogicWelcomeEntry'));
 
     // Ask for subject first
-    updateDialogicStatus('🎤 تكلّم الآن لاختيار موضوع الدرس (أو انتظر 15 ثانية لبدء تلقائي)');
-    document.getElementById('dialogic-voice-status').textContent = 'تحدث الآن لاختيار الموضوع...';
+    updateDialogicStatus(__('dialogicAskTopic'));
+    document.getElementById('dialogic-voice-status').textContent = __('dialogicSpeakToChoose');
 
     const subject = await new Promise((resolve) => {
         listenForSpeech((text) => {
-            resolve(text || 'العلوم العامة');
+            resolve(text || __('defaultSubject'));
         }, 15000);
     });
 
-    dialogicSubject = subject || 'العلوم العامة';
+    dialogicSubject = subject || __('defaultSubject');
     addDialogicEntry('student', dialogicSubject);
-    updateDialogicStatus(`📚 الموضوع: ${dialogicSubject}`);
-    speak(`رائع! سنتحدث اليوم عن: ${dialogicSubject}. لنبدأ!`);
+    updateDialogicStatus(__('dialogicSubjectLabel', dialogicSubject));
+    speak(__('dialogicLetsStart', dialogicSubject));
 
     await runDialogicLoop();
 }
@@ -218,28 +218,28 @@ async function askDialogicQuestion(parsed) {
     addDialogicEntry('ai', questionText);
     speak(questionText);
 
-    updateDialogicStatus('🎤 تكلّم الآن للإجابة على السؤال');
-    document.getElementById('dialogic-voice-status').textContent = 'المدرس يتحدث... انتظر حتى ينتهي ثم أجب.';
+    updateDialogicStatus(__('dialogicListen'));
+    document.getElementById('dialogic-voice-status').textContent = __('dialogicTeacherSpeaking');
 
     // Wait for AI to finish speaking, then listen
     await waitForSpeechEnd(2000);
 
-    updateDialogicStatus('🎤 استمع لإجابة الطالب...');
-    document.getElementById('dialogic-voice-status').textContent = 'تحدث الآن للإجابة.';
+    updateDialogicStatus(__('dialogicListen'));
+    document.getElementById('dialogic-voice-status').textContent = __('dialogicSpeakToAnswer');
 
     listenForSpeech(async (studentAnswer) => {
         if (!dialogicRunning) return;
 
         if (!studentAnswer || studentAnswer.trim() === '') {
-            speak("لم أسمع إجابتك. هل يمكنك تكرارها؟");
-            updateDialogicStatus('🎤 لم نسمع الإجابة. حاول مرة أخرى.');
+            speak(__('dialogicRetry'));
+            updateDialogicStatus(__('dialogicRetryStatus'));
             // Try again
             listenForSpeech(async (retry) => {
                 if (retry && retry.trim()) {
                     await processStudentAnswer(retry);
                 } else {
                     // Give up and continue
-                    await processStudentAnswer('لا أجيب');
+                    await processStudentAnswer(__('dialogicNoAnswer'));
                 }
             }, 15000);
             return;
@@ -253,8 +253,8 @@ async function processStudentAnswer(answer) {
     if (!dialogicRunning) return;
 
     addDialogicEntry('student', answer);
-    updateDialogicStatus('🤖 المدرس يقيم الإجابة ويحضّر السؤال التالي...');
-    speak("دعني أفكر في إجابتك...");
+    updateDialogicStatus(__('dialogicEvaluating'));
+    speak(__('dialogicThinking'));
 
     dialogicHistory.push({ role: 'student', content: answer });
 
@@ -282,10 +282,10 @@ ${historyText}
 
         await askDialogicQuestion(parsed);
     } catch (e) {
-        speak("عذراً، حدث خطأ في الاتصال. دعني أواصل بطرح سؤال آخر.");
+        speak(__('dialogicConnectionError'));
         await askDialogicQuestion({
             assessment: 'جيد',
-            explanation: 'دعنا ننتقل إلى سؤال آخر.',
+            explanation: __('dialogicNextQuestion'),
             question: `أخبرني المزيد عن ${dialogicSubject}. ماذا تعلمت عنه؟`,
             type: 'open'
         });
@@ -304,16 +304,16 @@ ${dialogicHistory.map(h => `${h.role}: ${h.content}`).join('\n')}
 
     try {
         const summary = await callGeminiAPI(summaryPrompt, 'أنت معلم خبير');
-        speak(`لنلخص ما تعلمناه اليوم. ${summary}. شكراً لك على المشاركة النشطة في الفصل الذكي!`);
-        addDialogicEntry('ai', `📋 تقييم الجلسة: ${summary}`);
+        speak(__('dialogicSummary', summary));
+        addDialogicEntry('ai', __('dialogicSessionEval', summary));
     } catch(e) {
-        speak("شكراً لك! كانت جلسة رائعة. يمكنك العودة في أي وقت لمزيد من التعلم.");
+        speak(__('dialogicThankYou'));
     }
 
-    updateDialogicStatus('✅ انتهت الجلسة. اضغط "بدء الفصل الذكي" لجلسة جديدة.');
+    updateDialogicStatus(__('dialogicSessionEnded'));
     document.getElementById('btn-dialogic-start').classList.remove('hidden');
     document.getElementById('btn-dialogic-stop').classList.add('hidden');
-    document.getElementById('dialogic-voice-status').textContent = 'انتهت الجلسة.';
+    document.getElementById('dialogic-voice-status').textContent = __('dialogicSessionComplete');
 }
 
 function stopDialogicClassroom() {
@@ -322,11 +322,11 @@ function stopDialogicClassroom() {
         try { speechRecognition.stop(); } catch(e) {}
     }
     currentSpeechCallback = null;
-    updateDialogicStatus('🛑 تم إنهاء الجلسة.');
+    updateDialogicStatus(__('dialogicSessionStopped'));
     document.getElementById('btn-dialogic-start').classList.remove('hidden');
     document.getElementById('btn-dialogic-stop').classList.add('hidden');
-    document.getElementById('dialogic-voice-status').textContent = 'جلسة منتهية.';
-    speak("تم إنهاء الجلسة.");
+    document.getElementById('dialogic-voice-status').textContent = __('sessionEnded');
+    speak(__('dialogicEnd'));
 }
 
 // ===================== المذاكر الجماعي الصوتي =====================
@@ -370,7 +370,7 @@ function addStudyGroupEntry(role, text) {
     const transcript = document.getElementById('study-group-transcript');
     if (!transcript) return;
     const entry = document.createElement('div');
-    const roleLabel = role === 'ai' ? '🤖 الوسيط' : `🎤 ${role}`;
+    const roleLabel = role === 'ai' ? __('roleModerator') : `🎤 ${role}`;
     const color = role === 'ai' ? 'text-purple-400' : 'text-blue-400';
     entry.className = `p-3 rounded-lg ${role === 'ai' ? 'bg-slate-800' : 'bg-slate-900 border border-blue-800'}`;
     entry.innerHTML = `<span class="font-bold ${color}">${roleLabel}:</span> <span class="text-white">${escapeHtml(text)}</span>`;
@@ -390,20 +390,17 @@ async function startStudyGroup() {
     studyGroupHistory = [];
 
     const topicInput = document.getElementById('study-group-topic');
-    studyGroupTopic = topicInput ? topicInput.value.trim() || 'العلوم العامة' : 'العلوم العامة';
+    studyGroupTopic = topicInput ? topicInput.value.trim() || __('defaultSubject') : __('defaultSubject');
 
     document.getElementById('btn-study-group-start').classList.add('hidden');
     document.getElementById('btn-study-group-stop').classList.remove('hidden');
     document.getElementById('study-group-conversation').classList.remove('hidden');
     clearStudyGroupTranscript();
 
-    updateStudyGroupStatus(`👥 جلسة نقاش: ${studyGroupTopic}`);
-    addStudyGroupEntry('ai', `مرحباً بالجميع! جلسة اليوم عن: ${studyGroupTopic}. لنبدأ!`);
+    updateStudyGroupStatus(__('studyGroupIntro', studyGroupTopic));
+    addStudyGroupEntry('ai', __('studyGroupWelcome', studyGroupTopic));
 
-    const intro = `مرحباً بالطلاب! أنا وسيطكم الذكي. سنناقش اليوم موضوع: ${studyGroupTopic}. 
-المشاركون: فهد، سارة، محمد. سيأخذ كل منكم دوره في الكلام. ابدأ أنت يا فهد.`;
-
-    speak(intro);
+    speak(__('studyGroupIntroduction', studyGroupTopic));
 
     // Start with first student
     await runStudyGroupTurn();
@@ -426,7 +423,7 @@ ${historyText}
 الآن دور ${currentName}. وجّه السؤال له.`;
     }
 
-    updateStudyGroupStatus(`💬 ${currentName}، دورك الآن...`);
+    updateStudyGroupStatus(__('studyGroupTurn', currentName));
 
     try {
         const result = await callGeminiAPI(prompt, STUDY_GROUP_SYSTEM_PROMPT);
@@ -434,23 +431,23 @@ ${historyText}
 
         const questionText = parsed.question || `ماذا تعرف عن ${studyGroupTopic}؟`;
         addStudyGroupEntry('ai', `(${parsed.nextSpeaker || currentName}) ${questionText}`);
-        speak(`سؤال لـ ${parsed.nextSpeaker || currentName}: ${questionText}`);
+        speak(__('studyGroupQuestionFor', parsed.nextSpeaker || currentName, questionText));
 
         await waitForSpeechEnd(2000);
 
         // Ask the user to speak as the current student
-        updateStudyGroupStatus(`🎤 تحدث الآن بدور ${parsed.nextSpeaker || currentName}`);
+        updateStudyGroupStatus(__('studyGroupSpeakAs', parsed.nextSpeaker || currentName));
         document.getElementById('study-group-voice-status').textContent =
-            `اضغط "تحدث الآن" للرد بدور ${parsed.nextSpeaker || currentName}.`;
+            __('studyGroupPressSpeak', parsed.nextSpeaker || currentName);
 
     } catch(e) {
         const questionText = `ماذا تعرف عن ${studyGroupTopic}؟`;
         addStudyGroupEntry('ai', `(${currentName}) ${questionText}`);
-        speak(`سؤال لـ ${currentName}: ${questionText}`);
+        speak(__('studyGroupQuestionFor', currentName, questionText));
 
-        updateStudyGroupStatus(`🎤 تحدث الآن بدور ${currentName}`);
+        updateStudyGroupStatus(__('studyGroupSpeakAs', currentName));
         document.getElementById('study-group-voice-status').textContent =
-            `اضغط "تحدث الآن" للرد بدور ${currentName}.`;
+            __('studyGroupPressSpeak', currentName);
     }
 }
 
@@ -470,14 +467,14 @@ function parseStudyGroupResponse(text) {
 function handleStudyGroupSpeech() {
     if (!studyGroupRunning) return;
 
-    updateStudyGroupStatus('🎤 جاري الاستماع...');
-    document.getElementById('study-group-voice-status').textContent = 'تحدث الآن...';
+    updateStudyGroupStatus(__('studyGroupListening'));
+    document.getElementById('study-group-voice-status').textContent = __('studyGroupSpeakNow');
 
     listenForSpeech(async (text) => {
         if (!studyGroupRunning) return;
 
         if (!text || text.trim() === '') {
-            speak("لم أسمع الرد. حاول مرة أخرى.");
+            speak(__('dialogicRetry'));
             return;
         }
 
@@ -500,15 +497,15 @@ function handleStudyGroupSpeech() {
 function skipStudyGroupTurn() {
     if (!studyGroupRunning) return;
     const currentName = STUDENT_NAMES[studyGroupCurrentStudent % 3];
-    addStudyGroupEntry(currentName, '(تم التخطي)');
-    studyGroupHistory.push({ role: currentName, content: 'لا يوجد رد' });
+    addStudyGroupEntry(currentName, __('studyGroupSkipped'));
+    studyGroupHistory.push({ role: currentName, content: __('studyGroupNoResponse') });
     studyGroupCurrentStudent++;
 
     if (studyGroupCurrentStudent >= 6) {
         wrapUpStudyGroup();
         return;
     }
-    speak(`تم تخطي دور ${currentName}.`);
+    speak(__('studyGroupSkip', currentName));
     runStudyGroupTurn();
 }
 
@@ -524,16 +521,16 @@ ${studyGroupHistory.map(h => `${h.role}: ${h.content}`).join('\n')}
 
     try {
         const summary = await callGeminiAPI(summaryPrompt, 'أنت معلم خبير');
-        speak(`ختام الجلسة. ${summary}. شكراً لكم جميعاً على المشاركة!`);
-        addStudyGroupEntry('ai', `📋 ملخص الجلسة: ${summary}`);
+        speak(__('studyGroupSummary', summary));
+        addStudyGroupEntry('ai', __('studyGroupSessionSummary', summary));
     } catch(e) {
-        speak("شكراً لكم جميعاً! كانت جلسة ممتازة.");
+        speak(__('studyGroupThankYou'));
     }
 
-    updateStudyGroupStatus('✅ انتهت الجلسة الجماعية.');
+    updateStudyGroupStatus(__('studyGroupSessionEnded'));
     document.getElementById('btn-study-group-start').classList.remove('hidden');
     document.getElementById('btn-study-group-stop').classList.add('hidden');
-    document.getElementById('study-group-voice-status').textContent = 'جلسة منتهية.';
+    document.getElementById('study-group-voice-status').textContent = __('sessionEnded');
 }
 
 function stopStudyGroup() {
@@ -542,18 +539,18 @@ function stopStudyGroup() {
         try { speechRecognition.stop(); } catch(e) {}
     }
     currentSpeechCallback = null;
-    updateStudyGroupStatus('🛑 تم إنهاء الجلسة.');
+    updateStudyGroupStatus(__('dialogicSessionStopped'));
     document.getElementById('btn-study-group-start').classList.remove('hidden');
     document.getElementById('btn-study-group-stop').classList.add('hidden');
-    document.getElementById('study-group-voice-status').textContent = 'جلسة منتهية.';
-    speak("تم إنهاء الجلسة الجماعية.");
+    document.getElementById('study-group-voice-status').textContent = __('sessionEnded');
+    speak(__('studyGroupEnd'));
 }
 
 // ===================== ربط مع الميزات القديمة =====================
 // توفير speechRecognizer للمعلم الافتراضي القديم (cloud_school_app.js)
 window.speechRecognizer = {
     start: function() {
-        speak("تحدث الآن بعد الصافرة...");
+        speak(__('speakAfterBeep'));
         listenForSpeech(function(text) {
             if (text && text.trim()) {
                 const queryField = document.getElementById('ai-tutor-query');
@@ -564,7 +561,7 @@ window.speechRecognizer = {
                     if (askBtn) askBtn.click();
                 }
             } else {
-                speak("لم أسمع السؤال. حاول مرة أخرى.");
+                speak(__('micRetry'));
             }
         }, 15000);
     }
@@ -575,12 +572,7 @@ function waitForSpeechEnd(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
+// escapeHtml is defined in cloud_school_app.js (loaded first)
 
 // ===================== ربط الأزرار =====================
 document.addEventListener('DOMContentLoaded', function() {
@@ -595,8 +587,8 @@ document.addEventListener('DOMContentLoaded', function() {
         speakBtn.addEventListener('click', function() {
             if (dialogicRunning) {
                 // Trigger listening manually
-                updateDialogicStatus('🎤 استمع...');
-                document.getElementById('dialogic-voice-status').textContent = 'تحدث الآن...';
+                updateDialogicStatus(__('dialogicListening'));
+                document.getElementById('dialogic-voice-status').textContent = __('dialogicSpeakNow');
                 listenForSpeech(async (text) => {
                     if (text && text.trim()) {
                         await processStudentAnswer(text);

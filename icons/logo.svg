@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Cloud School - المنصة السحابية التعليمية">
+  <defs>
+    <linearGradient id="g-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111935"/>
+      <stop offset="100%" stop-color="#080c1a"/>
+    </linearGradient>
+    <linearGradient id="g-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="200" cy="200" r="195" fill="url(#g-bg)" stroke="url(#g-gold)" stroke-width="3"/>
+  <g transform="translate(200,180)" filter="url(#glow)">
+    <path d="M-100,25 Q-100,-35 -55,-50 Q-20,-75 20,-60 Q60,-75 95,-45 Q115,-25 105,5 Q120,25 100,35 L-100,35 Q-120,25 -100,25 Z" fill="url(#g-gold)"/>
+    <rect x="-45" y="5" width="90" height="60" rx="4" fill="#080c1a" stroke="#f59e0b" stroke-width="2"/>
+    <polygon points="-55,5 0,-30 55,5" fill="#f59e0b"/>
+    <rect x="-7" y="35" width="14" height="30" rx="6" fill="#f59e0b"/>
+    <rect x="-36" y="12" width="18" height="18" rx="2" fill="#6366f1" opacity="0.9"/>
+    <rect x="18" y="12" width="18" height="18" rx="2" fill="#6366f1" opacity="0.9"/>
+  </g>
+  <text x="200" y="340" font-family="Segoe UI, Tahoma, Arial, sans-serif" font-size="36" font-weight="900" text-anchor="middle" fill="url(#g-gold)">Cloud School</text>
+</svg>

@@ -24,31 +24,6 @@ function getBraillePreview(dotsSet) {
 }
 /** Centralized Error Handler */
 
-const ERROR_LEVELS = { INFO: 'info', WARN: 'warn', ERROR: 'error', FATAL: 'fatal' };
-/** Braille module - لغة برايل */
-
-const arabicBrailleMap = {
-  '1': 'ا', '1,2': 'ب', '2,3,4,5': 'ت', '1,4,5,6': 'ث',
-  '2,4,5': 'ج', '1,5,6': 'ح', '1,3,4,6': 'خ', '1,4,5': 'د',
-  '2,3,4,6': 'ذ', '1,2,3,5': 'ر', '1,3,5,6': 'ز', '2,3,4': 'س',
-  '1,4,6': 'ش', '1,2,3,4,6': 'ص', '1,2,4,6': 'ض', '2,3,4,5,6': 'ط',
-  '1,2,3,4,5,6': 'ظ', '1,2,3,5,6': 'ع', '1,2,6': 'غ', '1,2,4': 'ف',
-  '1,2,3,4,5': 'ق', '1,3': 'ك', '1,2,3': 'ل', '1,3,4': 'م',
-  '1,3,4,5': 'ن', '1,2,5': 'هـ', '2,4,5,6': 'و', '2,4': 'ي',
-  '2,3,5': '!', '2,5,6': '؟'
-};
-
-function getBrailleChar(dotsSet) {
-  const sorted = Array.from(dotsSet).sort((a, b) => a - b);
-  return arabicBrailleMap[sorted.join(',')] || null;
-}
-
-function getBraillePreview(dotsSet) {
-  const sorted = Array.from(dotsSet).sort((a, b) => a - b);
-  const keyString = sorted.join(',');
-  const mapped = arabicBrailleMap[keyString] || (dotsSet.size > 0 ? 'غير مكتمل' : 'لا يوجد');
-  return { keyString, mapped };
-}
 /** Centralized Error Handler */
 
 const ERROR_LEVELS = { INFO: 'info', WARN: 'warn', ERROR: 'error', FATAL: 'fatal' };
@@ -106,7 +81,7 @@ function speakToUser(message) {
   if (ariaLive) ariaLive.textContent = message;
   try {
     const utterance = new SpeechSynthesisUtterance(message);
-    utterance.lang = 'ar-SA';
+    utterance.lang = window.__speechLang || 'ar-SA';
     window.speechSynthesis.speak(utterance);
   } catch { /* speech not available */ }
 }
@@ -119,16 +94,16 @@ function handleError(context, error) {
   notifyListeners(level, context, error);
 
   const userMessages = {
-    'api key': 'خطأ في مفتاح API. تأكد من إدخاله في لوحة الإدارة.',
-    'network': 'خطأ في الاتصال بالشبكة. تحقق من اتصالك بالإنترنت.',
-    'fetch': 'تعذر الاتصال بالخادم. حاول مرة أخرى لاحقاً.',
-    'timeout': 'انتهت مهلة الاتصال. حاول مرة أخرى.',
-    'permission': 'ليس لديك صلاحية لهذه العملية.',
-    'audio': 'حدث خطأ في النظام الصوتي.',
-    'firebase': 'خطأ في الاتصال بقاعدة البيانات.',
+    'api key': __('errorApiKey'),
+    'network': __('errorNetwork'),
+    'fetch': __('errorFetch'),
+    'timeout': __('errorTimeout'),
+    'permission': __('errorPermission'),
+    'audio': __('errorAudio'),
+    'firebase': __('errorFirebase'),
   };
 
-  let userMessage = 'عذراً، حدث خطأ غير متوقع. حاول مرة أخرى.';
+  let userMessage = __('errorDefault');
   const lowerMsg = message.toLowerCase();
   for (const [key, msg] of Object.entries(userMessages)) {
     if (lowerMsg.includes(key)) { userMessage = msg; break; }
@@ -178,15 +153,63 @@ function setCurrentLang(lang) {
   localStorage.setItem('cloudSchoolLang', lang);
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  // تحديث نص زر اللغة
+  const toggle = document.getElementById('lang-toggle');
+  if (toggle) toggle.textContent = lang === 'ar' ? 'English' : 'عربي';
+  // إعادة تطبيق كل الترجمات
+  applyTranslations();
+  applyJsTranslations();
+  // تحديث لغة TTS
+  initTtsLang();
+  speak(__('langChanged'));
+}
+
+function __(key, ...args) {
+  let val = i18n[key];
+  if (!val) return key;
+  if (args.length) {
+    args.forEach((arg, i) => { val = val.replace(`{${i}}`, arg); });
+  }
+  return val;
+}
+
+function getPrompt(lang, arabicText, englishText) {
+  return lang === 'ar' ? arabicText : englishText;
 }
 
 function applyTranslations() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    if (i18n[key]) {
-      el.textContent = i18n[key];
-    }
+    if (i18n[key]) el.textContent = i18n[key];
   });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (i18n[key]) el.placeholder = i18n[key];
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    if (i18n[key]) el.title = i18n[key];
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    const key = el.getAttribute('data-i18n-aria');
+    if (i18n[key]) el.setAttribute('aria-label', i18n[key]);
+  });
+}
+
+function applyJsTranslations() {
+  // تحديث النصوص الديناميكية في الـ JS
+  const ageLevelBtn = document.getElementById('btn-age-level');
+  if (ageLevelBtn && typeof ageLevelLabels !== 'undefined') {
+    const labels = window['ageLevelLabels'] || ['تلقائي', 'طفل', 'شاب', 'بالغ'];
+    const level = typeof currentAgeLevel !== 'undefined' ? currentAgeLevel : 0;
+    ageLevelBtn.textContent = __('ageLevelLabel', labels[level] || labels[0]);
+  }
+}
+
+function initTtsLang() {
+  const speechLang = currentLang === 'ar' ? 'ar-SA' : 'en-US';
+  // تحديث النصوص الصوتية الثابتة (بناءً على اللغة الحالية)
+  window.__speechLang = speechLang;
 }
 
 function loadLocale(lang) {
@@ -429,7 +452,7 @@ async function speakWithGeminiTTS(text) {
 async function transcribeAudio(base64Audio, mimeType) {
   const text = await callGeminiWithMedia(
     [
-      { text: 'فرغ ما يقال حرفياً بالعربية بدون إضافات.' },
+      { text: getPrompt(getCurrentLang(), 'فرغ ما يقال حرفياً بالعربية بدون إضافات.', 'Transcribe the speech verbatim in English without any additions.') },
       { inlineData: { mimeType, data: base64Audio } },
     ],
     null,
@@ -441,21 +464,22 @@ async function transcribeAudio(base64Audio, mimeType) {
 /** تحليل الصور */
 async function describeImage(base64Image, mimeType) {
   return callGeminiWithMedia([
-    { text: 'صف هذه الصورة بالتفصيل لطالب كفيف بالعربية.' },
+    { text: getPrompt(getCurrentLang(), 'صف هذه الصورة بالتفصيل لطالب كفيف بالعربية.', 'Describe this image in detail for a blind student in English. Describe the scene, colors, people, and details accurately.') },
     { inlineData: { mimeType, data: base64Image } },
   ]);
 }
 
 /** سؤال المعلم الافتراضي */
 async function askTutor(question) {
-  return callGemini(question, 'أنت معلم ودود تشرح للطلاب المكفوفين ببساطة.');
+  return callGemini(question, getPrompt(getCurrentLang(), 'أنت معلم ودود تشرح للمكفوفين ببساطة. ', 'You are a friendly teacher who explains things simply for blind students. ') + getAgeTone());
 }
+
 
 /** تلخيص كتاب */
 async function summarizeBook(content) {
   return callGemini(
     `لخص: "${content}" مع 3 أسئلة مراجعة.`,
-    'أنت خبير تلخيص مناهج للمكفوفين.'
+    getPrompt(getCurrentLang(), 'أنت خبير تلخيص مناهج للمكفوفين. ', 'You are an expert in summarizing curricula for blind students. ') + getAgeTone()
   );
 }
 
@@ -463,7 +487,7 @@ async function summarizeBook(content) {
 async function evaluateBraille(text) {
   return callGemini(
     `صحح النص: "${text}" وقدم تقريراً تشجيعياً.`,
-    'أنت معلم لغة عربية وخبير برايل.'
+    getPrompt(getCurrentLang(), 'أنت معلم لغة عربية وخبير برايل. ', 'You are an Arabic language teacher and Braille expert. ') + getAgeTone()
   );
 }
 
@@ -471,7 +495,7 @@ async function evaluateBraille(text) {
 async function generateQuiz() {
   const json = await callGemini(
     'ولد سؤال اختيار من متعدد في العلوم. أخرج JSON فقط: {question, A, B, C, D, correct}.',
-    'أنت مصمم اختبارات.'
+    getPrompt(getCurrentLang(), 'أنت مصمم اختبارات. ', 'You are a quiz designer. ') + getAgeTone()
   );
   return JSON.parse(json.replace(/```json|```/g, '').trim());
 }
@@ -483,7 +507,7 @@ async function generateStory(choiceIndex) {
       ? 'اصنع قصة تفاعلية عن الفضاء بـ JSON: {story, options:[]}. 3 خيارات.'
       : `استمرار القصة. اختار الطالب الخيار ${choiceIndex + 1}. أخرج JSON: {story, options:[]}.`;
 
-  const json = await callGemini(prompt, 'أنت راوي قصص.');
+  const json = await callGemini(prompt, getPrompt(getCurrentLang(), 'أنت راوي قصص. ', 'You are a storyteller. ') + getAgeTone());
   return JSON.parse(json.replace(/```json|```/g, '').trim());
 }
 
@@ -491,7 +515,7 @@ async function generateStory(choiceIndex) {
 async function gradeAnswer(studentAnswer) {
   return callGemini(
     `قيم الإجابة: "${studentAnswer}" وأعط درجة من 100 مع تعليق.`,
-    'أنت مصحح.'
+    getPrompt(getCurrentLang(), 'أنت مصحح.', 'You are a grader.')
   );
 }
 
@@ -532,6 +556,48 @@ const STORAGE_KEYS = {
   localData: 'cloudSchoolData',
 };
 
+// ====== Local Data ======
+var localData = {
+    books: [
+        { id: 'b1', title: 'كيمياء الصف العاشر - الوحدة الأولى', content: 'مرحبًا بك في وحدة الكيمياء. في هذا الدرس، سنتعرف على العناصر والروابط التساهمية والأيونية وتفاعلات الطاقة والحرارة.', audio: '' },
+        { id: 'b2', title: 'تاريخ وحضارة الوطن العربي', content: 'مرحبًا بك في تاريخ العرب المجيد. سنتعلم اليوم عن الحضارات القديمة التي قامت في شبه الجزيرة العربية والهلال الخصيب ومصر الفرعونية.', audio: '' }
+    ],
+    assignments: [
+        { id: 'a1', title: 'واجب العلوم والفيزياء الأول', type: 'mcq', question: 'ما هو المكون الأساسي لغاز الأوزون؟', options: { A: 'الهيدروجين', B: 'الأكسجين الثلاثي', C: 'النيتروجين', D: 'غاز ثاني أكسيد الكربون' }, correct: 'B' },
+        { id: 'a2', title: 'اختبار اللغة العربية المقالي', type: 'text', question: 'اكتب فقرة قصيرة تتحدث فيها عن فضل المعلم في المجتمع وأهمية العلم؟', ideal: 'يعد العلم ركيزة المجتمعات الأساسية، والمعلم هو النور الذي يبدد الظلام...' }
+    ],
+    submissions: [],
+    notifications: [],
+    students: [
+        { name: 'أحمد خالد', grade: 'الصف العاشر', pin: '0000' },
+        { name: 'سارة عبد الله', grade: 'الصف التاسع', pin: '0000' }
+    ]
+};
+
+// ====== Control Variables ======
+var audioCoPilotEnabled = true;
+var screenReaderMode = false;
+var activeRole = 'student';
+var currentBrailleDots = new Set();
+var selectedQuizId = null;
+var activeGameTimer = null;
+var activeGameType = '';
+var currentGameScore = 0;
+var gameTimeLeft = 30;
+var ttsEngineMode = localStorage.getItem('cloudSchoolTtsEngine') || 'browser';
+var activeAudioElement = null;
+var currentUserSession = null;
+var currentAgeLevel = localStorage.getItem('cloudSchoolAgeLevel') || 'auto';
+var currentlyPlayingBookId = null;
+var selectedOption = null;
+var quizTimerInterval = null;
+var currentCorrectAnswer = null;
+var gameTimerInterval = null;
+var uploadedImageBase64 = null;
+var uploadedImageMime = null;
+var accessibleVoicesController = null;
+var gameAudioContext = null;
+
 let sharedAudioContext = null;
 
 // ====== Audio Context Singleton ======
@@ -554,6 +620,455 @@ function showToast(text, isError = false) {
   toast.classList.remove('hidden');
   setTimeout(() => toast.classList.add('hidden'), 4000);
 }
+
+// ====== Loading Spinner ======
+function showLoading(elementId, message) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.innerHTML = `<div class="loading-overlay"><span class="loading-spinner"></span><span>${escapeHtml(message)}</span></div>`;
+}
+
+function hideLoading(elementId) {
+  const el = document.getElementById(elementId);
+  if (el) el.innerHTML = '';
+}
+
+// ====== Escape HTML (XSS Protection) ======
+function escapeHtml(str) {
+  if (!str && str !== 0) return '';
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
+// ====== Password Hashing (SHA-256 via SubtleCrypto) ======
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function isHashed(password) {
+  return /^[a-f0-9]{64}$/.test(password);
+}
+
+// ====== Speech ======
+function speak(text) {
+  if (!audioCoPilotEnabled) return;
+  const ariaLive = document.getElementById('aria-live');
+  if (ariaLive) ariaLive.textContent = text;
+  if (screenReaderMode) return;
+  speakToUser(text);
+}
+
+function stopAllAudio() {
+  window.speechSynthesis.cancel();
+}
+
+// ====== TTS Engine Toggle ======
+function toggleTtsEngine() {
+  ttsEngineMode = ttsEngineMode === 'gemini' ? 'browser' : 'gemini';
+  localStorage.setItem('cloudSchoolTtsEngine', ttsEngineMode);
+  const btn = document.getElementById('tts-engine-toggle');
+  if (btn) {
+    btn.textContent = ttsEngineMode === 'gemini'
+      ? '🎙️ ' + __('ttsGemini')
+      : '🎙️ ' + __('ttsBrowser');
+  }
+  speak(ttsEngineMode === 'gemini' ? __('ttsGeminiActivated') : __('ttsBrowserActivated'));
+}
+
+// ====== المرحلة العمرية ======
+function setupAgeLevel() {
+    var btn = document.getElementById('btn-age-level');
+    if (!btn) return;
+    updateAgeLevelButton();
+    btn.addEventListener('click', function() { toggleAgeLevel(); });
+}
+
+function toggleAgeLevel() {
+    var levels = ['auto', 'child', 'teen', 'adult'];
+    var labels = { auto: 'تلقائي', child: 'طفل', teen: 'شاب', adult: 'بالغ' };
+    var idx = levels.indexOf(currentAgeLevel);
+    currentAgeLevel = levels[(idx + 1) % levels.length];
+    localStorage.setItem('cloudSchoolAgeLevel', currentAgeLevel);
+    updateAgeLevelButton();
+    speak(__('ageSet', labels[currentAgeLevel]));
+}
+
+function updateAgeLevelButton() {
+    var btn = document.getElementById('btn-age-level');
+    var labels = { auto: 'تلقائي', child: 'طفل', teen: 'شاب', adult: 'بالغ' };
+    if (btn) btn.textContent = __('ageButton', labels[currentAgeLevel] || 'تلقائي');
+}
+
+function getAgeTone() {
+    var age = currentUserSession?.age || 14;
+    switch (currentAgeLevel) {
+        case 'child': return 'استخدم أسلوباً مبسطاً جداً مناسباً للأطفال، مع أمثلة يومية ملموسة، وتشجيع مستمر.';
+        case 'teen': return 'استخدم أسلوباً شبابياً مناسباً للمراهقين، مع تحديات فكرية مناسبة، ولغة واضحة لكنها غير طفولية.';
+        case 'adult': return 'استخدم أسلوباً أكاديمياً رصيناً مناسباً للبالغين، مع تحليل عميق ومصطلحات دقيقة.';
+        default:
+            if (age < 12) return 'استخدم أسلوباً مبسطاً جداً مناسباً للأطفال.';
+            if (age < 18) return 'استخدم أسلوباً مناسباً للمراهقين، واضح وجذاب.';
+            return 'استخدم أسلوباً أكاديمياً مناسباً للبالغين.';
+    }
+}
+
+// ====== Screen Reader Mode ======
+function toggleScreenReaderMode() {
+  screenReaderMode = !screenReaderMode;
+  const btn = document.getElementById('btn-screen-reader-mode');
+  if (!btn) return;
+  if (screenReaderMode) {
+    btn.textContent = __('srModeOn');
+    stopAllAudio();
+    const ariaLive = document.getElementById('aria-live');
+    if (ariaLive) ariaLive.textContent = __('srModeActive');
+  } else {
+    btn.textContent = __('srModeOff');
+    speak(__('srModeOffSpoken'));
+  }
+}
+
+// ====== Audio Co-Pilot ======
+function toggleAudioCoPilot() {
+  audioCoPilotEnabled = !audioCoPilotEnabled;
+  const btn = document.getElementById('audio-co-pilot-toggle');
+  if (!btn) return;
+  if (audioCoPilotEnabled) {
+    btn.textContent = __('audioCpOn');
+    btn.setAttribute('aria-pressed', 'true');
+    speak(__('audioCpActivated'));
+  } else {
+    btn.textContent = __('audioCpOff');
+    btn.setAttribute('aria-pressed', 'false');
+    stopAllAudio();
+  }
+}
+
+// ====== Text Size ======
+function adjustTextSize(direction) {
+  let offset = parseInt(localStorage.getItem(STORAGE_KEYS.sizeOffset) || '0', 10);
+  offset += direction;
+  if (offset < -2) offset = -2;
+  if (offset > 6) offset = 6;
+  localStorage.setItem(STORAGE_KEYS.sizeOffset, offset);
+  const sizes = [1, 1.125, 1.25, 1.5, 1.75, 2, 2.5, 3];
+  const chosen = sizes[1 + Math.min(Math.max(offset, -2), 6)] || 1.125;
+  document.documentElement.style.setProperty('--base-text-size', `${chosen}rem`);
+  speak(`${Math.round(chosen * 100)}%`);
+}
+
+function loadTextSize() {
+  const offset = parseInt(localStorage.getItem(STORAGE_KEYS.sizeOffset) || '0', 10);
+  const sizes = [1, 1.125, 1.25, 1.5, 1.75, 2, 2.5, 3];
+  const chosen = sizes[1 + Math.min(Math.max(offset, -2), 6)] || 1.125;
+  document.documentElement.style.setProperty('--base-text-size', `${chosen}rem`);
+}
+
+// ====== Themes ======
+function setTheme(theme) {
+  const body = document.body;
+  body.className = body.className.replace(/theme-\S+/g, '');
+  body.classList.add(`theme-${theme === 'dark-hc' ? 'dark-high-contrast' : theme === 'light-hc' ? 'light-high-contrast' : 'classic'}`);
+  localStorage.setItem(STORAGE_KEYS.theme, theme);
+}
+
+function loadTheme() {
+  const saved = localStorage.getItem(STORAGE_KEYS.theme);
+  if (saved) setTheme(saved);
+}
+
+function cycleTheme() {
+    var themes = ['dark-hc', 'light-hc', 'classic'];
+    var current = localStorage.getItem(STORAGE_KEYS.theme) || 'dark-hc';
+    var idx = themes.indexOf(current);
+    var next = themes[(idx + 1) % themes.length];
+    setTheme(next);
+    var labels = { 'dark-hc': 'أصفر على أسود', 'light-hc': 'أسود على أبيض', 'classic': 'كلاسيك أزرق' };
+    speak(__('themeSet', labels[next] || next));
+}
+
+// ====== Accessible Voices (Hover/Focus) ======
+function setupAccessibleVoices() {
+  if (accessibleVoicesController) accessibleVoicesController.abort();
+  accessibleVoicesController = new AbortController();
+  const signal = accessibleVoicesController.signal;
+  document.querySelectorAll('button, a, input, textarea, select, [role="button"], [role="tab"]').forEach(el => {
+    el.addEventListener('focus', () => {
+      const t = el.getAttribute('aria-label') || el.innerText || el.placeholder || '';
+      if (t) speak(t);
+    }, { signal });
+    el.addEventListener('mouseenter', () => {
+      const isStudent = document.getElementById('view-student') && !document.getElementById('view-student').classList.contains('hidden');
+      if (isStudent) {
+        const t = el.getAttribute('aria-label') || el.innerText || el.placeholder || '';
+        if (t) speak(t);
+      }
+    }, { signal });
+  });
+}
+
+// ====== Proxy Health Check ======
+async function checkProxyHealth() {
+  try {
+    const base = getProxyBase();
+    const res = await fetch(`${base}/api/health`);
+    const data = await res.json();
+    return data.status === 'ok';
+  } catch {
+    return false;
+  }
+}
+
+// ====== Keyboard Shortcuts Help ======
+function showKeyboardHelp() {
+    var existing = document.getElementById('shortcuts-help-overlay');
+    if (existing) { existing.remove(); return; }
+    var overlay = document.createElement('div');
+    overlay.id = 'shortcuts-help-overlay';
+    overlay.className = 'fixed inset-0 bg-black bg-opacity-95 z-[100] flex items-center justify-center p-4';
+    overlay.innerHTML = '<div class="card p-6 rounded-3xl max-w-lg border-4 border-yellow-400 bg-slate-900 text-white w-full max-h-[80vh] overflow-y-auto" role="dialog" aria-label="' + __('keyboardHelpLabel') + '">' +
+        '<h2 class="text-3xl font-black text-yellow-400 mb-4 text-center">⌨️ ' + __('keyboardHelp') + '</h2>' +
+        '<div class="space-y-3 text-right" dir="rtl">' +
+        '<div class="grid grid-cols-2 gap-2 font-bold border-b border-gray-600 pb-2 mb-2"><span>' + __('keyboardColKey') + '</span><span>' + __('keyboardColFunc') + '</span></div>' +
+        shortcutRow('H أو F1', __('keyboardShortcutHelp')) +
+        shortcutRow('Escape', __('keyboardShortcutClose')) +
+        shortcutRow('1', __('sectionBooks')) +
+        shortcutRow('2', __('sectionAssignments')) +
+        shortcutRow('3', __('sectionGames')) +
+        shortcutRow('4', __('keyboardSecTutor')) +
+        shortcutRow('5', __('keyboardSecVision')) +
+        shortcutRow('6', __('sectionDialogic')) +
+        shortcutRow('7', __('sectionStudyGroup')) +
+        shortcutRow('8', __('sectionDashboard')) +
+        shortcutRow('0', __('keyboardHome')) +
+        shortcutRow('B', __('keyboardBraille')) +
+        shortcutRow('T', __('keyboardTheme')) +
+        shortcutRow('R', __('keyboardRoles')) +
+        shortcutRow('Ctrl+M', __('keyboardMic')) +
+        shortcutRow('Ctrl+Shift+S', __('keyboardSR')) +
+        shortcutRow('Ctrl+Shift+A', __('keyboardAudioCp')) +
+        shortcutRow('Ctrl+Shift+T', __('keyboardTts')) +
+        shortcutRow('+ / -', __('keyboardFontSize')) +
+        '</div>' +
+        '<button id="btn-close-help" class="w-full mt-4 p-4 bg-yellow-400 text-black font-black text-xl rounded-xl btn-interactive">' + __('keyboardClose') + '</button></div>';
+    document.body.appendChild(overlay);
+    document.getElementById('btn-close-help')?.addEventListener('click', function() { overlay.remove(); });
+    document.getElementById('btn-close-help')?.focus();
+    speak(__('keyboardHelpOpened'));
+}
+
+function shortcutRow(key, desc) {
+    return '<div class="grid grid-cols-2 gap-2 py-1"><span class="font-mono bg-gray-800 px-2 py-1 rounded text-yellow-300 text-center dir-ltr text-sm">' + key + '</span><span class="text-gray-200">' + desc + '</span></div>';
+}
+
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        var tag = document.activeElement?.tagName || '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        var helpOverlay = document.getElementById('shortcuts-help-overlay');
+        var key = e.key;
+        var ctrl = e.ctrlKey;
+
+        // Help
+        if (key === 'h' || key === 'H' || key === 'F1') {
+            e.preventDefault();
+            showKeyboardHelp();
+            return;
+        }
+        // Close help / go back
+        if (key === 'Escape') {
+            if (helpOverlay) { helpOverlay.remove(); return; }
+            closeStudentSection();
+            return;
+        }
+        // Only work when student view is active
+        if (document.getElementById('view-student')?.classList.contains('hidden')) return;
+        if (helpOverlay) return;
+
+        if (!ctrl) {
+            // Navigation shortcuts (single key)
+            switch (key) {
+                case '1': e.preventDefault(); openStudentSection('books'); break;
+                case '2': e.preventDefault(); openStudentSection('assignments'); break;
+                case '3': e.preventDefault(); openStudentSection('games'); break;
+                case '4': e.preventDefault(); openStudentSection('ai-tutor'); break;
+                case '5': e.preventDefault(); openStudentSection('image-describer'); break;
+                case '6': e.preventDefault(); openStudentSection('dialogic-classroom'); break;
+                case '7': e.preventDefault(); openStudentSection('study-group'); break;
+                case '8': e.preventDefault(); openStudentSection('dashboard'); break;
+                case '0': e.preventDefault(); closeStudentSection(); break;
+                case 'b': case 'B':
+                    e.preventDefault();
+                    document.getElementById('dot-1')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    document.getElementById('dot-1')?.focus();
+                    speak(__('brailleBoardHelp'));
+                    break;
+                case 't': case 'T':
+                    e.preventDefault();
+                    cycleTheme();
+                    break;
+                case 'r': case 'R':
+                    e.preventDefault();
+                    var roleBar = document.getElementById('dev-role-bar');
+                    if (roleBar) {
+                        roleBar.classList.toggle('hidden');
+                        speak(roleBar.classList.contains('hidden') ? __('roleBarHidden') : __('roleBarVisible'));
+                    }
+                    break;
+            }
+        } else {
+            // Ctrl+ combinations
+            var shift = e.shiftKey;
+            switch (key) {
+                case 'm': case 'M': e.preventDefault(); toggleAudioRecording(); break;
+                case 's': case 'S': if (shift) { e.preventDefault(); toggleScreenReaderMode(); } break;
+                case 'a': case 'A': if (shift) { e.preventDefault(); toggleAudioCoPilot(); } break;
+                case 't': case 'T': if (shift) { e.preventDefault(); toggleTtsEngine(); } break;
+                case '=': e.preventDefault(); adjustTextSize(1); break;
+                case '-': e.preventDefault(); adjustTextSize(-1); break;
+            }
+        }
+    });
+}
+
+// ====== Audio Recording ======
+var mediaRecorder = null;
+var audioChunks = [];
+var isRecording = false;
+
+function getIsRecording() { return isRecording; }
+
+function toggleAudioRecording() {
+  var micBtn = document.getElementById('btn-mic-input');
+  if (isRecording) {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    isRecording = false;
+    if (micBtn) micBtn.classList.remove('bg-red-600', 'animate-pulse');
+    speak(__('micStop'));
+  } else {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      speak(__('micUnsupported'));
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+      mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) audioChunks.push(e.data); };
+      mediaRecorder.onstop = async function() {
+        var blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+        audioChunks = [];
+        try {
+          var base64 = await blobToBase64(blob);
+          var text = await transcribeAudio(base64, mediaRecorder.mimeType);
+          if (text?.trim()) {
+            var ans = document.getElementById('assignment-student-answer');
+            if (ans) ans.value += (ans.value ? ' ' : '') + text.trim();
+            var aiQ = document.getElementById('ai-tutor-query');
+            if (aiQ && document.getElementById('student-sub-ai-tutor') && !document.getElementById('student-sub-ai-tutor').classList.contains('hidden')) {
+              aiQ.value = text.trim();
+            }
+            speak(__('micCaptureOk'));
+          }
+        } catch(e) { speak(__('micError')); }
+      };
+      mediaRecorder.start();
+      isRecording = true;
+      if (micBtn) micBtn.classList.add('bg-red-600', 'animate-pulse');
+      speak(__('micStart'));
+    }).catch(function() { speak(__('micPermission')); });
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onloadend = function() { resolve(reader.result.split(',')[1]); };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// ====== Sound Effects ======
+function playSuccessChime() {
+  playTone(523.25, 880, 'sine', 0.3);
+}
+
+function playFailChime() {
+  playTone(150, 80, 'sawtooth', 0.3);
+}
+
+function playTone(startFreq, endFreq, type, duration) {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(startFreq, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(endFreq, ctx.currentTime + duration * 0.7);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch { /* audio not available */ }
+}
+
+// ====== Focus Management ======
+function focusElement(elementId) {
+  const el = document.getElementById(elementId);
+  if (el) {
+    el.focus();
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function announceToScreenReader(text) {
+  const ariaLive = document.getElementById('aria-live');
+  if (!ariaLive) return;
+  ariaLive.textContent = '';
+  requestAnimationFrame(() => { ariaLive.textContent = text; });
+}
+
+// ====== Gemini API Key (obfuscated at rest) ======
+function _obfuscate(str) {
+  return btoa(str.split('').reverse().join(''));
+}
+function _deobfuscate(str) {
+  try { return atob(str).split('').reverse().join(''); } catch { return ''; }
+}
+
+function getGeminiKey() {
+  const stored = localStorage.getItem('gemini_api_key');
+  if (stored) {
+    const decoded = _deobfuscate(stored);
+    if (decoded) return decoded;
+  }
+  const key = prompt(__('promptApiKey'));
+  if (key) {
+    localStorage.setItem('gemini_api_key', _obfuscate(key));
+    return key;
+  }
+  return '';
+}
+
+function setGeminiKey(key) {
+  if (key) {
+    localStorage.setItem('gemini_api_key', _obfuscate(key));
+  } else {
+    localStorage.removeItem('gemini_api_key');
+  }
+}
+
+function toggleRegFields() {
+    const role = document.getElementById('reg-role').value;
+    const ageField = document.getElementById('age-field-container');
+    const studentFields = document.getElementById('student-linked-fields');
     const parentFields = document.getElementById('parent-linked-fields');
 
     if (role === 'student') {
@@ -599,7 +1114,7 @@ function checkAgeLimitations() {
     if (isNaN(age)) return;
 
     if (age < 12) {
-        const msg = "أهلاً بك يا بطل. نظراً لأن عمرك أقل من 12 عاماً، يتوجب على ولي أمرك أو مدرستك إنشاء الحساب الخاص بك من جهتهم والإشراف التام على تصفحك على كلاود سكول. لا يمكنك التسجيل بنفسك حالياً.";
+        const msg = __("ageUnder12");
         warningText.textContent = msg;
         warningBox.classList.remove('hidden');
         btnAuthSubmit.disabled = true;
@@ -611,13 +1126,13 @@ function checkAgeLimitations() {
         parentContactInput.required = true;
         parentContactInput.setAttribute('required', 'required');
 
-        labelParentContact.innerHTML = 'حساب ولي أمرك (حقل إجباري - اكتب رقم هاتف، بريد، أو ID ولي الأمر المسجل) *';
+        labelParentContact.innerHTML = __('parentContactLabel');
 
-        speak("لقد قمت بتحديد عمرك 12 عاماً أو أكثر. يتوجب عليك الآن ربط حسابك بولي أمرك بكتابة رقم هاتفه، بريده الإلكتروني، أو معرف حسابه الشخصي على المنصة. هذا الحقل لا يمكن تجاوزه أبداً.");
+        speak(__('ageConfirm12'));
     }
 }
 
-function handleLoginSubmit(e) {
+async function handleLoginSubmit(e) {
     e.preventDefault();
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value.trim();
@@ -627,36 +1142,50 @@ function handleLoginSubmit(e) {
     warningBox.classList.add('hidden');
 
     if (!username || !password) {
-        warningText.textContent = "يرجى إدخال اسم المستخدم وكلمة المرور.";
+        warningText.textContent = __('loginRequired');
         warningBox.classList.remove('hidden');
-        speak("يرجى إدخال اسم المستخدم وكلمة المرور.");
+        speak(__('loginRequired'));
         return;
     }
 
     // Check saved accounts in localStorage
     const savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]');
-    const account = savedAccounts.find(a => a.contact === username && a.password === password);
+
+    // Try hashed password first, then fallback to plaintext (migration)
+    const hashedInput = await hashPassword(password);
+    let account = savedAccounts.find(a => a.contact === username && a.password === hashedInput);
+    if (!account) {
+        account = savedAccounts.find(a => a.contact === username && a.password === password);
+        // Migrate plaintext password to hash on successful login
+        if (account && !isHashed(password)) {
+            account.password = hashedInput;
+            localStorage.setItem('cloudSchoolAccounts', JSON.stringify(savedAccounts));
+        }
+    }
 
     if (account) {
         currentUserSession = account;
         document.getElementById('auth-gate').classList.add('hidden');
         document.getElementById('dev-role-bar').classList.remove('hidden');
-        document.getElementById('active-user-badge').textContent = `المستخدم: ${account.name} (${getArabicRoleName(account.role)})`;
+        document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
+        document.getElementById('active-user-badge').textContent = __('userBadge', account.name, getArabicRoleName(account.role));
         switchRole(account.role);
-        showToast(`أهلاً بك يا ${account.name} في Cloud School`);
+        showToast(__('loginSuccess', account.name));
     } else {
-        warningText.textContent = "اسم المستخدم أو كلمة المرور غير صحيحة. إذا لم يكن لديك حساب، اضغط على 'إنشاء حساب جديد'.";
+        warningText.textContent = __('loginFailed');
         warningBox.classList.remove('hidden');
-        speak("اسم المستخدم أو كلمة المرور غير صحيحة.");
+        speak(__('loginFailed'));
     }
 }
 
-function handleRegistrationSubmit(e) {
+async function handleRegistrationSubmit(e) {
     e.preventDefault();
     const name = document.getElementById('reg-name').value.trim();
     const contact = document.getElementById('reg-contact').value.trim();
     const role = document.getElementById('reg-role').value;
     const age = parseInt(document.getElementById('reg-age').value, 10);
+    const plainPassword = document.getElementById('reg-password-new').value;
+    const hashedPassword = await hashPassword(plainPassword);
 
     const warningBox = document.getElementById('auth-warning-box');
     const warningText = document.getElementById('auth-warning-text');
@@ -664,7 +1193,7 @@ function handleRegistrationSubmit(e) {
 
     if (role === 'student') {
         if (age < 12) {
-            const msg = "عذراً! لا يمكن إكمال التسجيل للطلاب دون 12 عاماً بشكل مستقل. يرجى دعوة ولي أمرك للتسجيل أولاً.";
+            const msg = __("registerAgeRestriction");
             warningText.textContent = msg;
             warningBox.classList.remove('hidden');
             speak(msg);
@@ -673,7 +1202,7 @@ function handleRegistrationSubmit(e) {
 
         const parentContact = document.getElementById('reg-parent-contact').value.trim();
         if (!parentContact) {
-            const msg = "تنبيه صارم: لا يمكن إتمام التسجيل وتجاوز هذه الخطوة أبداً دون إدخال رقم هاتف، بريد إلكتروني، أو معرف (ID) ولي الأمر لربط الحسابين.";
+            const msg = __("registerParentRequired");
             warningText.textContent = msg;
             warningBox.classList.remove('hidden');
             speak(msg);
@@ -681,12 +1210,12 @@ function handleRegistrationSubmit(e) {
             return;
         }
 
-    currentUserSession = { name, contact, role, age, parentContact, password: document.getElementById('reg-password-new').value };
+    currentUserSession = { name, contact, role, age, parentContact, password: hashedPassword };
     } else if (role === 'parent') {
         const childContact = document.getElementById('reg-child-contact').value.trim();
-        currentUserSession = { name, contact, role, childContact, password: document.getElementById('reg-password-new').value };
+        currentUserSession = { name, contact, role, childContact, password: hashedPassword };
     } else {
-        currentUserSession = { name, contact, role, age, password: document.getElementById('reg-password-new').value };
+        currentUserSession = { name, contact, role, age, password: hashedPassword };
     }
 
     // Save account to localStorage
@@ -696,13 +1225,17 @@ function handleRegistrationSubmit(e) {
 
     document.getElementById('auth-gate').classList.add('hidden');
     document.getElementById('dev-role-bar').classList.remove('hidden');
-    document.getElementById('active-user-badge').textContent = `المستخدم: ${name} (${getArabicRoleName(role)})`;
+    document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
+    document.getElementById('active-user-badge').textContent = __('userBadge', name, getArabicRoleName(role));
 
     switchRole(role);
-    showToast(`أهلاً بك يا ${name} في Cloud School`);
+    showToast(__('loginSuccess', name));
 }
 
+// DEV-ONLY: bypass for testing — disabled unless __DEV__ flag is set
+window.__DEV__ = false;
 function bypassAuthDemo() {
+    if (!window.__DEV__) { console.warn('[SECURITY] bypassAuthDemo is disabled in production'); return; }
     currentUserSession = {
         name: "أحمد خالد (طالب)",
         contact: "0555555555",
@@ -712,7 +1245,8 @@ function bypassAuthDemo() {
     };
     document.getElementById('auth-gate').classList.add('hidden');
     document.getElementById('dev-role-bar').classList.remove('hidden');
-    document.getElementById('active-user-badge').textContent = "المستخدم: أحمد خالد (طالب تجريبي)";
+    document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
+    document.getElementById('active-user-badge').textContent = __('demoUserBadge');
     switchRole('student');
 }
 
@@ -721,16 +1255,17 @@ function logout() {
     cleanupTimers();
     document.getElementById('auth-gate').classList.remove('hidden');
     document.getElementById('dev-role-bar').classList.add('hidden');
+    document.querySelector('[data-action="logout"]')?.classList.add('hidden');
     // Show login form, hide register form
     document.getElementById('login-form-container').classList.remove('hidden');
     document.getElementById('register-form-container').classList.add('hidden');
     document.getElementById('login-username').value = '';
     document.getElementById('login-password').value = '';
-    speak("تم تسجيل الخروج بنجاح.");
+    speak(__('logoutSuccess'));
 }
 
 function getArabicRoleName(role) {
-    const roles = { student: 'طالب', parent: 'ولي أمر', teacher: 'معلم', admin: 'إدارة المدرسة' };
+    const roles = { student: __('roleStudent'), parent: __('roleParent'), teacher: __('roleTeacher'), admin: __('roleAdmin') };
     return roles[role] || role;
 }
 
@@ -755,18 +1290,20 @@ function switchRole(role) {
 
     if (role === 'student') {
         document.getElementById('view-student').classList.remove('hidden');
-        speak("واجهة الطالب نشطة الآن في كلاود سكول. تصفح المناهج والواجبات والألعاب بصوت الذكاء الاصطناعي.");
+        renderStudentStats();
+        speak(__('studentViewActive'));
     } else if (role === 'teacher') {
         document.getElementById('view-teacher').classList.remove('hidden');
-        speak("لوحة تحكم المعلم مفتوحة لتوليد الأسئلة ونشر المناهج.");
+        speak(__('teacherViewActive'));
+        renderTeacherDashboard();
         renderTeacherSubmissions();
     } else if (role === 'parent') {
         document.getElementById('view-parent').classList.remove('hidden');
-        speak("لوحة تحكم ولي الأمر نشطة لمتابعة تقدم الطالب وتشخيص صعوبات التعلم.");
+        speak(__('parentViewActive'));
         renderParentDashboard();
     } else if (role === 'admin') {
         document.getElementById('view-admin').classList.remove('hidden');
-        speak("واجهة إدارة المدرسة مفتوحة لتوليد حسابات المكفوفين.");
+        speak(__('adminViewActive'));
         renderAdminDashboard();
     }
 
@@ -796,7 +1333,7 @@ async function translateAndEvaluateBrailleWithAI() {
     const answerText = answerTextarea.value.trim();
 
     if (!answerText) {
-        speak("الرجاء كتابة إجابة ببرايل أو بالصوت أولاً قبل الفحص والتقييم.");
+        speak(__('brailleFirst'));
         return;
     }
 
@@ -804,19 +1341,19 @@ async function translateAndEvaluateBrailleWithAI() {
     const evalText = document.getElementById('braille-evaluation-text');
 
     evalBox.classList.remove('hidden');
-    showLoading('braille-evaluation-text', 'جاري تواصل المترجم الذكي مع خادم Gemini...');
-    speak("جاري فحص وتصحيح النص المكتوب ببرايل، انتظر لحظات من فضلك.");
+    showLoading('braille-evaluation-text', __('loadingBrailleTranslate'));
+    speak(__('brailleChecking'));
 
     const prompt = `لقد كتب طالب كفيف هذا النص التعليمي باللغة العربية: "${answerText}". قم بمراجعة الإملاء، وتوضيح الكلمات المترجمة والتركيبات النحوية، وإعطائه تقريراً تربوياً وصوتياً فائق التشجيع لتنمية مهارات برايل لديه، مع تقديم النص المصحح والنهائي بشكل واضح وبسيط ومريح للقراءة.`;
 
     try {
-        const resultText = await callGeminiAPI(prompt, "أنت معلم لغة عربية متميز وخبير في ترجمة وتصحيح لغة برايل وطريقة Perkins للأطفال والطلاب المكفوفين.");
+        const resultText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "أنت معلم لغة عربية متميز وخبير في ترجمة وتصحيح لغة برايل وطريقة Perkins للمكفوفين من جميع المراحل العمرية. ", "You are an excellent Arabic language teacher and expert in Braille translation and grading for blind students of all ages using the Perkins method. ") + getAgeTone());
         evalText.textContent = resultText;
         speak(resultText);
     } catch (error) {
         console.error(error);
-        evalText.textContent = "تعذر تقييم لغة برايل حالياً لعدم استقرار الشبكة. يرجى المحاولة مجدداً.";
-        speak("عذراً، فشل المترجم الذكي في تقييم النص.");
+        evalText.textContent = __('brailleEvalError');
+        speak(__('brailleEvalFailed'));
     }
 }
 
@@ -827,19 +1364,19 @@ async function summarizeCurriculumBookWithAI() {
 
     const summaryBox = document.getElementById('book-ai-summary-box');
     summaryBox.classList.remove('hidden');
-    showLoading('book-ai-summary-text', 'جاري قراءة المنهج وتوليد تلخيص ذكي...');
-    speak("جاري تحضير التلخيص السمعي الذكي وبطاقات الاستذكار الفورية، يرجى الانتظار.");
+    showLoading('book-ai-summary-text', __('loadingBookSummary'));
+    speak(__('bookSummarizing'));
 
-    const prompt = `قم بتلخيص المحتوى الدراسي التالي بالتفصيل بأسلوب نقاطي سمعي فائق الوضوح ومناسب للأطفال المكفوفين ليسهل عليهم حفظه كبطاقات استذكار سريعة: "${book.content}". ولد أيضاً ثلاثة أسئلة مراجعة وتنشيط للذاكرة في نهاية التلخيص.`;
+    const prompt = `قم بتلخيص المحتوى الدراسي التالي بالتفصيل بأسلوب نقاطي سمعي فائق الوضوح ومناسب للمكفوفين من جميع الأعمار لتسهيل الحفظ كبطاقات استذكار سريعة: "${book.content}". ولد أيضاً ثلاثة أسئلة مراجعة وتنشيط للذاكرة في نهاية التلخيص. ` + getAgeTone();
 
     try {
-        const resultText = await callGeminiAPI(prompt, "أنت خبير تعليمي متميز في صياغة وتلخيص المناهج الدراسية لضعاف البصر بطريقة سمعية مبسطة للغاية.");
+        const resultText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "أنت خبير تعليمي متميز في صياغة وتلخيص المناهج الدراسية لضعاف البصر بطريقة سمعية مبسطة للغاية.", "You are an excellent educational expert in formulating and summarizing curricula for the visually impaired in a highly simplified audio manner."));
         document.getElementById('book-ai-summary-text').textContent = resultText;
         speak(resultText);
     } catch (error) {
         console.error(error);
-        document.getElementById('book-ai-summary-text').textContent = "تعذر تحضير التلخيص حالياً. يرجى مراجعة الاتصال بالإنترنت.";
-        speak("عذراً، واجهت مشكلة في تلخيص الكتاب.");
+        document.getElementById('book-ai-summary-text').textContent = __('bookSummaryError');
+        speak(__('bookSummaryFailed'));
     }
 }
 
@@ -852,8 +1389,8 @@ async function startAiStoryRound(choiceIndex = null) {
     storyOptions.classList.remove('hidden');
     storyOptions.innerHTML = '';
 
-    showLoading('game-question', 'جاري صياغة فصل المغامرة...');
-    speak("جاري نسج فصول قصتك التفاعلية بالذكاء الاصطناعي، انتظر ثوانٍ لتستمع للمغامرة.");
+    showLoading('game-question', __('loadingStory'));
+    speak(__('storyGenerating'));
 
     let prompt = "";
     if (choiceIndex === null) {
@@ -863,7 +1400,7 @@ async function startAiStoryRound(choiceIndex = null) {
     }
 
     try {
-        const jsonText = await callGeminiAPI(prompt, "أنت مصمم قصص تفاعلية وتعليمية ملهمة ومختص في صياغة ملفات JSON نقية ومبسطة.");
+        const jsonText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "أنت مصمم قصص تفاعلية وتعليمية ملهمة ومختص في صياغة ملفات JSON نقية ومبسطة.", "You are a designer of inspiring interactive educational stories and an expert in formulating clean and simplified JSON files."));
         const parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
 
         questionText.textContent = parsed.story;
@@ -885,21 +1422,21 @@ async function startAiStoryRound(choiceIndex = null) {
 
     } catch (error) {
         console.error("Storyteller Error:", error);
-        questionText.textContent = "حدث خطأ أثناء محاولة جلب فصول القصة التفاعلية.";
-        speak("عذراً، تعذر صياغة القصة حالياً.");
+        questionText.textContent = __('storyError');
+        speak(__('storyError'));
     }
 }
 
 async function analyzeImageWithGemini() {
     if (!uploadedImageBase64) {
-        speak("الرجاء تحديد ملف صورة توضيحية أولاً.");
+        speak(__('visionSelectImage'));
         return;
     }
 
     const responseBox = document.getElementById('vision-response-box');
     responseBox.classList.remove('hidden');
-    showLoading('vision-response-text', 'جاري تحليل الصورة...');
-    speak("بدأ التحليل، يرجى الانتظار.");
+    showLoading('vision-response-text', __('loadingVision'));
+       speak(__('visionAnalyzing'));
 
     try {
         const description = await describeImage(uploadedImageBase64, uploadedImageMime);
@@ -907,40 +1444,40 @@ async function analyzeImageWithGemini() {
         speak(description);
     } catch (error) {
         handleError('analyzeImage', error);
-        document.getElementById('vision-response-text').textContent = "تعذر تحليل الصورة.";
+        document.getElementById('vision-response-text').textContent = __('visionError');
     }
 }
 
 async function askAITutor() {
     const queryText = document.getElementById('ai-tutor-query').value.trim();
     if (!queryText) {
-        speak("يرجى كتابة سؤالك أولاً.");
+        speak(__('tutorAskFirst'));
         return;
     }
 
     document.getElementById('ai-tutor-response-box').classList.remove('hidden');
-    showLoading('ai-tutor-response-text', 'جاري الاتصال بمعلم الذكاء الاصطناعي...');
-    speak("جاري التواصل مع المعلم الافتراضي لإعداد شرح مبسط، يرجى الانتظار ثوانٍ معدودة.");
+    showLoading('ai-tutor-response-text', __('loadingTutor'));
+    speak(__('tutorThinking'));
 
     try {
-        const responseText = await callGeminiAPI(queryText, "أنت معلم ودود ولطيف جداً متخصص في شرح المناهج الدراسية للأطفال المكفوفين وضعاف البصر بتبسيط شديد وضرب أمثلة ملموسة من واقع الحياة اليومية لتيسير الاستيعاب السمعي.");
+        const responseText = await callGeminiAPI(queryText, getPrompt(getCurrentLang(), "أنت معلم ودود متخصص في شرح المناهج الدراسية للمكفوفين وضعاف البصر من جميع المراحل العمرية. قدّم الشرح بمستوى يناسب الطالب: للطفل استخدم تبسيطاً شديداً وأمثلة يومية، وللشاب والبالغ استخدم أسلوباً أكاديمياً مناسباً مع الحفاظ على الوضوح.", "You are a friendly teacher specialized in explaining curricula for blind and visually impaired students of all ages. Provide explanations at a level suitable for the student: use extreme simplification and daily examples for children, and an appropriate academic style for young people and adults while maintaining clarity."));
         document.getElementById('ai-tutor-response-text').textContent = responseText;
         speak(responseText);
     } catch (error) {
-        document.getElementById('ai-tutor-response-text').textContent = "حدث خطأ أثناء محاولة جلب الإجابة من خوادم الذكاء الاصطناعي المباشرة.";
-        speak("عذراً، واجهت مشكلة في إعداد الإجابة.");
+        document.getElementById('ai-tutor-response-text').textContent = __('tutorError');
+        speak(__('tutorError'));
     }
 }
 
 async function generateAIQuiz() {
-    speak("جاري توليد أسئلة الاختبار التفاعلي ديناميكياً من المنهج باستخدام الذكاء الاصطناعي.");
+    speak(__('quizLoading'));
     const btn = document.getElementById('btn-ai-generate');
-    btn.textContent = "🪄 جاري التوليد...";
+    btn.textContent = __('quizGenerating');
 
     const prompt = "ولد سؤال اختبار حقيقي واحد في مادة العلوم يتكون من اختيار من متعدد مع أربعة خيارات وتحديد الخيار الصحيح. أخرج النتيجة بتنسيق JSON نظيف وبسيط يحتوي على مفاتيح: question, A, B, C, D, correct.";
 
     try {
-        const jsonText = await callGeminiAPI(prompt, "أنت مصمم اختبارات أكاديمي متميز لوزارة التعليم.");
+        const jsonText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "أنت مصمم اختبارات أكاديمي متميز. ", "You are an excellent academic quiz designer. ") + getAgeTone());
         const parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
 
         document.getElementById('teacher-quiz-title').value = "اختبار العلوم الذكي التوليدي";
@@ -951,12 +1488,12 @@ async function generateAIQuiz() {
         document.getElementById('teacher-quiz-od').value = parsed.D;
         document.getElementById('teacher-quiz-correct').value = parsed.correct;
 
-        speak("تم توليد السؤال وتعبئة الحقول بنجاح!");
+        speak(__('quizReady'));
     } catch (e) {
         console.error(e);
-        speak("فشل توليد الاختبار التلقائي.");
+        speak(__('quizFailed'));
     } finally {
-        btn.textContent = "🪄 توليد ذكي بالذكاء الاصطناعي";
+        btn.textContent = __('quizGenerateBtn');
     }
 }
 
@@ -973,7 +1510,7 @@ function toggleCheatDot(dotNum) {
     const dotsArray = Array.from(currentCheatDots).sort((a, b) => a - b);
     const keyString = dotsArray.join(',');
     const mappedChar = arabicBrailleMap[keyString] || "غير مكتمل";
-    document.getElementById('cheat-char-preview').textContent = `الحرف المشكل حالياً: ${mappedChar} (نقاط: ${keyString || 'لا يوجد'})`;
+    document.getElementById('cheat-char-preview').textContent = __('brailleCurrentChar', mappedChar, keyString || '');
 }
 
 function pronounceCheatBraille() {
@@ -982,9 +1519,9 @@ function pronounceCheatBraille() {
     const mappedChar = arabicBrailleMap[keyString];
 
     if (mappedChar) {
-        speak(`هذه التركيبة تمثل الحرف العربي: ${mappedChar}. تذكر كيف تضع أصابعك لتشكيله على لوحة كلاود سكول!`);
+        speak(__('brailleCharInfo', mappedChar));
     } else {
-        speak("لم تقم بتشكيل حرف عربي كامل بعد، جرب تشكيلات أخرى ملموسة.");
+        speak(__('brailleIncomplete'));
     }
 }
 
@@ -994,8 +1531,8 @@ function clearCheatDots() {
         const dot = document.getElementById(`cheat-dot-${i}`);
         if (dot) dot.classList.remove('active');
     }
-    document.getElementById('cheat-char-preview').textContent = "الحرف المشكل حالياً: لا يوجد";
-    speak("تم تفريغ لوحة تعليم برايل.");
+    document.getElementById('cheat-char-preview').textContent = __('brailleNoChar');
+    speak(__('brailleCleared'));
 }
 
 function openStudentSection(section) {
@@ -1006,41 +1543,47 @@ function openStudentSection(section) {
     document.getElementById('student-sub-ai-tutor').classList.add('hidden');
     document.getElementById('student-sub-dialogic-classroom')?.classList.add('hidden');
     document.getElementById('student-sub-study-group')?.classList.add('hidden');
+    document.getElementById('student-sub-dashboard')?.classList.add('hidden');
 
     const container = document.getElementById('student-section-container');
     container.classList.remove('hidden');
     const title = document.getElementById('student-section-title');
 
     if (section === 'books') {
-        title.textContent = "📚 مستودع المناهج والكتب الدراسية";
+        title.textContent = __('sectionBooks');
         document.getElementById('student-sub-books').classList.remove('hidden');
         renderStudentBooks();
-        speak("قسم الكتب الدراسية مفتوح. اختر أحد الكتب لقراءته أو الاستماع إليه.");
+        speak(__('sectionOpened', __('sectionBooks')));
     } else if (section === 'assignments') {
-        title.textContent = "✏️ الواجبات والاختبارات التفاعلية";
+        title.textContent = __('sectionAssignments');
         document.getElementById('student-sub-assignments').classList.remove('hidden');
         renderStudentAssignments();
-        speak("قسم الاختبارات والواجبات مفتوح. يمكنك اختيار الواجب وحله بالصوت أو بطريقة برايل.");
+        speak(__('sectionOpened', __('sectionAssignments')));
     } else if (section === 'image-describer') {
-        title.textContent = "👁️ واصف الرسوم التوضيحية بالذكاء الاصطناعي";
+        title.textContent = __('sectionVision');
         document.getElementById('student-sub-image-describer').classList.remove('hidden');
-        speak("واصف الرسوم مفتوح. ارفع صورة توضيحية لدرسك وسأشرحها لك بالكامل.");
+        speak(__('sectionOpened', __('sectionVision')));
     } else if (section === 'games') {
-        title.textContent = "🎮 ساحة الألعاب التنافسية الذكية وبرايل";
+        title.textContent = __('sectionGames');
         document.getElementById('student-sub-games').classList.remove('hidden');
-        speak("أهلاً بك في ساحة الألعاب واللوحة التفاعلية لتعليم برايل. اختر التحدي لتبدأ المتعة.");
+        speak(__('sectionOpened', __('sectionGames')));
     } else if (section === 'ai-tutor') {
-        title.textContent = "🤖 معلم الذكاء الاصطناعي الافتراضي";
+        title.textContent = __('sectionTutor');
         document.getElementById('student-sub-ai-tutor').classList.remove('hidden');
-        speak("معلمك الخاص المدعوم بالذكاء الاصطناعي مستعد لمساعدتك على مدار الساعة. اضغط على التحدث واطرح سؤالك.");
+        speak(__('sectionOpened', __('sectionTutor')));
     } else if (section === 'dialogic-classroom') {
-        title.textContent = "🎙️ الفصل الذكي الحواري";
+        title.textContent = __('sectionDialogic');
         document.getElementById('student-sub-dialogic-classroom')?.classList.remove('hidden');
-        speak("الفصل الذكي الحواري مفتوح. اضغط على بدء الفصل الذكي لبدء جلسة تعليمية صوتية تفاعلية.");
+        speak(__('sectionOpened', __('sectionDialogic')));
     } else if (section === 'study-group') {
-        title.textContent = "👥 المذاكر الجماعي الصوتي";
+        title.textContent = __('sectionStudyGroup');
         document.getElementById('student-sub-study-group')?.classList.remove('hidden');
-        speak("المذاكر الجماعي الصوتي مفتوح. اختر موضوعاً وابدأ جلسة مذاكرة جماعية بوساطة الذكاء الاصطناعي.");
+        speak(__('sectionOpened', __('sectionStudyGroup')));
+    } else if (section === 'dashboard') {
+        title.textContent = __('sectionDashboard');
+        document.getElementById('student-sub-dashboard')?.classList.remove('hidden');
+        renderStudentDashboard();
+        speak(__('sectionOpened', __('sectionDashboard')));
     }
 
     container.scrollIntoView({ behavior: 'smooth' });
@@ -1062,7 +1605,7 @@ function closeStudentSection() {
     } else {
         document.getElementById('main-content')?.focus();
     }
-    speak("تم العودة إلى الشاشة الرئيسية للطالب.");
+    speak(__('sectionClosed'));
 }
 
 function renderStudentBooks() {
@@ -1076,8 +1619,8 @@ function renderStudentBooks() {
             <h4 class="text-2xl font-black">${escapeHtml(b.title)}</h4>
             <p class="text-sm line-clamp-3">${escapeHtml(b.content)}</p>
             <div class="flex gap-2 w-full flex-wrap">
-                <button data-action="read-book" data-book-id="${escapeHtml(b.id)}" class="flex-1 p-3 bg-yellow-500 text-black font-bold rounded hover:bg-yellow-400 btn-interactive">📖 قراءة بذكاء اصطناعي فائق</button>
-                <button data-action="play-book" data-book-id="${escapeHtml(b.id)}" class="flex-1 p-3 bg-blue-600 text-white font-bold rounded hover:bg-blue-500 btn-interactive">🎧 الاستماع للكتاب الصوتي</button>
+                <button data-action="read-book" data-book-id="${escapeHtml(b.id)}" class="flex-1 p-3 bg-yellow-500 text-black font-bold rounded hover:bg-yellow-400 btn-interactive">📖 ${__('btnReadAI')}</button>
+                <button data-action="play-book" data-book-id="${escapeHtml(b.id)}" class="flex-1 p-3 bg-blue-600 text-white font-bold rounded hover:bg-blue-500 btn-interactive">🎧 ${__('btnListenAudio')}</button>
             </div>
         `;
         grid.appendChild(item);
@@ -1095,7 +1638,7 @@ function renderStudentBooks() {
 function readBookAloud(bookId) {
     const book = localData.books.find(b => b.id === bookId);
     if (book) {
-        speak(`جاري قراءة كتاب: ${book.title}. المحتوى كالتالي: ${book.content}`);
+        speak(__('readBookAloud', book.title, book.content));
     }
 }
 
@@ -1119,8 +1662,8 @@ function playBookAudio(bookId) {
     if (book) {
         const player = document.getElementById('audiobook-player');
         player.classList.remove('hidden');
-        document.getElementById('audiobook-playing-title').textContent = `🎧 جاري الاستماع لكتاب: ${book.title} (صوت طبيعي مجسم)`;
-        speak(`تم تجهيز المشغل الصوتي لـ ${book.title}. اضغط زر التشغيل للبدء.`);
+        document.getElementById('audiobook-playing-title').textContent = __('listeningToBook', book.title);
+        speak(__('audioPlayerReady', book.title));
     }
 }
 
@@ -1140,7 +1683,7 @@ function controlAudiobook(action) {
             activeAudioElement.pause();
             activeAudioElement = null;
         }
-        speak("تم إيقاف تشغيل الكتاب الصوتي.");
+        speak(__('audiobookStopped'));
     }
 }
 
@@ -1154,9 +1697,9 @@ function renderStudentAssignments() {
         item.innerHTML = `
             <div>
                 <h4 class="text-2xl font-black">${escapeHtml(a.title)}</h4>
-                <span class="text-sm px-2 py-1 bg-yellow-400 text-black rounded font-bold">${a.type === 'mcq' ? 'اختبار اختيار من متعدد' : 'واجب مقالي نصي'}</span>
+                <span class="text-sm px-2 py-1 bg-yellow-400 text-black rounded font-bold">${a.type === 'mcq' ? __('typeMCQ') : __('typeEssay')}</span>
             </div>
-            <button data-action="start-quiz" data-quiz-id="${escapeHtml(a.id)}" class="p-4 bg-green-600 text-white font-black text-lg rounded-xl hover:bg-green-500 large-touch-target btn-interactive">بدء الحل الفوري 🏁</button>
+            <button data-action="start-quiz" data-quiz-id="${escapeHtml(a.id)}" class="p-4 bg-green-600 text-white font-black text-lg rounded-xl hover:bg-green-500 large-touch-target btn-interactive">${__('btnStartQuiz')} 🏁</button>
         `;
         list.appendChild(item);
     });
@@ -1180,19 +1723,19 @@ function startQuiz(quizId) {
         document.getElementById('quiz-text-input-section').classList.add('hidden');
 
         document.getElementById('quiz-question-text').textContent = quiz.question;
-        document.getElementById('btn-opt-A').querySelector('span').textContent = `أ) ${quiz.options.A}`;
-        document.getElementById('btn-opt-B').querySelector('span').textContent = `ب) ${quiz.options.B}`;
-        document.getElementById('btn-opt-C').querySelector('span').textContent = `ج) ${quiz.options.C}`;
-        document.getElementById('btn-opt-D').querySelector('span').textContent = `د) ${quiz.options.D}`;
+        document.getElementById('btn-opt-A').querySelector('span').textContent = `${__('optA')} ${quiz.options.A}`;
+        document.getElementById('btn-opt-B').querySelector('span').textContent = `${__('optB')} ${quiz.options.B}`;
+        document.getElementById('btn-opt-C').querySelector('span').textContent = `${__('optC')} ${quiz.options.C}`;
+        document.getElementById('btn-opt-D').querySelector('span').textContent = `${__('optD')} ${quiz.options.D}`;
 
-        speak(`بدأ الاختبار الفوري. عنوان الاختبار: ${quiz.title}. السؤال هو: ${quiz.question}`);
+        speak(__('quizStarted', quiz.title, quiz.question));
     } else {
         document.getElementById('quiz-question-container').classList.add('hidden');
         document.getElementById('quiz-text-input-section').classList.remove('hidden');
 
         document.getElementById('assignment-student-answer').value = '';
         document.getElementById('braille-evaluation-box').classList.add('hidden');
-        speak(`بدأ الواجب المقالي. السؤال هو: ${quiz.question}. يمكنك حل هذا الواجب بالكلام الصوتي أو بلوحة برايل.`);
+        speak(__('essayStarted', quiz.question));
     }
 
     let totalSecondsLeft = 10 * 60;
@@ -1208,11 +1751,11 @@ function startQuiz(quizId) {
         timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
         if (totalSecondsLeft === 5 * 60) {
-            speak("تنبيه هادئ: متبقي من الوقت خمس دقائق للاختبار.");
+            speak(__('quizWarn5min'));
         } else if (totalSecondsLeft === 60) {
-            speak("تنبيه عاجل: متبقي من الوقت دقيقة واحدة فقط.");
+            speak(__('quizWarn1min'));
         } else if (totalSecondsLeft === 10) {
-            speak("عشر ثوانٍ متبقية!");
+            speak(__('quizWarn10sec'));
         }
 
         if (totalSecondsLeft <= 0) {
@@ -1227,7 +1770,7 @@ function startQuiz(quizId) {
 
 function selectQuizOption(option) {
     selectedOption = option;
-    speak(`تم اختيار الحرف ${option} كإجابتك المحتملة.`);
+    speak(__('quizOptionSelected', option));
 
     ['A', 'B', 'C', 'D'].forEach(opt => {
         const btn = document.getElementById(`btn-opt-${opt}`);
@@ -1250,7 +1793,7 @@ function submitQuizAnswer() {
 
     if (quiz.type === 'mcq') {
         if (!selectedOption) {
-            speak("الرجاء تحديد خيار إجابة قبل الإرسال.");
+            speak(__('quizSelectOption'));
             return;
         }
         finalAnswer = selectedOption;
@@ -1258,7 +1801,7 @@ function submitQuizAnswer() {
     } else {
         finalAnswer = document.getElementById('assignment-student-answer').value.trim();
         if (!finalAnswer) {
-            speak("لا يمكنك إرسال إجابة فارغة.");
+            speak(__('quizEmptyAnswer'));
             return;
         }
         score = finalAnswer.length > 10 ? 90 : 50;
@@ -1279,8 +1822,10 @@ function submitQuizAnswer() {
     localData.submissions.unshift(submission);
     saveLocalData();
     saveSubmissionToFirebase(submission);
+    addNotification(__('notifNewAnswer'), submission.studentName + ' ' + __('notifQuizDone') + ' ' + (submission.quizTitle || '') + ' ' + __('notifScored') + ' ' + score + '%', 'submission');
+    if (score >= 80) addNotification(__('notifAchievement'), submission.studentName + ' ' + __('notifScoredAchievement') + ' ' + score + '% ' + __('notifInQuiz') + ' ' + (submission.quizTitle || '') + '!', 'achievement');
 
-    speak("تم حفظ وإرسال إجابتك بنجاح. رائع يا بطل!");
+    speak(__('quizSubmitted'));
     document.getElementById('active-quiz-panel').classList.add('hidden');
     selectedQuizId = null;
 }
@@ -1334,7 +1879,7 @@ function processPerkinsChord() {
         ansTextarea.value += mappedChar;
         speak(mappedChar);
     } else {
-        speak("تركيبة برايل غير معروفة.");
+        speak(__('brailleUnknown'));
     }
 }
 
@@ -1351,7 +1896,7 @@ function toggleBrailleDot(dotNumber) {
     const dotsArray = Array.from(currentBrailleDots).sort((a, b) => a - b);
     const keyString = dotsArray.join(',');
     const mappedChar = arabicBrailleMap[keyString] || "غير معروف";
-    document.getElementById('braille-char-preview').textContent = `الحرف المشكل حالياً: ${mappedChar} (نقاط: ${keyString || 'لا يوجد'})`;
+    document.getElementById('braille-char-preview').textContent = __('brailleCurrentChar', mappedChar, keyString || '');
 }
 
 function enterBrailleChar() {
@@ -1365,7 +1910,7 @@ function enterBrailleChar() {
         speak(mappedChar);
         clearBrailleDots();
     } else {
-        speak("التركيبة الحالية لا تمثل حرفاً عربياً صحيحاً.");
+        speak(__('brailleInvalidChar'));
     }
 }
 
@@ -1375,20 +1920,20 @@ function clearBrailleDots() {
         const dot = document.getElementById(`dot-${i}`);
         if (dot) dot.classList.remove('active');
     }
-    document.getElementById('braille-char-preview').textContent = "الحرف المشكل حالياً: لا يوجد";
+    document.getElementById('braille-char-preview').textContent = __('brailleNoChar');
 }
 
 function addSpaceToAnswer() {
     const ansTextarea = document.getElementById('assignment-student-answer');
     ansTextarea.value += " ";
-    speak("مسافة");
+    speak(__('brailleSpace'));
 }
 
 function deleteLastChar() {
     const ansTextarea = document.getElementById('assignment-student-answer');
     if (ansTextarea.value.length > 0) {
         ansTextarea.value = ansTextarea.value.slice(0, -1);
-        speak("تم مسح الحرف الأخير");
+        speak(__('brailleDeleted'));
     }
 }
 
@@ -1399,11 +1944,11 @@ function toggleBrailleKeyboard(type) {
     if (type === 'screen') {
         screenKbd.classList.toggle('hidden');
         perkinsKbd.classList.add('hidden');
-        speak("تم تبديل لوحة برايل للشاشة التفاعلية.");
+        speak(__('brailleScreenKbd'));
     } else {
         perkinsKbd.classList.toggle('hidden');
         screenKbd.classList.add('hidden');
-        speak("تم تفعيل محاكي Perkins لسطح المكتب.");
+        speak(__('braillePerkinsKbd'));
     }
 }
 
@@ -1417,7 +1962,7 @@ function previewVisionImage(event) {
         uploadedImageBase64 = reader.result.split(',')[1];
         document.getElementById('vision-preview-container').classList.remove('hidden');
         document.getElementById('vision-image-preview').src = reader.result;
-        speak("تم تحميل الصورة بنجاح. انقر على زر التحليل بالأسفل لتلقي الوصف الصوتي.");
+        speak(__('visionImageLoaded'));
     };
     reader.readAsDataURL(file);
 }
@@ -1442,32 +1987,32 @@ function initGame(gameType) {
     const storyOptions = document.getElementById('game-story-options');
 
     if (gameType === 'seconds') {
-        document.getElementById('game-title').textContent = "⏱️ لعبة تحدي الثواني (صواب أم خطأ)";
+        document.getElementById('game-title').textContent = __('gameTrueFalse');
         document.getElementById('game-timer-wrapper').classList.remove('hidden');
         binaryOptions.classList.remove('hidden');
         storyOptions.classList.add('hidden');
         startNewGameRound();
-        speak("بدأت لعبة تحدي الثواني. أمامك ثلاثون ثانية للإجابة على أكبر عدد ممكن!");
+        speak(__('gameTrueFalseStart'));
     } else if (gameType === 'hero') {
-        document.getElementById('game-title').textContent = "🏆 لعبة البطل ضد الوقت";
+        document.getElementById('game-title').textContent = __('gameSpeed');
         document.getElementById('game-timer-wrapper').classList.add('hidden');
         binaryOptions.classList.remove('hidden');
         storyOptions.classList.add('hidden');
         startNewGameRound();
-        speak("بدأت لعبة البطل ضد الوقت. الإجابة الخاطئة تنهي اللعبة، حاول كسر رقمك القياسي!");
+        speak(__('gameSpeedStart'));
     } else if (gameType === 'pvp') {
-        document.getElementById('game-title').textContent = "⚔️ المبارزة الثنائية المباشرة (PvP)";
+        document.getElementById('game-title').textContent = __('gamePvP');
         document.getElementById('game-timer-wrapper').classList.remove('hidden');
         binaryOptions.classList.remove('hidden');
         storyOptions.classList.add('hidden');
         startNewGameRound();
-        speak("بدأت المبارزة مع زميلك المحاكى ماجد الشريف. الأسرع في الإجابة يفوز بالدورة!");
+        speak(__('gamePvPStart'));
     } else if (gameType === 'ai-story') {
-        document.getElementById('game-title').textContent = "📖 الحكواتي الذكي التفاعلي (مغامرات مغطاة بالمنهج) ✨";
+        document.getElementById('game-title').textContent = __('gameStory');
         document.getElementById('game-timer-wrapper').classList.add('hidden');
         startAiStoryRound(null);
     } else if (gameType === 'audio-memory') {
-        document.getElementById('game-title').textContent = "🧠 لعبة الذاكرة السمعية";
+        document.getElementById('game-title').textContent = __('gameMemory');
         document.getElementById('game-timer-wrapper').classList.add('hidden');
         binaryOptions.classList.add('hidden');
         storyOptions.classList.add('hidden');
@@ -1624,10 +2169,10 @@ function startNewGameRound() {
 
 function listenForGameAnswer() {
     if (typeof listenForSpeech !== 'function') return;
-    speak("قل صح أو خطأ للإجابة.");
+    speak(__('gameSpeakAnswer'));
     listenForSpeech(function(text) {
         if (!text) {
-            speak("لم أسمع إجابة. حاول مرة أخرى.");
+            speak(__('gameNoAnswer'));
             setTimeout(function() { listenForGameAnswer(); }, 1500);
             return;
         }
@@ -1637,7 +2182,7 @@ function listenForGameAnswer() {
         } else if (t.indexOf('خطأ') !== -1 || t.indexOf('غلط') !== -1 || t.indexOf('لا') !== -1 || t.indexOf('no') !== -1) {
             answerGame(false);
         } else {
-            speak("لم أفهم إجابتك. قل صح أو خطأ.");
+            speak(__('gameUnclear'));
             setTimeout(function() { listenForGameAnswer(); }, 1500);
         }
     }, 8000);
@@ -1649,16 +2194,16 @@ function answerGame(userAnswer) {
         document.getElementById('game-score').textContent = currentGameScore;
 
         playSuccess3D();
-        speak("أحسنت! إجابة صحيحة.");
+        speak(__('gameCorrect'));
 
         setTimeout(function() { startNewGameRound(); }, 1000);
     } else {
         playFail3D();
         if (activeGameType === 'hero') {
-            speak(`للأسف الإجابة خاطئة. انتهت اللعبة وحققت رصيد بطل يبلغ ${currentGameScore} نقطة.`);
+            speak(__('gameWrongScore', currentGameScore));
             endGame();
         } else {
-            speak("إجابة خاطئة، حاول مجدداً مع السؤال التالي.");
+            speak(__('gameWrong'));
             setTimeout(function() { startNewGameRound(); }, 1000);
         }
     }
@@ -1686,13 +2231,13 @@ function startAudioMemoryGame() {
 
     document.getElementById('active-game-panel').classList.remove('hidden');
     document.getElementById('game-score').textContent = "0";
-    document.getElementById('game-title').textContent = "🧠 لعبة الذاكرة السمعية";
+    document.getElementById('game-title').textContent = __('gameMemory');
     document.getElementById('game-timer-wrapper').classList.add('hidden');
     document.getElementById('game-binary-options').classList.add('hidden');
     document.getElementById('game-story-options').classList.add('hidden');
-    document.getElementById('game-question').textContent = "استمع إلى التسلسل، ثم كرره.";
+    document.getElementById('game-question').textContent = __('gameMemoryListen');
 
-    speak("بدأت لعبة الذاكرة السمعية. استمع جيداً إلى تسلسل الأصوات، ثم كرره بالضغط على الأزرار.");
+    speak(__('gameMemoryStart'));
     setTimeout(function() { addAudioMemoryStep(); }, 2000);
 }
 
@@ -1706,7 +2251,7 @@ function playAudioMemorySequence() {
     var i = 0;
     function playNext() {
         if (i >= audioMemorySequence.length) {
-            speak("الآن دورك. كرر التسلسل.");
+            speak(__('gameMemoryYourTurn'));
             return;
         }
         var pattern = audioMemoryPatterns[audioMemorySequence[i]];
@@ -1717,7 +2262,7 @@ function playAudioMemorySequence() {
         i++;
         setTimeout(playNext, 1200);
     }
-    speak("تسلسل جديد:");
+    speak(__('gameMemoryNew'));
     setTimeout(playNext, 500);
 }
 
@@ -1728,13 +2273,13 @@ function answerAudioMemory(patternIdx) {
         if (audioMemoryStep >= audioMemorySequence.length) {
             currentGameScore += 10;
             document.getElementById('game-score').textContent = currentGameScore;
-            speak("أحسنت! أكملت التسلسل.");
+            speak(__('gameMemoryComplete'));
             audioMemoryStep = 0;
             setTimeout(function() { addAudioMemoryStep(); }, 1500);
         }
     } else {
         playFail3D();
-        speak(`للأسف إجابة خاطئة. التسلسل الصحيح كان: ${audioMemorySequence.map(function(i) { return audioMemoryPatterns[i].name; }).join('، ')}.`);
+        speak(__('gameMemoryWrong', audioMemorySequence.map(function(i) { return audioMemoryPatterns[i].name; }).join(', ')));
         endGame();
     }
 }
@@ -1755,7 +2300,10 @@ function initAudioMemoryUI() {
 function endGame() {
     if (gameTimerInterval) clearInterval(gameTimerInterval);
     document.getElementById('active-game-panel').classList.add('hidden');
-    speak(`انتهت اللعبة بنجاح! نتيجتك النهائية هي ${currentGameScore} نقطة. رائع جداً يا بطل!`);
+    speak(__('gameOver', currentGameScore));
+    if (currentGameScore >= 50) {
+        addNotification(__('notifGameAchievement'), (currentUserSession?.name || __('notifStudent')) + ' ' + __('notifGotScore') + ' ' + currentGameScore + ' ' + __('notifPointsInGame') + ' ' + (activeGameType === 'audio-memory' ? __('notifMemoryGame') : __('notifQuizGame')) + '!', 'achievement');
+    }
 }
 
 // (playSuccessChime and playFailChime defined above)
@@ -1764,7 +2312,7 @@ function startAITutorSpeech() {
     if (speechRecognizer) {
         speechRecognizer.start();
     } else {
-        speak("الإدخال الصوتي غير متاح حالياً.");
+        speak(__('speechUnavailable'));
     }
 }
 
@@ -1777,20 +2325,20 @@ async function gradeSubmissionWithAI(index) {
     const sub = localData.submissions[index];
     if (!sub) return;
 
-    speak("جاري قياس جودة إجابة الطالب عبر المصحح المؤتمت للذكاء الاصطناعي.");
+    speak(__('gradingInProgress'));
 
     const prompt = `قارن إجابة الطالب: "${sub.studentAnswer}" مع السؤال المقالي وصححه إملائياً ولغوياً وقدم تقريراً من سطرين متضمناً الدرجة المقترحة (من 100) مع الكلمات المشجعة للطالب الكفيف.`;
 
     try {
-        const report = await callGeminiAPI(prompt, "أنت مصحح ومعلم تربوي للتعليم الفني والمدمج.");
+        const report = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "أنت مصحح ومعلم تربوي. ", "You are a grader and educational teacher. ") + getAgeTone());
         sub.initialScore = 95;
         sub.graderFeedback = report;
         saveLocalData();
 
         renderTeacherSubmissions();
-        speak("تم إنهاء التقييم الذكي بنجاح وتحديث واجهة المعلم.");
+        speak(__('gradingDone'));
     } catch (e) {
-        speak("فشل الاتصال بالمصحح التلقائي.");
+        speak(__('gradingFailed'));
     }
 }
 
@@ -1816,7 +2364,7 @@ function handleTeacherAddBook(e) {
     saveLocalData();
 
     saveBookToFirebase(newBook);
-    speak("تم نشر الكتاب والمقرر بنجاح لجميع طلابك.");
+    speak(__('bookPublished'));
     e.target.reset();
 }
 
@@ -1844,8 +2392,155 @@ function handleTeacherAddQuiz(e) {
     localData.assignments.push(newQuiz);
     saveLocalData();
     saveQuizToFirebase(newQuiz);
-    speak("تم نشر الواجب والاختبار بنجاح للطلاب.");
+    speak(__('quizPublished'));
     e.target.reset();
+}
+
+// ==================== لوحة قيادة المعلم ====================
+
+function renderTeacherDashboard() {
+    var submissions = localData.submissions || [];
+    var students = localData.students || [];
+    var assignments = localData.assignments || [];
+
+    // 1. إحصائيات سريعة
+    var totalStudents = students.length;
+    var activeStudents = new Set(submissions.map(function(s) { return s.studentName; })).size;
+    var totalQuizzes = assignments.length;
+    var totalSubmissions = submissions.length;
+    var avgScore = totalSubmissions > 0
+        ? Math.round(submissions.reduce(function(sum, s) { return sum + (s.initialScore || 0); }, 0) / totalSubmissions)
+        : 0;
+    var completionRate = totalQuizzes > 0 && activeStudents > 0
+        ? Math.round((totalSubmissions / (totalQuizzes * activeStudents)) * 100)
+        : 0;
+
+    document.getElementById('stat-total-students').textContent = totalStudents + (activeStudents > 0 ? ' (' + activeStudents + ' نشط)' : '');
+    document.getElementById('stat-total-quizzes').textContent = totalQuizzes;
+    document.getElementById('stat-avg-score').textContent = avgScore + '%';
+    document.getElementById('stat-completion').textContent = Math.min(completionRate, 100) + '%';
+
+    renderGradeDistribution(submissions);
+    renderStudentPerformanceTable(submissions, assignments);
+    var exportBtn = document.getElementById('btn-export-report');
+    if (exportBtn) {
+        exportBtn.onclick = function() { generateTeacherReport(); };
+    }
+}
+
+function renderGradeDistribution(submissions) {
+    var container = document.getElementById('grade-distribution');
+    var ranges = [
+        { label: __('gradePoor'), min: 0, max: 49, color: 'bg-red-500' },
+        { label: __('gradePass'), min: 50, max: 69, color: 'bg-orange-500' },
+        { label: __('gradeGood'), min: 70, max: 89, color: 'bg-blue-500' },
+        { label: __('gradeExcellent'), min: 90, max: 100, color: 'bg-green-500' }
+    ];
+    var counts = [0, 0, 0, 0];
+    submissions.forEach(function(s) {
+        var score = s.initialScore || 0;
+        for (var i = 0; i < ranges.length; i++) {
+            if (score >= ranges[i].min && score <= ranges[i].max) { counts[i]++; break; }
+        }
+    });
+    var maxCount = Math.max.apply(null, counts) || 1;
+    var html = '';
+    for (var i = 0; i < ranges.length; i++) {
+        var pct = Math.round((counts[i] / maxCount) * 100);
+        html += '<div class="flex items-center gap-3">' +
+            '<span class="text-sm w-28 shrink-0">' + ranges[i].label + '</span>' +
+            '<div class="flex-1 h-6 bg-gray-700 rounded-full overflow-hidden">' +
+            '<div class="h-full ' + ranges[i].color + ' rounded-full transition-all duration-500" style="width:' + pct + '%"></div>' +
+            '</div>' +
+            '<span class="text-sm font-bold w-10 text-left">' + counts[i] + '</span>' +
+            '</div>';
+    }
+    if (submissions.length === 0) {
+        container.innerHTML = '<p class="text-gray-400">' + __('noGradesForDistribution') + '</p>';
+    } else {
+        container.innerHTML = '<div class="space-y-3">' + html + '</div>' +
+            '<p class="text-xs text-gray-400 mt-2">' + __('totalCorrections') + ' ' + submissions.length + '</p>';
+    }
+}
+
+function renderStudentPerformanceTable(submissions, assignments) {
+    var tbody = document.getElementById('teacher-performance-tbody');
+    tbody.innerHTML = '';
+    if (submissions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-400">' + __('noAnswersYet') + '</td></tr>';
+        return;
+    }
+    var studentMap = {};
+    submissions.forEach(function(s) {
+        var name = s.studentName || 'غير معروف';
+        if (!studentMap[name]) studentMap[name] = [];
+        studentMap[name].push(s.initialScore || 0);
+    });
+    var studentNames = Object.keys(studentMap).sort();
+    studentNames.forEach(function(name) {
+        var scores = studentMap[name];
+        var avg = Math.round(scores.reduce(function(a, b) { return a + b; }, 0) / scores.length);
+        var max = Math.max.apply(null, scores);
+        var min = Math.min.apply(null, scores);
+        var tr = document.createElement('tr');
+        var gradeClass = avg >= 90 ? 'text-green-400' : (avg >= 70 ? 'text-blue-400' : (avg >= 50 ? 'text-yellow-400' : 'text-red-400'));
+        tr.innerHTML = '<td class="p-2 border border-current font-bold">' + escapeHtml(name) + '</td>' +
+            '<td class="p-2 border border-current text-center">' + scores.length + '</td>' +
+            '<td class="p-2 border border-current font-bold text-center ' + gradeClass + '">' + avg + '%</td>' +
+            '<td class="p-2 border border-current text-center text-green-300">' + max + '%</td>' +
+            '<td class="p-2 border border-current text-center text-red-300">' + min + '%</td>';
+        tbody.appendChild(tr);
+    });
+}
+
+function generateTeacherReport() {
+    var submissions = localData.submissions || [];
+    var students = localData.students || [];
+    var assignments = localData.assignments || [];
+    if (submissions.length === 0) {
+        speak(__('reportNoData'));
+        return;
+    }
+    var report = '--- ' + __('reportTitle') + ' ---\n';
+    report += __('reportDate') + ': ' + new Date().toLocaleString('ar-EG') + '\n';
+    report += __('reportStudents') + ': ' + students.length + '\n';
+    report += __('reportQuizzes') + ': ' + assignments.length + '\n';
+    report += __('reportCorrections') + ': ' + submissions.length + '\n\n';
+    var avg = submissions.length > 0
+        ? Math.round(submissions.reduce(function(s, sub) { return s + (sub.initialScore || 0); }, 0) / submissions.length)
+        : 0;
+    report += __('reportAvgScore') + ': ' + avg + '%\n\n';
+    report += '--- ' + __('reportPerStudent') + ' ---\n';
+    var studentMap = {};
+    submissions.forEach(function(s) {
+        var name = s.studentName || 'غير معروف';
+        if (!studentMap[name]) studentMap[name] = [];
+        studentMap[name].push({ title: s.quizTitle || 'اختبار', score: s.initialScore || 0 });
+    });
+    Object.keys(studentMap).sort().forEach(function(name) {
+        var subs = studentMap[name];
+        var avgS = Math.round(subs.reduce(function(a, b) { return a + b.score; }, 0) / subs.length);
+        report += '\n' + name + ' — ' + __('reportAvg') + ': ' + avgS + '%\n';
+        subs.forEach(function(sub) {
+            report += '  - ' + sub.title + ': ' + sub.score + '%\n';
+        });
+    });
+    report += '\n--- ' + __('reportEnd') + ' ---';
+    try {
+        navigator.clipboard.writeText(report);
+        speak(__('reportCopied'));
+    } catch (e) {
+        speak(__('reportGenerated'));
+    }
+    var overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black bg-opacity-95 z-[100] flex items-center justify-center p-4';
+    overlay.innerHTML = '<div class="card p-6 rounded-3xl max-w-2xl border-4 border-yellow-400 bg-slate-900 text-white w-full max-h-[80vh] overflow-y-auto" role="dialog" aria-label="' + __('teacherReportLabel') + '">' +
+        '<h2 class="text-3xl font-black text-yellow-400 mb-4 text-center">' + __('teacherReport') + '</h2>' +
+        '<pre class="text-sm text-gray-200 whitespace-pre-wrap font-sans leading-relaxed">' + escapeHtml(report) + '</pre>' +
+        '<button id="btn-close-report" class="w-full mt-4 p-4 bg-yellow-500 text-black font-black text-xl rounded-xl btn-interactive">' + __('close') + '</button></div>';
+    document.body.appendChild(overlay);
+    document.getElementById('btn-close-report').addEventListener('click', function() { overlay.remove(); });
+    document.getElementById('btn-close-report').focus();
 }
 
 function renderTeacherSubmissions() {
@@ -1853,7 +2548,7 @@ function renderTeacherSubmissions() {
     tbody.innerHTML = '';
 
     if (localData.submissions.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">لا توجد إجابات مرفوعة من الطلاب حتى الآن.</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center">' + __('teacherNoData') + '</td></tr>';
         return;
     }
 
@@ -1880,6 +2575,168 @@ function renderTeacherSubmissions() {
     });
 }
 
+// ==================== نظام الإشعارات ====================
+
+function addNotification(title, details, type) {
+    if (!localData.notifications) localData.notifications = [];
+    localData.notifications.unshift({
+        title: title,
+        details: details,
+        type: type || 'info',
+        time: new Date().toLocaleString('ar-EG'),
+        read: false
+    });
+    // Keep max 50 notifications
+    if (localData.notifications.length > 50) localData.notifications.length = 50;
+    saveLocalData();
+    updateNotifBadge();
+    showToast(__('notifPrefix') + ' ' + title);
+}
+
+function updateNotifBadge() {
+    var badge = document.getElementById('notif-badge');
+    var btn = document.getElementById('btn-notifications');
+    if (!badge || !btn) return;
+    var unread = (localData.notifications || []).filter(function(n) { return !n.read; }).length;
+    badge.textContent = unread;
+    if (unread > 0) {
+        btn.classList.remove('hidden');
+    } else {
+        btn.classList.add('hidden');
+    }
+}
+
+function showNotificationsPanel() {
+    var existing = document.getElementById('notifications-panel-overlay');
+    if (existing) { existing.remove(); return; }
+    var overlay = document.createElement('div');
+    overlay.id = 'notifications-panel-overlay';
+    overlay.className = 'fixed inset-0 bg-black bg-opacity-95 z-[100] flex items-center justify-center p-4';
+    var notifs = localData.notifications || [];
+    var html = '<div class="card p-6 rounded-3xl max-w-lg border-4 border-blue-400 bg-slate-900 text-white w-full max-h-[80vh] overflow-y-auto" role="dialog" aria-label="' + __('notifPanelLabel') + '">' +
+        '<h2 class="text-3xl font-black text-blue-400 mb-4 text-center">🔔 ' + __('notifPanelTitle') + '</h2>';
+    if (notifs.length === 0) {
+        html += '<p class="text-center text-gray-400">' + __('notifEmpty') + '</p>';
+    } else {
+        html += '<div class="space-y-2">';
+        for (var i = 0; i < notifs.length; i++) {
+            var n = notifs[i];
+            var bg = n.read ? 'bg-slate-800' : 'bg-slate-700 border-r-4 border-yellow-400';
+            html += '<div class="p-3 rounded-lg ' + bg + '">' +
+                '<p class="font-bold text-sm text-yellow-300">' + n.title + '</p>' +
+                '<p class="text-gray-300 text-xs mt-1">' + n.details + '</p>' +
+                '<p class="text-gray-500 text-[10px] mt-1">' + n.time + '</p></div>';
+        }
+        html += '</div>';
+    }
+    html += '<button id="btn-close-notifs" class="w-full mt-4 p-4 bg-blue-500 text-white font-black text-xl rounded-xl btn-interactive">' + __('close') + '</button>' +
+        '<button id="btn-mark-read-notifs" class="w-full mt-2 p-2 bg-gray-700 text-white font-bold rounded-lg btn-interactive">' + __('markAllRead') + '</button></div>';
+    overlay.innerHTML = html;
+    document.body.appendChild(overlay);
+    document.getElementById('btn-close-notifs')?.addEventListener('click', function() { overlay.remove(); });
+    document.getElementById('btn-mark-read-notifs')?.addEventListener('click', function() {
+        (localData.notifications || []).forEach(function(n) { n.read = true; });
+        saveLocalData();
+        updateNotifBadge();
+        showNotificationsPanel();
+    });
+    document.getElementById('btn-close-notifs')?.focus();
+    // Mark notifications as read when panel is opened
+    if (notifs.length > 0) {
+        notifs[0].read = true;
+        saveLocalData();
+        updateNotifBadge();
+    }
+    speak(__('notifPanelOpened'));
+}
+
+// ==================== لوحة متابعة الطالب ====================
+
+function renderStudentStats() {
+    var submissions = localData.submissions || [];
+    var mySubs = submissions.filter(function(s) {
+        return s.studentName === (currentUserSession?.name || '');
+    });
+    var quizCount = mySubs.length;
+    var avgScore = quizCount > 0 ? Math.round(mySubs.reduce(function(sum, s) { return sum + (s.initialScore || 0); }, 0) / quizCount) : null;
+    var bookCount = localData.books ? localData.books.length : 0;
+    var gameCount = 0;
+
+    document.getElementById('stat-quizzes').textContent = quizCount;
+    document.getElementById('stat-avg-score').textContent = avgScore !== null ? avgScore + '%' : '--';
+    document.getElementById('stat-books').textContent = bookCount;
+    document.getElementById('stat-games').textContent = gameCount;
+}
+
+function renderStudentDashboard() {
+    renderStudentStats();
+
+    var submissions = localData.submissions || [];
+    var mySubs = submissions.filter(function(s) {
+        return s.studentName === (currentUserSession?.name || '');
+    });
+
+    // Quiz stats
+    var quizDiv = document.getElementById('dashboard-quiz-stats');
+    if (mySubs.length === 0) {
+        quizDiv.innerHTML = '<p class="text-gray-300">' + __('dashboardNoQuizzes') + '</p>';
+    } else {
+        var avg = Math.round(mySubs.reduce(function(sum, s) { return sum + (s.initialScore || 0); }, 0) / mySubs.length);
+        var last = mySubs[0];
+        quizDiv.innerHTML = '<div class="space-y-2">' +
+            '<p class="text-white font-bold text-lg">' + mySubs.length + ' ' + __('dashboardQuizzesSolved') + '</p>' +
+            '<p class="text-yellow-400 text-2xl font-black">' + __('dashboardAverage') + ' ' + avg + '%</p>' +
+            '<p class="text-gray-300 text-sm">' + __('dashboardLastQuiz') + ' ' + (last.quizTitle || '') + ' — ' + (last.initialScore || 0) + '%</p>' +
+            '</div>';
+    }
+
+    // Book stats
+    var bookDiv = document.getElementById('dashboard-book-stats');
+    var books = localData.books || [];
+    if (books.length === 0) {
+        bookDiv.innerHTML = '<p class="text-gray-300">' + __('dashboardNoBooks') + '</p>';
+    } else {
+        bookDiv.innerHTML = '<div class="space-y-2">' +
+            '<p class="text-white font-bold text-lg">' + books.length + ' ' + __('dashboardBooksAvailable') + '</p>' +
+            '<ul class="text-sm text-gray-300 space-y-1">' +
+            books.map(function(b) { return '<li>📖 ' + b.title + '</li>'; }).join('') +
+            '</ul></div>';
+    }
+
+    // Game stats
+    var gameDiv = document.getElementById('dashboard-game-stats');
+    gameDiv.innerHTML = '<div class="space-y-2">' +
+        '<p class="text-white font-bold text-lg">' + __('dashboardGamesTitle') + '</p>' +
+        '<p class="text-gray-300">' + __('dashboardGamesDesc') + '</p>' +
+        '<ul class="text-sm text-gray-300 space-y-1">' +
+        '<li>' + __('dashboardGameQuiz') + '</li>' +
+        '<li>' + __('dashboardGameMemory') + '</li>' +
+        '<li>' + __('dashboardGameStory') + '</li>' +
+        '</ul></div>';
+
+    // Achievements
+    var achDiv = document.getElementById('dashboard-achievements');
+    var badges = [];
+    if (mySubs.length >= 1) badges.push(__('badgeStudious'));
+    if (mySubs.length >= 5) badges.push(__('badgeStar'));
+    if ((mySubs.reduce(function(sum, s) { return sum + (s.initialScore || 0); }, 0) / Math.max(mySubs.length, 1)) >= 80) badges.push(__('badgeExcellent'));
+    if (badges.length === 0) badges.push(__('badgeStart'));
+
+    achDiv.innerHTML = '<div class="space-y-2">' +
+        badges.map(function(b) { return '<p class="text-white font-bold text-lg">' + b + '</p>'; }).join('') +
+        '</div>';
+
+    // Encouragement
+    var encouragement = document.getElementById('dashboard-encouragement');
+    var msgs = [
+        __('encourage1'),
+        __('encourage2'),
+        __('encourage3'),
+        __('encourage4')
+    ];
+    encouragement.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+}
+
 // ==================== واجهة ولي الأمر ====================
 
 function renderParentDashboard() {
@@ -1893,7 +2750,7 @@ function renderParentDashboard() {
     document.getElementById('parent-linked-child-name').textContent = childName;
 
     if (childSubmissions.length === 0) {
-        list.innerHTML = `<p class="p-4 text-center text-yellow-400">لا توجد درجات مسجلة للابن ${childName} حالياً. قم بحل بعض الواجبات بحساب الطالب لتراها هنا.</p>`;
+        list.innerHTML = '<p class="p-4 text-center text-yellow-400">' + __('parentNoGrades', childName) + '</p>';
         return;
     }
 
@@ -1903,12 +2760,30 @@ function renderParentDashboard() {
         item.innerHTML = `
             <div>
                 <h4 class="font-bold text-xl">${escapeHtml(s.quizTitle)}</h4>
-                <p class="text-xs text-gray-300">وقت الحل: ${escapeHtml(s.timestamp)}</p>
+                <p class="text-xs text-gray-300">${__('solveTime')}: ${escapeHtml(s.timestamp)}</p>
             </div>
             <span class="text-2xl font-black text-yellow-400">${escapeHtml(String(s.initialScore))} / 100</span>
         `;
         list.appendChild(item);
     });
+
+    // Render notifications
+    var notifList = document.getElementById('parent-notifications-list');
+    if (!notifList) return;
+    var myNotifs = (localData.notifications || []).filter(function(n) {
+        return n.type === 'submission' || n.type === 'achievement';
+    });
+    if (myNotifs.length === 0) {
+        notifList.innerHTML = '<p class="text-gray-400">' + __('notifEmpty') + '</p>';
+    } else {
+        notifList.innerHTML = myNotifs.slice(0, 20).map(function(n) {
+            var bg = n.read ? 'bg-slate-800' : 'bg-slate-700 border-r-2 border-yellow-400';
+            return '<div class="p-2 rounded-lg ' + bg + '">' +
+                '<p class="font-bold text-xs text-yellow-300">' + n.title + '</p>' +
+                '<p class="text-gray-300 text-[10px]">' + n.details + '</p>' +
+                '<p class="text-gray-500 text-[9px]">' + n.time + '</p></div>';
+        }).join('');
+    }
 }
 
 // ==================== واجهة الإدارة ====================
@@ -1924,7 +2799,7 @@ function handleAdminCreateStudent(e) {
     saveLocalData();
     saveStudentToFirebase(newStudent);
 
-    speak(`تم إنشاء حساب جديد للطالب ${name}. ورمز الدخول الخاص به هو ${pin}.`);
+    speak(__('adminAccountCreated', name, pin));
     e.target.reset();
     renderAdminDashboard();
 }
@@ -1975,10 +2850,21 @@ function bindAllEvents() {
         btn.addEventListener('click', () => setTheme(btn.dataset.theme));
     });
 
+    // Language toggle
+    document.getElementById('lang-toggle')?.addEventListener('click', () => {
+        setCurrentLang(getCurrentLang() === 'ar' ? 'en' : 'ar');
+    });
+
     // Text size
     document.querySelectorAll('[data-size-dir]').forEach(btn => {
         btn.addEventListener('click', () => adjustTextSize(parseInt(btn.dataset.sizeDir)));
     });
+
+    // Help shortcuts
+    document.getElementById('btn-help-shortcuts')?.addEventListener('click', showKeyboardHelp);
+
+    // Notifications
+    document.getElementById('btn-notifications')?.addEventListener('click', showNotificationsPanel);
 
     // Logout
     document.querySelector('[data-action="logout"]')?.addEventListener('click', logout);
@@ -1991,13 +2877,13 @@ function bindAllEvents() {
         document.getElementById('login-form-container').classList.add('hidden');
         document.getElementById('register-form-container').classList.remove('hidden');
         document.getElementById('auth-warning-box').classList.add('hidden');
-        speak("نموذج إنشاء حساب جديد. اختر نوع الحساب وأدخل بياناتك.");
+        speak(__('registerFormOpen'));
     });
     document.getElementById('btn-show-login')?.addEventListener('click', () => {
         document.getElementById('register-form-container').classList.add('hidden');
         document.getElementById('login-form-container').classList.remove('hidden');
         document.getElementById('auth-warning-box').classList.add('hidden');
-        speak("العودة لنموذج تسجيل الدخول.");
+        speak(__('backToLogin'));
     });
 
     // Registration
@@ -2055,14 +2941,14 @@ function bindAllEvents() {
         if (val) {
             localStorage.setItem('cloudSchoolProxyUrl', val);
             updateProxyStatus();
-            speak('تم حفظ رابط الخادم الوسيط');
+            speak(__('proxyUrlSaved'));
         }
     });
     document.getElementById('btn-reset-proxy-url')?.addEventListener('click', () => {
         localStorage.removeItem('cloudSchoolProxyUrl');
         if (proxyUrlInput) proxyUrlInput.value = 'http://localhost:3001';
         updateProxyStatus();
-        speak('تم إعادة تعيين رابط الخادم الوسيط إلى الإعدادات الافتراضية');
+        speak(__('proxyUrlReset'));
     });
 
     // Screen braille dots
@@ -2108,6 +2994,83 @@ function bindAllEvents() {
     document.querySelector('[data-action="speak-vision"]')?.addEventListener('click', speakVisionResponse);
 }
 
+// ====== Local Data Persistence ======
+function saveLocalData() {
+    try {
+        localStorage.setItem(STORAGE_KEYS.localData, JSON.stringify(localData));
+    } catch (e) {
+        console.warn('Failed to save local data:', e);
+    }
+}
+
+function loadLocalData() {
+    try {
+        var saved = localStorage.getItem(STORAGE_KEYS.localData);
+        if (saved) {
+            var parsed = JSON.parse(saved);
+            if (parsed.books) localData.books = parsed.books;
+            if (parsed.assignments) localData.assignments = parsed.assignments;
+            if (parsed.submissions) localData.submissions = parsed.submissions;
+            if (parsed.students) localData.students = parsed.students;
+            if (parsed.notifications) localData.notifications = parsed.notifications;
+        }
+        if (!localData.notifications) localData.notifications = [];
+    } catch (e) {
+        console.warn('Failed to load local data:', e);
+    }
+}
+
+// ====== 3D Spatial Audio Effects ======
+function play3DTone(startFreq, endFreq, type, duration, panX, panY, panZ) {
+    try {
+        var ctx = getAudioContext();
+        if (!ctx) return;
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        var panner = ctx.createPanner();
+        panner.panningModel = 'HRTF';
+        panner.distanceModel = 'linear';
+        panner.setPosition(panX || 0, panY || 0, panZ || 0);
+        osc.type = type;
+        osc.frequency.setValueAtTime(startFreq, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(endFreq || startFreq, ctx.currentTime + duration * 0.7);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+        osc.connect(panner);
+        panner.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+    } catch (e) { /* audio not available */ }
+}
+
+function playSuccess3D() {
+    play3DTone(523.25, 880, 'sine', 0.3, -0.5, 0.5, 0.5);
+}
+
+function playFail3D() {
+    play3DTone(150, 80, 'sawtooth', 0.3, 0.5, -0.5, 0.5);
+}
+
+function playTick3D() {
+    play3DTone(800, 1200, 'square', 0.1, 0, 0.8, 0.3);
+}
+
+function playDirectionSound(direction) {
+    var x = direction === 'left' ? -1 : direction === 'right' ? 1 : 0;
+    var y = direction === 'up' ? 1 : direction === 'down' ? -1 : 0;
+    play3DTone(440, 660, 'sine', 0.2, x, y, 0.5);
+}
+
+// ====== Audio Co-Pilot Init ======
+function initAudioCoPilot() {
+    var btn = document.getElementById('audio-co-pilot-toggle');
+    if (btn) {
+        btn.textContent = audioCoPilotEnabled ? __('audioCpOn') : __('audioCpOff');
+        btn.setAttribute('aria-pressed', audioCoPilotEnabled ? 'true' : 'false');
+    }
+}
+
 // ==================== تهيئة التطبيق ====================
 
 var INIT_RAN = false;
@@ -2118,7 +3081,7 @@ function safeInit(fn, name) {
     } catch (e) {
         console.error('Init error in ' + name + ':', e);
         try {
-            const msg = 'خطأ في تهيئة ' + name + ': ' + (e.message || '');
+            const msg = __('initError', name, e.message || '');
             const toast = document.getElementById('toast-message');
             if (toast) { toast.textContent = msg; toast.classList.remove('hidden'); }
         } catch(e2) {}
@@ -2138,6 +3101,9 @@ function runInit() {
         ['setupAccessibleVoices', 'الصوت'],
         ['setupPerkinsKeyboard', 'برايل'],
         ['toggleRegFields', 'الحقول'],
+        ['setupKeyboardShortcuts', 'اختصارات'],
+        ['setupAgeLevel', 'العمر'],
+        ['initI18n', 'الترجمة'],
         ['bindAllEvents', 'الأزرار']
     ];
 
@@ -2151,6 +3117,9 @@ function runInit() {
         }
     }
 
+    // تحديث شارة الإشعارات
+    updateNotifBadge();
+
     // تحسين إمكانية الوصول — إدارة التركيز
     document.addEventListener('section-opened', function(e) {
         var sectionTitle = document.getElementById('student-section-title');
@@ -2158,10 +3127,36 @@ function runInit() {
     });
 
     try {
-        speak("مرحباً بك في منصة كلاود سكول التعليمية المحدثة لضعاف البصر والمكفوفين. يرجى تسجيل الدخول أولاً للبدء.");
+        speak(__('welcomeMessage'));
     } catch (e) {
         console.error('Speak error:', e);
     }
+
+    // إخفاء شاشة الترحيب
+    dismissSplashScreen();
+}
+
+function dismissSplashScreen() {
+    var splash = document.getElementById('splash-screen');
+    if (!splash) return;
+    var handler = function() {
+        splash.style.opacity = '0';
+        splash.style.pointerEvents = 'none';
+        setTimeout(function() {
+            splash.style.display = 'none';
+            // نقل التركيز إلى بوابة تسجيل الدخول
+            var authGate = document.getElementById('auth-gate');
+            if (authGate) {
+                var firstInput = authGate.querySelector('input, button, [tabindex]:not([tabindex="-1"])');
+                if (firstInput) firstInput.focus();
+            }
+        }, 700);
+        document.removeEventListener('keydown', handler);
+        splash.removeEventListener('click', handler);
+    };
+    splash.addEventListener('click', handler);
+    document.addEventListener('keydown', handler);
+    setTimeout(handler, 5000);
 }
 
 // طريقة 1: window.onload

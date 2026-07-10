@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Cloud School E2E', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await page.evaluate(() => { window.__DEV__ = true; });
   });
 
   test('should load and show auth gate with login form', async ({ page }) => {

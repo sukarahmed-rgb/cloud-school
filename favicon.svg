@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="31" fill="#111935" stroke="#f59e0b" stroke-width="2"/>
+  <path d="M12,38 Q12,22 20,16 Q28,10 32,14 Q38,10 44,16 Q48,22 46,30 L12,30 Z" fill="#f59e0b"/>
+  <rect x="20" y="30" width="24" height="16" rx="2" fill="#080c1a" stroke="#f59e0b" stroke-width="1"/>
+  <polygon points="17,30 32,16 47,30" fill="#f59e0b"/>
+  <rect x="28" y="38" width="8" height="8" rx="3" fill="#f59e0b"/>
+  <text x="32" y="61" font-family="Segoe UI, Tahoma, sans-serif" font-size="6" font-weight="bold" text-anchor="middle" fill="#f59e0b">CS</text>
+</svg>

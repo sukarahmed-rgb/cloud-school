@@ -120,5 +120,5 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`🔒 Proxy server running on http://localhost:${PORT}`);
   console.log(`🔒 CORS origin: ${CORS_ORIGIN}`);
-  console.log(`🔒 Gemini API key: ${GEMINI_API_KEY.substring(0, 8)}... (hidden)`);
+  console.log(`🔒 Gemini API key: ${GEMINI_API_KEY ? 'configured' : 'missing'}`);
 });

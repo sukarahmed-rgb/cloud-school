@@ -14,15 +14,16 @@ body {
 
 /* المتغيرات الجذرية لتوحيد الأحجام */
 :root {
-    --color-primary: #fbbf24;
-    --color-bg-dark: #090a0f;
+    --color-primary: #f59e0b;
+    --color-bg-dark: #080c1a;
     --color-bg-light: #ffffff;
     --color-text-dark: #fbbf24;
     --color-text-light: #000000;
-    --color-card-bg-dark: #14151f;
+    --color-card-bg-dark: #111827;
     --color-card-bg-light: #fafafa;
     --color-card-bg-classic: #1e293b;
-    --border-color-dark: #fbbf24;
+    --color-accent: #6366f1;
+    --border-color-dark: #f59e0b;
     --border-color-light: #000000;
     --border-color-classic: #475569;
     --base-text-size: 1.125rem;
@@ -36,32 +37,43 @@ body {
 }
 
 /* ===================================
-   1. السمة الداكنة عالية التباين (Premium Neon-Contrast)
-   مصممة لتوفير أقصى وضوح للنصوص على خلفية داكنة
+   1. السمة الداكنة عالية التباين — نيلي غامق + ذهبي دافئ
+   ألوان احترافية أعمق مع تباين عالٍ للمكفوفين
    =================================== */
 .theme-dark-high-contrast {
-    background-color: #090a0f;
+    background-color: #080c1a;
     color: #fbbf24;
 }
 .theme-dark-high-contrast .card {
-    background-color: #14151f;
-    border: 3px solid #fbbf24;
-    box-shadow: 0 4px 20px rgba(251, 191, 36, 0.1);
+    background-color: #111827;
+    border: 3px solid #f59e0b;
+    box-shadow: 0 4px 24px rgba(245, 158, 11, 0.08);
 }
 .theme-dark-high-contrast input, .theme-dark-high-contrast textarea, .theme-dark-high-contrast select {
     background-color: #000000;
-    border: 2px solid #fbbf24;
+    border: 2px solid #f59e0b;
     color: #fbbf24;
+    caret-color: #f59e0b;
 }
 .theme-dark-high-contrast button {
-    background-color: #fbbf24;
-    color: #000000;
+    background-color: #f59e0b;
+    color: #080c1a;
     font-weight: 900;
 }
 .theme-dark-high-contrast button.btn-secondary {
-    background-color: #14151f;
+    background-color: #111827;
     color: #fbbf24;
-    border: 2px solid #fbbf24;
+    border: 2px solid #f59e0b;
+}
+.theme-dark-high-contrast .btn-accent {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    color: #ffffff;
+}
+.theme-dark-high-contrast .btn-accent.btn-secondary {
+    background-color: transparent;
+    color: #a5b4fc;
+    border: 2px solid #6366f1;
 }
 
 /* ===================================
@@ -189,15 +201,30 @@ body {
 }
 
 /* ===================================
+   فئة الإخفاء البصري مع البقاء لقارئ الشاشة
+   =================================== */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ===================================
    مؤشر التحميل للعمليات المرتبطة بالذكاء الاصطناعي
    =================================== */
 .loading-spinner {
     display: inline-block;
     width: 24px;
     height: 24px;
-    border: 4px solid rgba(251, 191, 36, 0.3);
+    border: 4px solid rgba(245, 158, 11, 0.25);
     border-radius: 50%;
-    border-top-color: #fbbf24;
+    border-top-color: #f59e0b;
     animation: spin 0.8s ease-in-out infinite;
     margin-inline-end: 8px;
     vertical-align: middle;
@@ -221,8 +248,134 @@ body {
 
 /* تحسين أزرار Perkins مع مؤشر بصري عند الضغط */
 .perkins-key-active {
-    background-color: #fbbf24 !important;
-    color: #000 !important;
+    background-color: #f59e0b !important;
+    color: #080c1a !important;
     transform: scale(1.1);
-    box-shadow: 0 0 12px rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.6);
+}
+
+/* ===================================
+   الهوية البصرية الجديدة — خلفيات متحركة وتأثيرات
+   =================================== */
+
+/* خلفية متدرجة متحركة للسمة الداكنة */
+.theme-dark-high-contrast {
+    background: linear-gradient(135deg, #080c1a 0%, #0c1225 25%, #111935 50%, #0c1225 75%, #080c1a 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 20s ease infinite;
+}
+
+/* حركة تدرج الخلفية */
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* شاشة الترحيب */
+#splash-screen {
+    will-change: opacity;
+}
+
+/* أنيميشن شعار الترحيب */
+.splash-logo {
+    animation: splashFadeIn 1s ease-out forwards, splashFloat 3s ease-in-out infinite 1s;
+}
+.splash-title {
+    animation: splashFadeIn 0.8s ease-out 0.3s both;
+}
+.splash-subtitle {
+    animation: splashFadeIn 0.8s ease-out 0.5s both;
+}
+.splash-dots {
+    animation: splashFadeIn 0.8s ease-out 0.7s both;
+}
+.splash-dot {
+    animation: splashDotPulse 1.5s ease-in-out infinite;
+}
+.splash-dot:nth-child(2) { animation-delay: 0.3s; }
+.splash-dot:nth-child(3) { animation-delay: 0.6s; }
+.splash-skip {
+    animation: splashFadeIn 0.8s ease-out 1s both;
+}
+
+@keyframes splashFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes splashFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+@keyframes splashDotPulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* تحسين الكروت بظل مضيء */
+.card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(245, 158, 11, 0.08);
+}
+
+/* تأثير زجاجي للسمة الكلاسيكية */
+.theme-classic .card {
+    backdrop-filter: blur(8px);
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+/* شريط التمرير المخصص */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-track {
+    background: #080c1a;
+}
+::-webkit-scrollbar-thumb {
+    background: #f59e0b;
+    border-radius: 5px;
+    border: 2px solid #080c1a;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #f59e0b;
+}
+
+/* توهج نصوص العناوين الرئيسية */
+h2, h3 {
+    text-shadow: 0 0 24px rgba(245, 158, 11, 0.06);
+}
+
+/* دعم الاتجاه LTR للغة الإنجليزية */
+html[dir="ltr"] .text-right { text-align: left; }
+html[dir="ltr"] .text-left { text-align: right; }
+html[dir="ltr"] .mr-auto { margin-left: auto; margin-right: 0; }
+html[dir="ltr"] .ml-auto { margin-right: auto; margin-left: 0; }
+html[dir="ltr"] .splash-subtitle { direction: ltr; }
+html[dir="ltr"] .justify-end { justify-content: flex-start; }
+html[dir="ltr"] .justify-start { justify-content: flex-end; }
+html[dir="ltr"] .braille-dot-btn { float: none; }
+#splash-screen[dir="ltr"] .splash-title { direction: ltr; }
+
+/* إلغاء كل الحركات إذا فضل المستخدم تقليل الحركة */
+@media (prefers-reduced-motion: reduce) {
+    .theme-dark-high-contrast {
+        animation: none;
+        background: #080c1a;
+    }
+    .splash-logo, .splash-title, .splash-subtitle, .splash-dots, .splash-skip,
+    .splash-dot, .card, .btn-interactive, .loading-spinner {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+    }
+    .card:hover {
+        transform: none;
+    }
 }
