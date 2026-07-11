@@ -350,8 +350,11 @@ function getProxyBase() {
 async function proxyFetch(endpoint, payload) {
   const url = `${getProxyBase()}/api/gemini/${endpoint}`;
   const headers = { 'Content-Type': 'application/json' };
-  const apiKey = getGeminiKey();
-  if (apiKey) headers['x-api-key'] = apiKey;
+  // عندما الخادم متاح، هو اللي عنده المفتاح — ما نرسل header
+  if (!serverAvailable) {
+    const apiKey = getGeminiKey();
+    if (apiKey) headers['x-api-key'] = apiKey;
+  }
   const response = await fetch(url, {
     method: 'POST',
     headers: headers,
@@ -3163,6 +3166,17 @@ async function serverDelete(collection, id) {
 async function initServerBackend() {
     await checkServerHealth();
     if (serverAvailable) {
+        // If server has the Gemini API key, clear it from browser storage
+        try {
+            const r = await fetch(SERVER_BASE + '/api/admin/gemini-key', { credentials: 'same-origin' });
+            if (r.ok) {
+                const data = await r.json();
+                if (data.configured) {
+                    localStorage.removeItem('gemini_api_key');
+                }
+            }
+        } catch (e) { /* not critical */ }
+
         const user = await checkServerSession();
         if (user) {
             currentUserSession = {
