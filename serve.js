@@ -1,3 +1,11 @@
+/**
+ * ⚠️  هذا الملف أصبح اختيارياً.
+ * 
+ * استخدم بدلاً منه: node proxy/server.js
+ * الخادم الجديد يخدم API + الملفات الثابتة معاً على نفس المنفذ
+ * مع أمان متكامل (تسجيل دخول، جلسات HTTP-only، تشفير)
+ */
+
 const express = require('express');
 const app = express();
 
@@ -10,4 +18,4 @@ app.use((_req, res, next) => {
 });
 
 app.use(express.static(__dirname));
-app.listen(8081, () => console.log('Static server on http://localhost:8081'));
+app.listen(8081, () => console.log('Static server on http://localhost:8081 (standalone — auth disabled)'));

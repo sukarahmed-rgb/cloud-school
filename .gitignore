@@ -1,4 +1,6 @@
 .env
 node_modules/
 *.log
-output_parts/  
+output_parts/
+proxy/data/
+*.tmp  

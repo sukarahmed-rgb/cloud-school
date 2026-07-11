@@ -342,8 +342,9 @@ function syncFromFirebase(onData) {
  */
 
 function getProxyBase() {
-  const override = localStorage.getItem('cloudSchoolProxyUrl');
-  return override || 'http://localhost:3001';
+    if (serverAvailable) return '';
+    const override = localStorage.getItem('cloudSchoolProxyUrl');
+    return override || 'http://localhost:3001';
 }
 
 async function proxyFetch(endpoint, payload) {
@@ -1148,15 +1149,37 @@ async function handleLoginSubmit(e) {
         return;
     }
 
-    // Check saved accounts in localStorage
-    const savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]');
+    // Try server first (secure — HTTP-only cookie, password never stored in browser)
+    if (serverAvailable) {
+        try {
+            const user = await serverLogin(username, password);
+            currentUserSession = {
+                name: user.name,
+                contact: user.email,
+                role: user.role,
+                serverId: user.id,
+                serverAuth: true
+            };
+            document.getElementById('auth-gate').classList.add('hidden');
+            document.getElementById('dev-role-bar').classList.remove('hidden');
+            document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
+            document.getElementById('active-user-badge').textContent = __('userBadge', user.name, getArabicRoleName(user.role));
+            switchRole(user.role);
+            showToast(__('loginSuccess', user.name));
+            // Load data from server
+            syncDataFromServer();
+            return;
+        } catch (err) {
+            console.warn('Server login failed, trying local:', err.message);
+        }
+    }
 
-    // Try hashed password first, then fallback to plaintext (migration)
+    // Fallback: localStorage accounts
+    const savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]');
     const hashedInput = await hashPassword(password);
     let account = savedAccounts.find(a => a.contact === username && a.password === hashedInput);
     if (!account) {
         account = savedAccounts.find(a => a.contact === username && a.password === password);
-        // Migrate plaintext password to hash on successful login
         if (account && !isHashed(password)) {
             account.password = hashedInput;
             localStorage.setItem('cloudSchoolAccounts', JSON.stringify(savedAccounts));
@@ -1191,6 +1214,7 @@ async function handleRegistrationSubmit(e) {
     const warningText = document.getElementById('auth-warning-text');
     warningBox.classList.add('hidden');
 
+    let parentContact = '';
     if (role === 'student') {
         if (age < 12) {
             const msg = __("registerAgeRestriction");
@@ -1199,8 +1223,7 @@ async function handleRegistrationSubmit(e) {
             speak(msg);
             return;
         }
-
-        const parentContact = document.getElementById('reg-parent-contact').value.trim();
+        parentContact = document.getElementById('reg-parent-contact').value.trim();
         if (!parentContact) {
             const msg = __("registerParentRequired");
             warningText.textContent = msg;
@@ -1209,16 +1232,36 @@ async function handleRegistrationSubmit(e) {
             document.getElementById('reg-parent-contact').focus();
             return;
         }
+    }
 
-    currentUserSession = { name, contact, role, age, parentContact, password: hashedPassword };
-    } else if (role === 'parent') {
+    // Try server first (secure — HTTP-only cookie, password hashed server-side)
+    if (serverAvailable) {
+        try {
+            const user = await serverRegister(name, contact, plainPassword, role, age, parentContact);
+            currentUserSession = {
+                name: user.name, contact: user.email, role: user.role,
+                serverId: user.id, serverAuth: true
+            };
+            document.getElementById('auth-gate').classList.add('hidden');
+            document.getElementById('dev-role-bar').classList.remove('hidden');
+            document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
+            document.getElementById('active-user-badge').textContent = __('userBadge', user.name, getArabicRoleName(user.role));
+            switchRole(user.role);
+            showToast(__('loginSuccess', user.name));
+            return;
+        } catch (err) {
+            console.warn('Server registration failed, trying local:', err.message);
+        }
+    }
+
+    // Fallback: localStorage
+    if (role === 'parent') {
         const childContact = document.getElementById('reg-child-contact').value.trim();
         currentUserSession = { name, contact, role, childContact, password: hashedPassword };
     } else {
-        currentUserSession = { name, contact, role, age, password: hashedPassword };
+        currentUserSession = { name, contact, role, age, parentContact, password: hashedPassword };
     }
 
-    // Save account to localStorage
     const savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]');
     savedAccounts.push(currentUserSession);
     localStorage.setItem('cloudSchoolAccounts', JSON.stringify(savedAccounts));
@@ -1251,17 +1294,36 @@ function bypassAuthDemo() {
 }
 
 function logout() {
+    if (currentUserSession?.serverAuth) serverLogout();
     currentUserSession = null;
     cleanupTimers();
     document.getElementById('auth-gate').classList.remove('hidden');
     document.getElementById('dev-role-bar').classList.add('hidden');
     document.querySelector('[data-action="logout"]')?.classList.add('hidden');
-    // Show login form, hide register form
     document.getElementById('login-form-container').classList.remove('hidden');
     document.getElementById('register-form-container').classList.add('hidden');
     document.getElementById('login-username').value = '';
     document.getElementById('login-password').value = '';
     speak(__('logoutSuccess'));
+}
+
+async function syncDataFromServer() {
+    if (!serverAvailable) return;
+    try {
+        const [books, assignments, submissions, students] = await Promise.all([
+            serverFetch('curriculum_modules'),
+            serverFetch('assignments'),
+            serverFetch('submissions'),
+            serverFetch('students')
+        ]);
+        if (books && books.length > 0) localData.books = books;
+        if (assignments && assignments.length > 0) localData.assignments = assignments;
+        if (submissions && submissions.length > 0) localData.submissions = submissions;
+        if (students && students.length > 0) localData.students = students;
+        saveLocalData();
+    } catch (e) {
+        console.warn('Server sync failed (using local data):', e.message);
+    }
 }
 
 function getArabicRoleName(role) {
@@ -2821,10 +2883,10 @@ function renderAdminDashboard() {
 
 // ==================== Firebase ====================
 
-function saveBookToFirebase(book) { saveBook(book); }
-function saveQuizToFirebase(quiz) { saveQuiz(quiz); }
-function saveSubmissionToFirebase(sub) { saveSubmission(sub); }
-function saveStudentToFirebase(student) { saveStudent(student); }
+function saveBookToFirebase(book) { saveBook(book); if (serverAvailable) serverSave('curriculum_modules', book); }
+function saveQuizToFirebase(quiz) { saveQuiz(quiz); if (serverAvailable) serverSave('assignments', quiz); }
+function saveSubmissionToFirebase(sub) { saveSubmission(sub); if (serverAvailable) serverSave('submissions', sub); }
+function saveStudentToFirebase(student) { saveStudent(student); if (serverAvailable) serverSave('students', student); }
 
 // syncFromFirebase_cb was here — removed (dead code, never called)
 
@@ -3020,6 +3082,103 @@ function loadLocalData() {
     }
 }
 
+// ====== Server Backend API (secure — replaces localStorage auth when server is running) ======
+const SERVER_BASE = '';
+let serverAvailable = false;
+
+async function checkServerHealth() {
+    try {
+        const r = await fetch(SERVER_BASE + '/api/health');
+        if (r.ok) { serverAvailable = true; }
+    } catch (e) { serverAvailable = false; }
+}
+
+async function checkServerSession() {
+    if (!serverAvailable) return null;
+    try {
+        const r = await fetch(SERVER_BASE + '/api/auth/session', { credentials: 'same-origin' });
+        const data = await r.json();
+        if (data.authenticated) return data.user;
+    } catch (e) {}
+    return null;
+}
+
+async function serverLogin(contact, password) {
+    const r = await fetch(SERVER_BASE + '/api/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: contact, password }),
+        credentials: 'same-origin'
+    });
+    if (!r.ok) { const err = await r.json(); throw new Error(err.error || 'Login failed'); }
+    return await r.json();
+}
+
+async function serverRegister(name, contact, password, role, ageGroup, parentContact) {
+    const r = await fetch(SERVER_BASE + '/api/auth/register', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email: contact, password, role, ageGroup: role === 'student' ? ageGroup + '-17' : '18+', parentContact }),
+        credentials: 'same-origin'
+    });
+    if (!r.ok) { const err = await r.json(); throw new Error(err.error || 'Registration failed'); }
+    return await r.json();
+}
+
+async function serverLogout() {
+    try { await fetch(SERVER_BASE + '/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); }
+    catch (e) {}
+}
+
+async function serverFetch(collection) {
+    const r = await fetch(SERVER_BASE + '/api/data/' + collection, { credentials: 'same-origin' });
+    if (!r.ok) throw new Error('Failed to fetch ' + collection);
+    return await r.json();
+}
+
+async function serverSave(collection, data) {
+    const r = await fetch(SERVER_BASE + '/api/data/' + collection, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data), credentials: 'same-origin'
+    });
+    if (!r.ok) throw new Error('Failed to save ' + collection);
+    return await r.json();
+}
+
+async function serverUpdate(collection, id, data) {
+    const r = await fetch(SERVER_BASE + '/api/data/' + collection + '/' + id, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data), credentials: 'same-origin'
+    });
+    if (!r.ok) throw new Error('Failed to update ' + collection);
+    return await r.json();
+}
+
+async function serverDelete(collection, id) {
+    const r = await fetch(SERVER_BASE + '/api/data/' + collection + '/' + id, {
+        method: 'DELETE', credentials: 'same-origin'
+    });
+    if (!r.ok) throw new Error('Failed to delete ' + collection);
+    return await r.json();
+}
+
+async function initServerBackend() {
+    await checkServerHealth();
+    if (serverAvailable) {
+        const user = await checkServerSession();
+        if (user) {
+            currentUserSession = {
+                name: user.name, contact: user.email, role: user.role,
+                serverId: user.id, serverAuth: true
+            };
+            document.getElementById('auth-gate').classList.add('hidden');
+            document.getElementById('dev-role-bar').classList.remove('hidden');
+            document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
+            document.getElementById('active-user-badge').textContent = __('userBadge', user.name, getArabicRoleName(user.role));
+            switchRole(user.role);
+            syncDataFromServer();
+        }
+    }
+}
+
 // ====== 3D Spatial Audio Effects ======
 function play3DTone(startFreq, endFreq, type, duration, panX, panY, panZ) {
     try {
@@ -3098,6 +3257,7 @@ function runInit() {
         ['loadTheme', 'السمات'],
         ['loadTextSize', 'حجم الخط'],
         ['initFirebase', 'Firebase'],
+        ['initServerBackend', 'الخادم'],
         ['setupAccessibleVoices', 'الصوت'],
         ['setupPerkinsKeyboard', 'برايل'],
         ['toggleRegFields', 'الحقول'],
