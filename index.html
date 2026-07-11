@@ -12,39 +12,9 @@
     <link rel="apple-touch-icon" href="icons/icon-192.svg">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Cloud School">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' http://localhost:3001 ws://localhost:3001 https://generativelanguage.googleapis.com; worker-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
-    <!-- ملف CSS المنفصل -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com; worker-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
     <link rel="stylesheet" href="cloud_school_styles.css">
-
-    <!-- متغيرات المنصة (في الـ head عشان أي حاجة تبدأ تحتاجهم) -->
-    <script>
-        var __app_id = 'cloud-school-blind-v1';
-        var __firebase_config = {};
-        var __initial_auth_token = null;
-
-        // error reporter صوتي فوري — يشتغل حتى لو السكريبت الرئيسي وقع
-        window.__csErrors = [];
-        window.onerror = function(msg, url, line) {
-            var text = 'خطأ: ' + msg;
-            window.__csErrors.push(text);
-            try {
-                var utter = new SpeechSynthesisUtterance(text);
-                utter.lang = 'ar-SA';
-                window.speechSynthesis.speak(utter);
-            } catch(e) {}
-            console.error('[CS early error]', msg, url, line);
-        };
-        window.addEventListener('unhandledrejection', function(e) {
-            var text = 'خطأ في الخلفية: ' + (e.reason && e.reason.message ? e.reason.message : 'غير معروف');
-            window.__csErrors.push(text);
-            try {
-                var utter = new SpeechSynthesisUtterance(text);
-                utter.lang = 'ar-SA';
-                window.speechSynthesis.speak(utter);
-            } catch(e) {}
-            console.error('[CS early rejection]', e.reason);
-        });
-    </script>
+    <script src="config.js"></script>
 </head>
 <body class="theme-dark-high-contrast min-h-screen dynamic-text flex flex-col">
     <!-- شاشة الترحيب المتحركة -->
@@ -974,35 +944,7 @@
     <!-- ميزات الفصل الذكي والمذاكر الجماعي -->
     <script src="features.js"></script>
 
-    <!-- تسجيل Service Worker للتثبيت كـ PWA -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('sw.js').then(function(reg) {
-                    console.log('[SW] registered, scope:', reg.scope);
-                }, function(err) {
-                    console.warn('[SW] registration failed:', err);
-                });
-            });
-        }
-    </script>
-
-    <!-- تهيئة احتياطية — لو فشل window.onload أو runInit -->
-    <script>
-        (function() {
-            var tries = 0;
-            function tryInit() {
-                if (typeof runInit === 'function' && !window.INIT_RAN) {
-                    try { runInit(); console.log('[CS] fallback runInit OK'); } catch(e) { console.error('[CS] fallback error:', e); }
-                } else if (tries++ < 8) {
-                    setTimeout(tryInit, 500);
-                } else {
-                    console.warn('[CS] fallback: runInit not found');
-                }
-            }
-            if (document.readyState === 'complete') { setTimeout(tryInit, 100); }
-            else { window.addEventListener('load', function() { setTimeout(tryInit, 100); }); }
-        })();
-    </script>
+    <!-- تسجيل Service Worker + تهيئة احتياطية -->
+    <script src="sw-init.js"></script>
 </body>
 </html>

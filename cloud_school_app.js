@@ -238,7 +238,10 @@ let isAuthReady = false;
 let snapshotUnsubscribers = [];
 
 const rawConfig = typeof __firebase_config !== 'undefined' ? __firebase_config : {};
-const firebaseConfig = typeof rawConfig === 'string' ? JSON.parse(rawConfig) : rawConfig;
+let firebaseConfig = rawConfig;
+if (typeof rawConfig === 'string') {
+    try { firebaseConfig = JSON.parse(rawConfig); } catch (e) { firebaseConfig = {}; }
+}
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 function getUserId() { return userId; }
@@ -501,7 +504,8 @@ async function generateQuiz() {
     'ولد سؤال اختيار من متعدد في العلوم. أخرج JSON فقط: {question, A, B, C, D, correct}.',
     getPrompt(getCurrentLang(), 'أنت مصمم اختبارات. ', 'You are a quiz designer. ') + getAgeTone()
   );
-  return JSON.parse(json.replace(/```json|```/g, '').trim());
+  try { return JSON.parse(json.replace(/```json|```/g, '').trim()); }
+  catch (e) { return { question: 'خطأ في توليد السؤال', A: 'نعم', B: 'لا', C: '', D: '', correct: 'A' }; }
 }
 
 /** قصة تفاعلية */
@@ -512,7 +516,8 @@ async function generateStory(choiceIndex) {
       : `استمرار القصة. اختار الطالب الخيار ${choiceIndex + 1}. أخرج JSON: {story, options:[]}.`;
 
   const json = await callGemini(prompt, getPrompt(getCurrentLang(), 'أنت راوي قصص. ', 'You are a storyteller. ') + getAgeTone());
-  return JSON.parse(json.replace(/```json|```/g, '').trim());
+  try { return JSON.parse(json.replace(/```json|```/g, '').trim()); }
+  catch (e) { return { story: 'عذراً، تعذر توليد القصة. حاول مرة أخرى.', options: ['حاول مرة أخرى', 'العودة للقائمة الرئيسية', 'اختيار قصة أخرى'] }; }
 }
 
 /** تصحيح إجابة مقالية */
@@ -1178,7 +1183,8 @@ async function handleLoginSubmit(e) {
     }
 
     // Fallback: localStorage accounts
-    const savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]');
+    let savedAccounts = [];
+    try { savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]'); } catch (e) { savedAccounts = []; }
     const hashedInput = await hashPassword(password);
     let account = savedAccounts.find(a => a.contact === username && a.password === hashedInput);
     if (!account) {
@@ -1265,7 +1271,8 @@ async function handleRegistrationSubmit(e) {
         currentUserSession = { name, contact, role, age, parentContact, password: hashedPassword };
     }
 
-    const savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]');
+    let savedAccounts = [];
+    try { savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]'); } catch (e) { savedAccounts = []; }
     savedAccounts.push(currentUserSession);
     localStorage.setItem('cloudSchoolAccounts', JSON.stringify(savedAccounts));
 
@@ -2688,9 +2695,9 @@ function showNotificationsPanel() {
             var n = notifs[i];
             var bg = n.read ? 'bg-slate-800' : 'bg-slate-700 border-r-4 border-yellow-400';
             html += '<div class="p-3 rounded-lg ' + bg + '">' +
-                '<p class="font-bold text-sm text-yellow-300">' + n.title + '</p>' +
-                '<p class="text-gray-300 text-xs mt-1">' + n.details + '</p>' +
-                '<p class="text-gray-500 text-[10px] mt-1">' + n.time + '</p></div>';
+                '<p class="font-bold text-sm text-yellow-300">' + escapeHtml(n.title) + '</p>' +
+                '<p class="text-gray-300 text-xs mt-1">' + escapeHtml(n.details) + '</p>' +
+                '<p class="text-gray-500 text-[10px] mt-1">' + escapeHtml(n.time) + '</p></div>';
         }
         html += '</div>';
     }
@@ -2749,9 +2756,9 @@ function renderStudentDashboard() {
         var avg = Math.round(mySubs.reduce(function(sum, s) { return sum + (s.initialScore || 0); }, 0) / mySubs.length);
         var last = mySubs[0];
         quizDiv.innerHTML = '<div class="space-y-2">' +
-            '<p class="text-white font-bold text-lg">' + mySubs.length + ' ' + __('dashboardQuizzesSolved') + '</p>' +
-            '<p class="text-yellow-400 text-2xl font-black">' + __('dashboardAverage') + ' ' + avg + '%</p>' +
-            '<p class="text-gray-300 text-sm">' + __('dashboardLastQuiz') + ' ' + (last.quizTitle || '') + ' — ' + (last.initialScore || 0) + '%</p>' +
+            '<p class="text-white font-bold text-lg">' + mySubs.length + ' ' + escapeHtml(__('dashboardQuizzesSolved')) + '</p>' +
+            '<p class="text-yellow-400 text-2xl font-black">' + escapeHtml(__('dashboardAverage')) + ' ' + avg + '%</p>' +
+            '<p class="text-gray-300 text-sm">' + escapeHtml(__('dashboardLastQuiz')) + ' ' + escapeHtml(last.quizTitle || '') + ' — ' + (last.initialScore || 0) + '%</p>' +
             '</div>';
     }
 
@@ -2764,7 +2771,7 @@ function renderStudentDashboard() {
         bookDiv.innerHTML = '<div class="space-y-2">' +
             '<p class="text-white font-bold text-lg">' + books.length + ' ' + __('dashboardBooksAvailable') + '</p>' +
             '<ul class="text-sm text-gray-300 space-y-1">' +
-            books.map(function(b) { return '<li>📖 ' + b.title + '</li>'; }).join('') +
+            books.map(function(b) { return '<li>📖 ' + escapeHtml(b.title) + '</li>'; }).join('') +
             '</ul></div>';
     }
 
@@ -2815,7 +2822,7 @@ function renderParentDashboard() {
     document.getElementById('parent-linked-child-name').textContent = childName;
 
     if (childSubmissions.length === 0) {
-        list.innerHTML = '<p class="p-4 text-center text-yellow-400">' + __('parentNoGrades', childName) + '</p>';
+        list.innerHTML = '<p class="p-4 text-center text-yellow-400">' + escapeHtml(__('parentNoGrades', childName)) + '</p>';
         return;
     }
 
@@ -2825,7 +2832,7 @@ function renderParentDashboard() {
         item.innerHTML = `
             <div>
                 <h4 class="font-bold text-xl">${escapeHtml(s.quizTitle)}</h4>
-                <p class="text-xs text-gray-300">${__('solveTime')}: ${escapeHtml(s.timestamp)}</p>
+                <p class="text-xs text-gray-300">${escapeHtml(__('solveTime'))}: ${escapeHtml(s.timestamp)}</p>
             </div>
             <span class="text-2xl font-black text-yellow-400">${escapeHtml(String(s.initialScore))} / 100</span>
         `;
@@ -2844,9 +2851,9 @@ function renderParentDashboard() {
         notifList.innerHTML = myNotifs.slice(0, 20).map(function(n) {
             var bg = n.read ? 'bg-slate-800' : 'bg-slate-700 border-r-2 border-yellow-400';
             return '<div class="p-2 rounded-lg ' + bg + '">' +
-                '<p class="font-bold text-xs text-yellow-300">' + n.title + '</p>' +
-                '<p class="text-gray-300 text-[10px]">' + n.details + '</p>' +
-                '<p class="text-gray-500 text-[9px]">' + n.time + '</p></div>';
+                '<p class="font-bold text-xs text-yellow-300">' + escapeHtml(n.title) + '</p>' +
+                '<p class="text-gray-300 text-[10px]">' + escapeHtml(n.details) + '</p>' +
+                '<p class="text-gray-500 text-[9px]">' + escapeHtml(n.time) + '</p></div>';
         }).join('');
     }
 }
@@ -2876,9 +2883,9 @@ function renderAdminDashboard() {
     localData.students.forEach(s => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="p-2 border font-bold">${s.name}</td>
-            <td class="p-2 border">${s.grade}</td>
-            <td class="p-2 border font-mono font-black text-lg tracking-widest text-yellow-400 text-center">${s.pin}</td>
+            <td class="p-2 border font-bold">${escapeHtml(s.name)}</td>
+            <td class="p-2 border">${escapeHtml(s.grade)}</td>
+            <td class="p-2 border font-mono font-black text-lg tracking-widest text-yellow-400 text-center">${escapeHtml(s.pin)}</td>
         `;
         tbody.appendChild(tr);
     });
