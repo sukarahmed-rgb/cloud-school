@@ -650,15 +650,20 @@ function readCurrentQuizAloud() {
             setTimeout(function() { startVoiceExamListening(); }, 1500);
         }
     } else if (textSection && !textSection.classList.contains('hidden')) {
-        // Essay type
+        // Essay type: use SpeechRecognition directly instead of MediaRecorder
         speak(__('voiceExamEssayPrompt'));
         setTimeout(function() {
-            // Auto-trigger the mic for essay
-            var micBtn = document.getElementById('btn-mic-input');
-            if (micBtn && typeof toggleAudioRecording === 'function') {
-                toggleAudioRecording();
-            }
-            setTimeout(function() { startVoiceExamListening(); }, 2000);
+            updateVoiceExamStatus(__('voiceExamListening'));
+            listenForSpeech(function(essayText) {
+                if (!voiceExamActive) return;
+                if (essayText && essayText.trim()) {
+                    var ansField = document.getElementById('assignment-student-answer');
+                    if (ansField) ansField.value = essayText.trim();
+                    speak(__('voiceExamEssayRecorded'));
+                }
+                // After capturing essay, listen for commands
+                setTimeout(function() { startVoiceExamListening(); }, 1500);
+            }, 30000);
         }, 1500);
     }
 }

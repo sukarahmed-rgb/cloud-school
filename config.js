@@ -9,7 +9,7 @@ var __firebase_config = {
     measurementId: "G-V7CZJK62S6"
 };
 var __initial_auth_token = null;
-// Backend API URL — سيرفر Render (اتركه فارغاً للتشغيل المحلي)
+// Backend API URL — Cloudflare Worker
 var __server_base = 'https://cloud-school-api.cloud-school-subdomain.workers.dev';
 
 window.__csErrors = [];

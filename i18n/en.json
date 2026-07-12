@@ -238,6 +238,11 @@
 
   "noSpeech": "No speech detected.",
   "speechError": "Speech recognition error occurred.",
+  "optA": "A)",
+  "optB": "B)",
+  "optC": "C)",
+  "optD": "D)",
+
   "dialogicStarting": "🎙️ AI Teacher starting the lesson...",
   "dialogicWelcome": "Welcome to the Smart Classroom! I'm your AI teacher. Press the microphone button and say a topic name.",
   "dialogicAskTopic": "🎤 Speak now to choose a lesson topic. You can say any subject you want to study.",
