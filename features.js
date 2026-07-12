@@ -567,6 +567,274 @@ window.speechRecognizer = {
     }
 };
 
+// ===================== الاختبارات الناطقة (Voice Exams) =====================
+let voiceExamActive = false;
+let voiceExamListening = false;
+let voiceExamQuizId = null;
+
+function toggleVoiceExamMode() {
+    const toggleBtn = document.getElementById('btn-voice-exam-toggle');
+    const statusEl = document.getElementById('voice-exam-status');
+
+    if (voiceExamActive) {
+        voiceExamActive = false;
+        voiceExamListening = false;
+        if (isSpeechRecognitionActive) {
+            try { speechRecognition.stop(); } catch(e) {}
+        }
+        currentSpeechCallback = null;
+        if (toggleBtn) {
+            toggleBtn.textContent = __('voiceExamActivate');
+            toggleBtn.classList.remove('bg-red-600', 'animate-pulse');
+            toggleBtn.classList.add('bg-yellow-500');
+        }
+        if (statusEl) statusEl.textContent = __('voiceExamModeInactive');
+        speak(__('voiceExamModeInactive'));
+        return;
+    }
+
+    // Check if there's an active quiz
+    const quizPanel = document.getElementById('active-quiz-panel');
+    if (!quizPanel || quizPanel.classList.contains('hidden')) {
+        speak(__('voiceExamNoQuiz'));
+        return;
+    }
+
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        speak(__('voiceExamNotAvailable'));
+        return;
+    }
+
+    voiceExamActive = true;
+    if (toggleBtn) {
+        toggleBtn.textContent = __('voiceExamDeactivate');
+        toggleBtn.classList.remove('bg-yellow-500');
+        toggleBtn.classList.add('bg-red-600', 'animate-pulse');
+    }
+    if (statusEl) statusEl.textContent = __('voiceExamModeActive');
+    speak(__('voiceExamModeActive'));
+
+    // Start reading the current quiz aloud
+    setTimeout(function() { readCurrentQuizAloud(); }, 1000);
+}
+
+function readCurrentQuizAloud() {
+    if (!voiceExamActive) return;
+
+    const quizTitle = document.getElementById('active-quiz-title');
+    const questionText = document.getElementById('quiz-question-text');
+    const quizContainer = document.getElementById('quiz-question-container');
+    const textSection = document.getElementById('quiz-text-input-section');
+
+    if (quizTitle) speak(quizTitle.textContent);
+    if (questionText && !quizContainer.classList.contains('hidden')) {
+        speak(questionText.textContent);
+
+        // Read options
+        var options = [];
+        var optA = document.querySelector('#btn-opt-A span');
+        var optB = document.querySelector('#btn-opt-B span');
+        var optC = document.querySelector('#btn-opt-C span');
+        var optD = document.querySelector('#btn-opt-D span');
+        if (optA) options.push(optA.textContent);
+        if (optB) options.push(optB.textContent);
+        if (optC) options.push(optC.textContent);
+        if (optD) options.push(optD.textContent);
+
+        if (options.length > 0) {
+            setTimeout(function() {
+                speak(__('voiceExamOptions', options.join(' ، ')));
+                setTimeout(function() { startVoiceExamListening(); }, 2000);
+            }, 1500);
+        } else {
+            setTimeout(function() { startVoiceExamListening(); }, 1500);
+        }
+    } else if (textSection && !textSection.classList.contains('hidden')) {
+        // Essay type
+        speak(__('voiceExamEssayPrompt'));
+        setTimeout(function() {
+            // Auto-trigger the mic for essay
+            var micBtn = document.getElementById('btn-mic-input');
+            if (micBtn && typeof toggleAudioRecording === 'function') {
+                toggleAudioRecording();
+            }
+            setTimeout(function() { startVoiceExamListening(); }, 2000);
+        }, 1500);
+    }
+}
+
+function startVoiceExamListening() {
+    if (!voiceExamActive) return;
+    if (voiceExamListening) return;
+    voiceExamListening = true;
+
+    var statusEl = document.getElementById('voice-exam-status');
+    if (statusEl) statusEl.textContent = __('voiceExamListening');
+    speak(__('voiceExamListening'));
+    updateVoiceExamStatus(__('voiceExamHelp'));
+
+    listenForSpeech(function(text) {
+        voiceExamListening = false;
+        if (!voiceExamActive) return;
+        if (!text || !text.trim()) {
+            speak(__('dialogicRetry'));
+            setTimeout(function() { startVoiceExamListening(); }, 1000);
+            return;
+        }
+
+        var normalized = text.trim().toLowerCase();
+        var statusEl = document.getElementById('voice-exam-status');
+        if (statusEl) statusEl.textContent = __('voiceExamHeard', normalized);
+
+        // Check voice commands
+        if (normalized === __('voiceExamCommandRepeat') || normalized === 'repeat' || normalized === 'كرر' || normalized === 'اعادة') {
+            speak(__('voiceExamRepeat'));
+            setTimeout(function() { readCurrentQuizAloud(); }, 1000);
+            return;
+        }
+
+        if (normalized === __('voiceExamCommandSubmit') || normalized === 'submit' || normalized === 'إرسال' || normalized === 'ارسال') {
+            confirmVoiceSubmit();
+            return;
+        }
+
+        if (normalized === __('voiceExamCommandCancel') || normalized === 'cancel' || normalized === 'إلغاء' || normalized === 'الغاء') {
+            speak(__('voiceExamCancelled'));
+            setTimeout(function() { startVoiceExamListening(); }, 1000);
+            return;
+        }
+
+        if (normalized === __('voiceExamCommandYes') || normalized === 'yes' || normalized === 'نعم') {
+            // Handle confirmations
+            if (window._voiceExamPendingSubmit) {
+                window._voiceExamPendingSubmit = false;
+                doVoiceSubmit();
+                return;
+            }
+            if (window._voiceExamPendingOption) {
+                var opt = window._voiceExamPendingOption;
+                window._voiceExamPendingOption = null;
+                selectQuizOption(opt);
+                speak(__('voiceExamConfirmed'));
+                setTimeout(function() { startVoiceExamListening(); }, 1000);
+                return;
+            }
+            setTimeout(function() { startVoiceExamListening(); }, 500);
+            return;
+        }
+
+        if (normalized === __('voiceExamCommandNo') || normalized === 'no' || normalized === 'لا') {
+            window._voiceExamPendingSubmit = false;
+            window._voiceExamPendingOption = null;
+            speak(__('voiceExamCancelled'));
+            setTimeout(function() { startVoiceExamListening(); }, 1000);
+            return;
+        }
+
+        // Handle MCQ option selection
+        var quizContainer = document.getElementById('quiz-question-container');
+        if (quizContainer && !quizContainer.classList.contains('hidden')) {
+            var optionMap = {
+                '1': 'A', '2': 'B', '3': 'C', '4': 'D',
+                'أ': 'A', 'ب': 'B', 'ج': 'C', 'د': 'D',
+                'a': 'A', 'b': 'B', 'c': 'C', 'd': 'D',
+                'one': 'A', 'two': 'B', 'three': 'C', 'four': 'D',
+                'واحد': 'A', 'اثنين': 'B', 'ثلاثة': 'C', 'أربعة': 'D'
+            };
+
+            // Check if normalized text is just a single letter/number
+            var firstWord = normalized.split(' ')[0];
+            var matched = optionMap[firstWord] || optionMap[normalized];
+            if (matched) {
+                window._voiceExamPendingOption = matched;
+                speak(__('voiceExamConfirm', __('opt' + matched)));
+                updateVoiceExamStatus(__('voiceExamConfirm', __('opt' + matched)));
+                voiceExamListening = true;
+                listenForSpeech(function(confirmText) {
+                    voiceExamListening = false;
+                    if (!voiceExamActive) return;
+                    var ct = confirmText ? confirmText.trim().toLowerCase() : '';
+                    if (ct === __('voiceExamCommandYes') || ct === 'yes' || ct === 'نعم') {
+                        selectQuizOption(matched);
+                        speak(__('voiceExamConfirmed'));
+                        setTimeout(function() { startVoiceExamListening(); }, 1000);
+                    } else {
+                        window._voiceExamPendingOption = null;
+                        speak(__('voiceExamCancelled'));
+                        setTimeout(function() { startVoiceExamListening(); }, 1000);
+                    }
+                }, 8000);
+                return;
+            }
+
+            // If no option matched, just listen again
+            speak(__('voiceExamHelp'));
+            setTimeout(function() { startVoiceExamListening(); }, 1000);
+            return;
+        }
+
+        // Essay: text was already captured via toggleAudioRecording
+        // Just confirm and listen for more commands
+        speak(__('voiceExamEssayRecorded'));
+        setTimeout(function() { startVoiceExamListening(); }, 1000);
+
+    }, 15000);
+}
+
+function confirmVoiceSubmit() {
+    window._voiceExamPendingSubmit = true;
+    speak(__('voiceExamSubmitConfirm'));
+    updateVoiceExamStatus(__('voiceExamSubmitConfirm'));
+    voiceExamListening = true;
+    listenForSpeech(function(text) {
+        voiceExamListening = false;
+        if (!voiceExamActive) return;
+        var ct = text ? text.trim().toLowerCase() : '';
+        if (ct === __('voiceExamCommandYes') || ct === 'yes' || ct === 'نعم') {
+            window._voiceExamPendingSubmit = false;
+            doVoiceSubmit();
+        } else {
+            window._voiceExamPendingSubmit = false;
+            speak(__('voiceExamCancelled'));
+            setTimeout(function() { startVoiceExamListening(); }, 1000);
+        }
+    }, 8000);
+}
+
+function doVoiceSubmit() {
+    if (typeof submitQuizAnswer === 'function') {
+        submitQuizAnswer();
+        speak(__('voiceExamSubmitted'));
+        voiceExamActive = false;
+        var toggleBtn = document.getElementById('btn-voice-exam-toggle');
+        if (toggleBtn) {
+            toggleBtn.textContent = __('voiceExamActivate');
+            toggleBtn.classList.remove('bg-red-600', 'animate-pulse');
+            toggleBtn.classList.add('bg-yellow-500');
+        }
+        var statusEl = document.getElementById('voice-exam-status');
+        if (statusEl) statusEl.textContent = __('voiceExamSubmitted');
+    }
+}
+
+function updateVoiceExamStatus(text) {
+    var el = document.getElementById('voice-exam-status');
+    if (el) el.textContent = text;
+}
+
+// Auto-read quiz when started in voice mode
+var _origStartQuiz = typeof startQuiz === 'function' ? startQuiz : null;
+if (typeof startQuiz === 'function') {
+    window.startQuiz = function(quizId) {
+        _origStartQuiz(quizId);
+        voiceExamQuizId = quizId;
+        // If voice mode is active, read the quiz aloud after it loads
+        if (voiceExamActive) {
+            setTimeout(function() { readCurrentQuizAloud(); }, 2000);
+        }
+    };
+}
+
 // ===================== أدوات مساعدة =====================
 function waitForSpeechEnd(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -608,4 +876,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (sgStopBtn) sgStopBtn.addEventListener('click', stopStudyGroup);
     if (sgSpeakBtn) sgSpeakBtn.addEventListener('click', handleStudyGroupSpeech);
     if (sgNextBtn) sgNextBtn.addEventListener('click', skipStudyGroupTurn);
+
+    // Voice Exam Mode
+    const voiceExamToggleBtn = document.getElementById('btn-voice-exam-toggle');
+    if (voiceExamToggleBtn) {
+        voiceExamToggleBtn.addEventListener('click', toggleVoiceExamMode);
+    }
 });
