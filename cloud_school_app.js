@@ -246,96 +246,34 @@ const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial
 
 function getUserId() { return userId; }
 function isReady() { return isAuthReady; }
-function getDb() { return db; }
 function getAppId() { return typeof __app_id !== 'undefined' ? __app_id : 'cloud-school-blind-v1'; }
 
-async function loadFirebaseSDK() {
-  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
-  const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-  const { getFirestore, addDoc, collection, onSnapshot, serverTimestamp, enableIndexedDbPersistence } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-  return { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, addDoc, collection, onSnapshot, serverTimestamp, enableIndexedDbPersistence };
-}
-
 async function initFirebase() {
+  if (typeof firebase === 'undefined') {
+    console.warn('Firebase SDK not loaded');
+    return;
+  }
   if (Object.keys(firebaseConfig).length === 0) return;
 
   try {
-    const fb = await loadFirebaseSDK();
-    app = fb.initializeApp(firebaseConfig);
-    db = fb.getFirestore(app);
+    app = firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    auth.useDeviceLanguage();
 
-    fb.enableIndexedDbPersistence(db).catch(err => {
-      if (err.code === 'failed-precondition') console.warn('Firebase: multiple tabs open, offline disabled.');
-      else if (err.code === 'unimplemented') console.warn('Firebase: browser does not support persistence.');
-    });
-
-    auth = fb.getAuth(app);
-    fb.onAuthStateChanged(auth, async (user) => {
+    firebase.auth().onAuthStateChanged(async (user) => {
       if (user) {
         userId = user.uid;
         isAuthReady = true;
         const el = document.getElementById('user-id-display');
-        if (el) el.textContent = `ID: ${userId.substring(0, 8)}`;
-        syncFromFirebase();
+        if (el) el.textContent = `${user.email || userId.substring(0, 8)}`;
       } else {
-        try {
-          if (initialAuthToken) await fb.signInWithCustomToken(auth, initialAuthToken);
-          else await fb.signInAnonymously(auth);
-        } catch (e) { console.error('Firebase auth failed:', e); }
+        userId = null;
+        isAuthReady = false;
       }
     });
   } catch (e) {
-    console.warn('Firebase SDK not available (offline or blocked):', e.message);
+    console.warn('Firebase init error:', e.message);
   }
-}
-
-function getCollection(path) {
-  return collection(db, 'artifacts', getAppId(), 'public', 'data', path);
-}
-
-async function saveToFirebase(path, data) {
-  if (!isAuthReady || !db) return;
-  try {
-    const colRef = getCollection(path);
-    await addDoc(colRef, { ...data, userId, createdAt: serverTimestamp() });
-  } catch (e) { console.error(`Firebase save error [${path}]:`, e); }
-}
-
-function saveBook(book) { return saveToFirebase('curriculum_modules', book); }
-function saveQuiz(quiz) { return saveToFirebase('assignments', quiz); }
-function saveSubmission(sub) { return saveToFirebase('submissions', sub); }
-function saveStudent(student) { return saveToFirebase('students', student); }
-
-function listenToCollection(path, callback) {
-  if (!isAuthReady || !db) return;
-  const colRef = getCollection(path);
-  const unsub = onSnapshot(colRef, (snapshot) => {
-    const items = [];
-    snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
-    if (items.length > 0) callback(items);
-  }, err => console.error(`Firebase snapshot error [${path}]:`, err));
-  snapshotUnsubscribers.push(unsub);
-  return unsub;
-}
-
-function cleanupSnapshots() {
-  snapshotUnsubscribers.forEach(unsub => unsub());
-  snapshotUnsubscribers = [];
-}
-
-function syncFromFirebase(onData) {
-  if (!isAuthReady || !db) return;
-  cleanupSnapshots();
-
-  listenToCollection('curriculum_modules', (books) => {
-    onData?.('books', books);
-  });
-  listenToCollection('assignments', (quizzes) => {
-    onData?.('assignments', quizzes);
-  });
-  listenToCollection('submissions', (subs) => {
-    onData?.('submissions', subs);
-  });
 }
 /**
  * Gemini module - جميع استدعاءات الذكاء الاصطناعي
@@ -1143,71 +1081,103 @@ function checkAgeLimitations() {
 
 async function handleLoginSubmit(e) {
     e.preventDefault();
-    const username = document.getElementById('login-username').value.trim();
+    const email = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value.trim();
 
     const warningBox = document.getElementById('auth-warning-box');
     const warningText = document.getElementById('auth-warning-text');
     warningBox.classList.add('hidden');
 
-    if (!username || !password) {
+    if (!email || !password) {
         warningText.textContent = __('loginRequired');
         warningBox.classList.remove('hidden');
         speak(__('loginRequired'));
         return;
     }
 
-    // Try server first (secure — HTTP-only cookie, password never stored in browser)
-    if (serverAvailable) {
-        try {
-            const user = await serverLogin(username, password);
-            currentUserSession = {
-                name: user.name,
-                contact: user.email,
-                role: user.role,
-                serverId: user.id,
-                serverAuth: true
-            };
-            document.getElementById('auth-gate').classList.add('hidden');
-            document.getElementById('dev-role-bar').classList.remove('hidden');
-            document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
-            document.getElementById('active-user-badge').textContent = __('userBadge', user.name, getArabicRoleName(user.role));
-            switchRole(user.role);
-            showToast(__('loginSuccess', user.name));
-            // Load data from server
-            syncDataFromServer();
-            return;
-        } catch (err) {
-            console.warn('Server login failed, trying local:', err.message);
+    try {
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            const cred = await firebase.auth().signInWithEmailAndPassword(email, password);
+            // After Firebase Auth success, get/create proxy session
+            if (serverAvailable && cred.user) {
+                try {
+                    const idToken = await cred.user.getIdToken();
+                    const user = await serverLoginFirebase(idToken);
+                    currentUserSession = {
+                        name: user.name || email,
+                        contact: email,
+                        role: user.role || 'student',
+                        serverId: user.id || cred.user.uid,
+                        serverAuth: true
+                    };
+                    syncDataFromServer();
+                } catch (e) {
+                    console.warn('Proxy session after Firebase login failed:', e.message);
+                    currentUserSession = {
+                        name: email.split('@')[0],
+                        contact: email,
+                        role: 'student',
+                        userId: cred.user.uid,
+                        serverAuth: false
+                    };
+                }
+            } else {
+                currentUserSession = {
+                    name: email.split('@')[0],
+                    contact: email,
+                    role: 'student',
+                    userId: cred.user.uid,
+                    serverAuth: false
+                };
+            }
+            enterApp(currentUserSession);
+        } else {
+            // Fallback: localStorage accounts
+            let savedAccounts = [];
+            try { savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]'); } catch (e) { savedAccounts = []; }
+            const hashedInput = await hashPassword(password);
+            let account = savedAccounts.find(a => a.contact === email && a.password === hashedInput);
+            if (!account) {
+                account = savedAccounts.find(a => a.contact === email && a.password === password);
+                if (account && !isHashed(password)) {
+                    account.password = hashedInput;
+                    localStorage.setItem('cloudSchoolAccounts', JSON.stringify(savedAccounts));
+                }
+            }
+            if (account) {
+                currentUserSession = account;
+                enterApp(currentUserSession);
+            } else {
+                warningText.textContent = __('loginFailed');
+                warningBox.classList.remove('hidden');
+                speak(__('loginFailed'));
+            }
         }
-    }
-
-    // Fallback: localStorage accounts
-    let savedAccounts = [];
-    try { savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]'); } catch (e) { savedAccounts = []; }
-    const hashedInput = await hashPassword(password);
-    let account = savedAccounts.find(a => a.contact === username && a.password === hashedInput);
-    if (!account) {
-        account = savedAccounts.find(a => a.contact === username && a.password === password);
-        if (account && !isHashed(password)) {
-            account.password = hashedInput;
-            localStorage.setItem('cloudSchoolAccounts', JSON.stringify(savedAccounts));
+    } catch (err) {
+        console.error('Login error:', err);
+        let msg = __('loginFailed');
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+            msg = __('loginFailed');
+        } else if (err.code === 'auth/invalid-email') {
+            msg = __('loginFailed');
+        } else if (err.code === 'auth/too-many-requests') {
+            msg = __('loginTooMany');
         }
-    }
-
-    if (account) {
-        currentUserSession = account;
-        document.getElementById('auth-gate').classList.add('hidden');
-        document.getElementById('dev-role-bar').classList.remove('hidden');
-        document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
-        document.getElementById('active-user-badge').textContent = __('userBadge', account.name, getArabicRoleName(account.role));
-        switchRole(account.role);
-        showToast(__('loginSuccess', account.name));
-    } else {
-        warningText.textContent = __('loginFailed');
+        warningText.textContent = msg;
         warningBox.classList.remove('hidden');
-        speak(__('loginFailed'));
+        speak(msg);
     }
+}
+
+function enterApp(session) {
+    currentUserSession = session;
+    document.getElementById('auth-gate').classList.add('hidden');
+    document.getElementById('dev-role-bar').classList.remove('hidden');
+    document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
+    document.getElementById('active-user-badge').textContent = __('userBadge', session.name, getArabicRoleName(session.role));
+    switchRole(session.role);
+    showToast(__('loginSuccess', session.name));
+    if (session.serverAuth) syncDataFromServer();
 }
 
 async function handleRegistrationSubmit(e) {
@@ -1217,7 +1187,6 @@ async function handleRegistrationSubmit(e) {
     const role = document.getElementById('reg-role').value;
     const age = parseInt(document.getElementById('reg-age').value, 10);
     const plainPassword = document.getElementById('reg-password-new').value;
-    const hashedPassword = await hashPassword(plainPassword);
 
     const warningBox = document.getElementById('auth-warning-box');
     const warningText = document.getElementById('auth-warning-text');
@@ -1243,46 +1212,66 @@ async function handleRegistrationSubmit(e) {
         }
     }
 
-    // Try server first (secure — HTTP-only cookie, password hashed server-side)
-    if (serverAvailable) {
-        try {
-            const user = await serverRegister(name, contact, plainPassword, role, age, parentContact);
-            currentUserSession = {
-                name: user.name, contact: user.email, role: user.role,
-                serverId: user.id, serverAuth: true
-            };
-            document.getElementById('auth-gate').classList.add('hidden');
-            document.getElementById('dev-role-bar').classList.remove('hidden');
-            document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
-            document.getElementById('active-user-badge').textContent = __('userBadge', user.name, getArabicRoleName(user.role));
-            switchRole(user.role);
-            showToast(__('loginSuccess', user.name));
-            return;
-        } catch (err) {
-            console.warn('Server registration failed, trying local:', err.message);
+    try {
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            // Firebase Auth: create user with email/password
+            const cred = await firebase.auth().createUserWithEmailAndPassword(contact, plainPassword);
+            // Update Firebase profile with display name
+            await cred.user.updateProfile({ displayName: name });
+
+            // Create user profile on proxy server
+            if (serverAvailable) {
+                try {
+                    const idToken = await cred.user.getIdToken();
+                    const user = await serverRegisterFirebase(idToken, name, role, age, parentContact);
+                    enterApp({
+                        name: user.name || name,
+                        contact: user.email || contact,
+                        role: user.role || role,
+                        serverId: user.id || cred.user.uid,
+                        serverAuth: true
+                    });
+                    return;
+                } catch (e) {
+                    console.warn('Proxy registration after Firebase failed:', e.message);
+                }
+            }
+
+            // Firebase only (no proxy)
+            enterApp({
+                name: name,
+                contact: contact,
+                role: role,
+                age: age,
+                parentContact: parentContact,
+                userId: cred.user.uid,
+                serverAuth: false
+            });
+        } else {
+            // Fallback: localStorage
+            const hashedPassword = await hashPassword(plainPassword);
+            if (role === 'parent') {
+                const childContact = document.getElementById('reg-child-contact').value.trim();
+                currentUserSession = { name, contact, role, childContact, password: hashedPassword };
+            } else {
+                currentUserSession = { name, contact, role, age, parentContact, password: hashedPassword };
+            }
+            let savedAccounts = [];
+            try { savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]'); } catch (e) { savedAccounts = []; }
+            savedAccounts.push(currentUserSession);
+            localStorage.setItem('cloudSchoolAccounts', JSON.stringify(savedAccounts));
+            enterApp(currentUserSession);
         }
+    } catch (err) {
+        console.error('Registration error:', err);
+        let msg = __('loginFailed');
+        if (err.code === 'auth/email-already-in-use') msg = __('loginFailed');
+        else if (err.code === 'auth/weak-password') msg = __('loginFailed');
+        else if (err.code === 'auth/invalid-email') msg = __('loginFailed');
+        warningText.textContent = msg;
+        warningBox.classList.remove('hidden');
+        speak(msg);
     }
-
-    // Fallback: localStorage
-    if (role === 'parent') {
-        const childContact = document.getElementById('reg-child-contact').value.trim();
-        currentUserSession = { name, contact, role, childContact, password: hashedPassword };
-    } else {
-        currentUserSession = { name, contact, role, age, parentContact, password: hashedPassword };
-    }
-
-    let savedAccounts = [];
-    try { savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]'); } catch (e) { savedAccounts = []; }
-    savedAccounts.push(currentUserSession);
-    localStorage.setItem('cloudSchoolAccounts', JSON.stringify(savedAccounts));
-
-    document.getElementById('auth-gate').classList.add('hidden');
-    document.getElementById('dev-role-bar').classList.remove('hidden');
-    document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
-    document.getElementById('active-user-badge').textContent = __('userBadge', name, getArabicRoleName(role));
-
-    switchRole(role);
-    showToast(__('loginSuccess', name));
 }
 
 // DEV-ONLY: bypass for testing — disabled unless __DEV__ flag is set
@@ -1305,7 +1294,12 @@ function bypassAuthDemo() {
 
 function logout() {
     if (currentUserSession?.serverAuth) serverLogout();
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().signOut().catch(function(e) { console.warn('Firebase signOut error:', e); });
+    }
     currentUserSession = null;
+    userId = null;
+    isAuthReady = false;
     cleanupTimers();
     document.getElementById('auth-gate').classList.remove('hidden');
     document.getElementById('dev-role-bar').classList.add('hidden');
@@ -2893,10 +2887,10 @@ function renderAdminDashboard() {
 
 // ==================== Firebase ====================
 
-function saveBookToFirebase(book) { saveBook(book); if (serverAvailable) serverSave('curriculum_modules', book); }
-function saveQuizToFirebase(quiz) { saveQuiz(quiz); if (serverAvailable) serverSave('assignments', quiz); }
-function saveSubmissionToFirebase(sub) { saveSubmission(sub); if (serverAvailable) serverSave('submissions', sub); }
-function saveStudentToFirebase(student) { saveStudent(student); if (serverAvailable) serverSave('students', student); }
+function saveBookToFirebase(book) { if (serverAvailable) serverSave('curriculum_modules', book); }
+function saveQuizToFirebase(quiz) { if (serverAvailable) serverSave('assignments', quiz); }
+function saveSubmissionToFirebase(sub) { if (serverAvailable) serverSave('submissions', sub); }
+function saveStudentToFirebase(student) { if (serverAvailable) serverSave('students', student); }
 
 // syncFromFirebase_cb was here — removed (dead code, never called)
 
@@ -3113,23 +3107,23 @@ async function checkServerSession() {
     return null;
 }
 
-async function serverLogin(contact, password) {
-    const r = await fetch(SERVER_BASE + '/api/auth/login', {
+async function serverLoginFirebase(idToken) {
+    const r = await fetch(SERVER_BASE + '/api/auth/firebase-login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: contact, password }),
+        body: JSON.stringify({ idToken }),
         credentials: 'same-origin'
     });
-    if (!r.ok) { const err = await r.json(); throw new Error(err.error || 'Login failed'); }
+    if (!r.ok) { const err = await r.json(); throw new Error(err.error || 'Firebase login failed'); }
     return await r.json();
 }
 
-async function serverRegister(name, contact, password, role, ageGroup, parentContact) {
-    const r = await fetch(SERVER_BASE + '/api/auth/register', {
+async function serverRegisterFirebase(idToken, name, role, age, parentContact) {
+    const r = await fetch(SERVER_BASE + '/api/auth/firebase-register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email: contact, password, role, ageGroup: role === 'student' ? ageGroup + '-17' : '18+', parentContact }),
+        body: JSON.stringify({ idToken, name, role, age: age || 0, parentContact: parentContact || '' }),
         credentials: 'same-origin'
     });
-    if (!r.ok) { const err = await r.json(); throw new Error(err.error || 'Registration failed'); }
+    if (!r.ok) { const err = await r.json(); throw new Error(err.error || 'Firebase registration failed'); }
     return await r.json();
 }
 

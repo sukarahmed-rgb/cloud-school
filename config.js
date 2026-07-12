@@ -1,5 +1,13 @@
 var __app_id = 'cloud-school-blind-v1';
-var __firebase_config = {};
+var __firebase_config = {
+    apiKey: "AIzaSyCB-560lR7KyRyD9TYShxdJbkoP8rELBuw",
+    authDomain: "cloud-school-6251a.firebaseapp.com",
+    projectId: "cloud-school-6251a",
+    storageBucket: "cloud-school-6251a.firebasestorage.app",
+    messagingSenderId: "87142350368",
+    appId: "1:87142350368:web:0949d5cfa3bbd852904645",
+    measurementId: "G-V7CZJK62S6"
+};
 var __initial_auth_token = null;
 
 window.__csErrors = [];

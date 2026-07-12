@@ -220,10 +220,6 @@ function validateEmail(email) {
   return typeof email === 'string' && email.length >= 3 && email.length <= 254 && email.includes('@');
 }
 
-function validatePassword(password) {
-  return typeof password === 'string' && password.length >= 6 && password.length <= 128;
-}
-
 function validateName(name) {
   return typeof name === 'string' && name.trim().length >= 1 && name.length <= 100;
 }
@@ -231,19 +227,6 @@ function validateName(name) {
 function sanitizeString(str) {
   if (typeof str !== 'string') return '';
   return str.replace(/[<>&"'`]/g, '').trim();
-}
-
-// ====== Password Helpers ======
-function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-  return `${salt}:${hash}`;
-}
-
-function verifyPassword(password, stored) {
-  const [salt, hash] = stored.split(':');
-  const verify = crypto.scryptSync(password, salt, 64).toString('hex');
-  return hash === verify;
 }
 
 // ====== Auth Middleware ======
@@ -298,94 +281,7 @@ function clearSessionCookie(res) {
 
 // ====== Auth Routes ======
 
-// Register
-app.post('/api/auth/register', authRateLimiter, (req, res) => {
-  try {
-    let { email, password, name, role, ageGroup, parentContact } = req.body;
-
-    // Input validation
-    email = sanitizeString(email || '');
-    name = sanitizeString(name || '');
-    role = sanitizeString(role || 'student');
-    ageGroup = sanitizeString(ageGroup || '7-12');
-    parentContact = sanitizeString(parentContact || '');
-
-    if (!validateEmail(email)) {
-      return res.status(400).json({ error: 'Valid email is required' });
-    }
-    if (!validatePassword(password)) {
-      return res.status(400).json({ error: 'Password must be 6-128 characters' });
-    }
-    if (!validateName(name)) {
-      return res.status(400).json({ error: 'Name is required (max 100 characters)' });
-    }
-    if (!['student', 'teacher', 'parent', 'admin'].includes(role)) {
-      return res.status(400).json({ error: 'Invalid role' });
-    }
-
-    const users = readCollection('users');
-    if (users.some(u => u.email === email.toLowerCase())) {
-      return res.status(409).json({ error: 'Email already registered' });
-    }
-
-    const user = {
-      id: generateId(),
-      email: email.toLowerCase(),
-      name,
-      passwordHash: hashPassword(password),
-      role,
-      ageGroup,
-      parentContact,
-      createdAt: new Date().toISOString(),
-    };
-
-    users.push(user);
-    writeCollection('users', users);
-
-    const { token } = createSession(user);
-    setSessionCookie(res, token);
-
-    return res.status(201).json({
-      id: user.id, email: user.email, name: user.name,
-      role: user.role, ageGroup: user.ageGroup,
-    });
-  } catch (err) {
-    console.error('Register error:', err);
-    return res.status(500).json({ error: 'Server error during registration' });
-  }
-});
-
-// Login
-app.post('/api/auth/login', authRateLimiter, (req, res) => {
-  try {
-    let { email, password } = req.body;
-
-    email = sanitizeString(email || '');
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    const users = readCollection('users');
-    const user = users.find(u => u.email === email.toLowerCase());
-
-    if (!user || !verifyPassword(password, user.passwordHash)) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    const { token } = createSession(user);
-    setSessionCookie(res, token);
-
-    return res.json({
-      id: user.id, email: user.email, name: user.name,
-      role: user.role, ageGroup: user.ageGroup,
-    });
-  } catch (err) {
-    console.error('Login error:', err);
-    return res.status(500).json({ error: 'Server error during login' });
-  }
-});
-
-// Logout
+// Logout (works for both Firebase and legacy sessions)
 app.post('/api/auth/logout', (req, res) => {
   const token = req.cookies?.[SESSION_COOKIE];
   if (token) { sessions.delete(token); saveSessions(); }
@@ -418,6 +314,122 @@ app.get('/api/auth/session', (req, res) => {
       name: session.name, role: session.role,
     },
   });
+});
+
+// ====== Firebase Auth API ======
+const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || '';
+
+async function verifyFirebaseToken(idToken) {
+  const url = `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken }),
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error('Firebase token verification failed: ' + err);
+  }
+  const data = await response.json();
+  if (!data.users || data.users.length === 0) {
+    throw new Error('No Firebase user found');
+  }
+  return data.users[0]; // { localId, email, displayName, ... }
+}
+
+// Firebase login — verify Firebase ID token, create proxy session
+app.post('/api/auth/firebase-login', authRateLimiter, async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken || typeof idToken !== 'string') {
+      return res.status(400).json({ error: 'Firebase ID token is required' });
+    }
+
+    const fbUser = await verifyFirebaseToken(idToken);
+    const email = (fbUser.email || '').toLowerCase();
+
+    // Look up user in proxy DB by email or Firebase UID
+    const users = readCollection('users');
+    let user = users.find(u => u.email === email || u.firebaseUid === fbUser.localId);
+
+    if (!user) {
+      // Auto-create proxy user if not found
+      user = {
+        id: generateId(),
+        firebaseUid: fbUser.localId,
+        email: email,
+        name: fbUser.displayName || email.split('@')[0] || 'User',
+        role: 'student',
+        ageGroup: '7-12',
+        parentContact: '',
+        createdAt: new Date().toISOString(),
+      };
+      users.push(user);
+      writeCollection('users', users);
+    } else {
+      // Update Firebase UID if missing
+      if (!user.firebaseUid) {
+        user.firebaseUid = fbUser.localId;
+        writeCollection('users', users);
+      }
+    }
+
+    const { token } = createSession(user);
+    setSessionCookie(res, token);
+
+    return res.json({
+      id: user.id, email: user.email, name: user.name,
+      role: user.role, ageGroup: user.ageGroup,
+    });
+  } catch (err) {
+    console.error('Firebase login error:', err);
+    return res.status(401).json({ error: 'Firebase authentication failed' });
+  }
+});
+
+// Firebase register — verify Firebase ID token, create proxy user profile
+app.post('/api/auth/firebase-register', authRateLimiter, async (req, res) => {
+  try {
+    const { idToken, name, role, age, parentContact } = req.body;
+    if (!idToken || typeof idToken !== 'string') {
+      return res.status(400).json({ error: 'Firebase ID token is required' });
+    }
+
+    const fbUser = await verifyFirebaseToken(idToken);
+    const email = (fbUser.email || '').toLowerCase();
+    const displayName = name || fbUser.displayName || email.split('@')[0] || 'User';
+    const userRole = ['student', 'teacher', 'parent', 'admin'].includes(role) ? role : 'student';
+
+    const users = readCollection('users');
+    if (users.some(u => u.email === email)) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+
+    const user = {
+      id: generateId(),
+      firebaseUid: fbUser.localId,
+      email: email,
+      name: sanitizeString(displayName),
+      role: userRole,
+      ageGroup: age ? (age + '-17') : '7-12',
+      parentContact: sanitizeString(parentContact || ''),
+      createdAt: new Date().toISOString(),
+    };
+
+    users.push(user);
+    writeCollection('users', users);
+
+    const { token } = createSession(user);
+    setSessionCookie(res, token);
+
+    return res.status(201).json({
+      id: user.id, email: user.email, name: user.name,
+      role: user.role, ageGroup: user.ageGroup,
+    });
+  } catch (err) {
+    console.error('Firebase register error:', err);
+    return res.status(401).json({ error: 'Firebase registration failed' });
+  }
 });
 
 // ====== Gemini API Key management ======

@@ -3,4 +3,5 @@ node_modules/
 *.log
 output_parts/
 proxy/data/
-*.tmp  
+*.tmp
+users.json
