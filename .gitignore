@@ -8,3 +8,4 @@ users.json
 .firebase/
 worker/.dev.vars
 .wrangler/
+wrangler.toml

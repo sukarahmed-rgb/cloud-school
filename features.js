@@ -7,6 +7,9 @@
 // ===================== المساعد الصوتي للمتصفح (Speech-to-Text) =====================
 let speechRecognition = null;
 let isSpeechRecognitionActive = false;
+let currentSpeechCallback = null;
+let _speechResolved = false;
+let _speechTimeoutId = null;
 
 function initSpeechRecognition() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -40,27 +43,31 @@ function startMicrophone() {
     }
 }
 
-let currentSpeechCallback = null;
-
-function handleSpeechResult(event) {
+function resolveSpeech(result) {
+    if (_speechResolved) return;
+    _speechResolved = true;
+    if (_speechTimeoutId) {
+        clearTimeout(_speechTimeoutId);
+        _speechTimeoutId = null;
+    }
     isSpeechRecognitionActive = false;
-    const transcript = event.results[0][0].transcript;
     if (currentSpeechCallback) {
-        currentSpeechCallback(transcript);
+        currentSpeechCallback(result);
         currentSpeechCallback = null;
     }
 }
 
+function handleSpeechResult(event) {
+    const transcript = event.results[0][0].transcript;
+    resolveSpeech(transcript);
+}
+
 function handleSpeechError(event) {
-    isSpeechRecognitionActive = false;
     const msg = event.error === 'no-speech' ? __('noSpeech') :
                 event.error === 'aborted' ? '' :
                 __('speechError');
     if (msg) speak(msg);
-    if (currentSpeechCallback) {
-        currentSpeechCallback(null);
-        currentSpeechCallback = null;
-    }
+    resolveSpeech(null);
 }
 
 function handleSpeechEnd() {
@@ -68,6 +75,12 @@ function handleSpeechEnd() {
 }
 
 function listenForSpeech(callback, timeoutMs = 10000) {
+    // If there's a pending callback, resolve it as cancelled
+    if (currentSpeechCallback) {
+        currentSpeechCallback(null);
+        currentSpeechCallback = null;
+    }
+    _speechResolved = false;
     currentSpeechCallback = callback;
     const rec = startMicrophone();
     if (!rec) {
@@ -75,15 +88,12 @@ function listenForSpeech(callback, timeoutMs = 10000) {
         return;
     }
     if (timeoutMs > 0) {
-        setTimeout(() => {
+        _speechTimeoutId = setTimeout(() => {
             if (isSpeechRecognitionActive) {
                 try { speechRecognition.stop(); } catch(e) {}
                 isSpeechRecognitionActive = false;
-                if (currentSpeechCallback) {
-                    currentSpeechCallback(null);
-                    currentSpeechCallback = null;
-                }
             }
+            resolveSpeech(null);
         }, timeoutMs);
     }
 }
