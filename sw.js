@@ -18,6 +18,7 @@ var STATIC_FILES = [
 ];
 
 var API_DOMAIN = 'cloud-school-api.cloud-school-subdomain.workers.dev';
+var API_TTL_MS = 5 * 60 * 1000;
 
 self.addEventListener('install', function(event) {
   event.waitUntil(
@@ -44,19 +45,16 @@ self.addEventListener('activate', function(event) {
 self.addEventListener('fetch', function(event) {
   var url = new URL(event.request.url);
 
-  // API requests to Cloudflare Worker: network first
   if (url.hostname === API_DOMAIN) {
-    event.respondWith(networkFirst(event.request, API_CACHE));
+    event.respondWith(networkFirst(event.request, API_CACHE, API_TTL_MS));
     return;
   }
 
-  // i18n files: network first (they may update)
   if (url.pathname.startsWith('/i18n/')) {
     event.respondWith(networkFirst(event.request, STATIC_CACHE));
     return;
   }
 
-  // Navigation requests: network first, fallback to index.html
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).then(function(response) {
@@ -70,7 +68,6 @@ self.addEventListener('fetch', function(event) {
     return;
   }
 
-  // Static assets: cache first
   if (event.request.method === 'GET') {
     event.respondWith(cacheFirst(event.request));
     return;
@@ -92,18 +89,45 @@ function cacheFirst(request) {
   });
 }
 
-function networkFirst(request, cacheName) {
+function networkFirst(request, cacheName, ttl) {
+  var cacheKey = 'api:' + request.url;
+  var metaKey = 'api-ts:' + request.url;
+
   return fetch(request).then(function(response) {
     if (response && response.status === 200) {
       var clone = response.clone();
-      caches.open(cacheName).then(function(cache) { cache.put(request, clone); });
+      caches.open(cacheName).then(function(cache) {
+        cache.put(cacheKey, clone);
+        if (ttl) {
+          cache.put(metaKey, new Response(String(Date.now())));
+        }
+      });
     }
     return response;
   }).catch(function() {
-    return caches.match(request).then(function(cached) {
-      return cached || new Response(JSON.stringify({ offline: true }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
+    return caches.open(cacheName).then(function(cache) {
+      return cache.match(cacheKey).then(function(cached) {
+        if (cached && ttl) {
+          return cache.match(metaKey).then(function(meta) {
+            if (meta) {
+              return meta.text().then(function(ts) {
+                if (Date.now() - Number(ts) > ttl) {
+                  return new Response(JSON.stringify({ offline: true, stale: true }), {
+                    status: 503,
+                    headers: { 'Content-Type': 'application/json' }
+                  });
+                }
+                return cached;
+              });
+            }
+            return cached;
+          });
+        }
+        if (cached) return cached;
+        return new Response(JSON.stringify({ offline: true }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' }
+        });
       });
     });
   });
