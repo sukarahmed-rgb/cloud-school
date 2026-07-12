@@ -11,7 +11,25 @@
       "**/node_modules/**",
       "proxy/**",
       "src/**",
-      "tests/**"
+      "tests/**",
+      "**/.agents/**",
+      "output_parts/**",
+      "*.md",
+      "*.bat",
+      "*.ps1",
+      "*.cjs",
+      "*.mjs",
+      "*.docx",
+      ".env",
+      ".env.example",
+      "skills-lock.json",
+      "jest.config.js",
+      "playwright.config.js",
+      "package.json",
+      "package-lock.json",
+      "firestore.rules",
+      "firestore.indexes.json",
+      "ابدأ.bat"
     ],
     "rewrites": [
       {
