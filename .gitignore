@@ -6,3 +6,5 @@ proxy/data/
 *.tmp
 users.json
 .firebase/
+worker/.dev.vars
+.wrangler/
