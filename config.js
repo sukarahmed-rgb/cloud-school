@@ -9,6 +9,8 @@ var __firebase_config = {
     measurementId: "G-V7CZJK62S6"
 };
 var __initial_auth_token = null;
+// Backend API URL — سيرفر Render (اتركه فارغاً للتشغيل المحلي)
+var __server_base = ''; // مثال: 'https://cloud-school-api.onrender.com'
 
 window.__csErrors = [];
 window.onerror = function(msg, url, line) {

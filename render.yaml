@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: cloud-school-api
+    env: node
+    region: ohio
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: CORS_ORIGIN
+        value: https://cloud-school-6251a.web.app

@@ -3087,12 +3087,12 @@ function loadLocalData() {
 }
 
 // ====== Server Backend API (secure — replaces localStorage auth when server is running) ======
-const SERVER_BASE = '';
+const SERVER_BASE = (typeof __server_base !== 'undefined' && __server_base) || '';
 let serverAvailable = false;
 
 async function checkServerHealth() {
     try {
-        const r = await fetch(SERVER_BASE + '/api/health');
+        const r = await fetch(SERVER_BASE + '/api/health', { credentials: 'include' });
         if (r.ok) { serverAvailable = true; }
     } catch (e) { serverAvailable = false; }
 }
@@ -3100,7 +3100,7 @@ async function checkServerHealth() {
 async function checkServerSession() {
     if (!serverAvailable) return null;
     try {
-        const r = await fetch(SERVER_BASE + '/api/auth/session', { credentials: 'same-origin' });
+        const r = await fetch(SERVER_BASE + '/api/auth/session', { credentials: 'include' });
         const data = await r.json();
         if (data.authenticated) return data.user;
     } catch (e) {}
@@ -3111,7 +3111,7 @@ async function serverLoginFirebase(idToken) {
     const r = await fetch(SERVER_BASE + '/api/auth/firebase-login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken }),
-        credentials: 'same-origin'
+        credentials: 'include'
     });
     if (!r.ok) { const err = await r.json(); throw new Error(err.error || 'Firebase login failed'); }
     return await r.json();
@@ -3121,19 +3121,19 @@ async function serverRegisterFirebase(idToken, name, role, age, parentContact) {
     const r = await fetch(SERVER_BASE + '/api/auth/firebase-register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, name, role, age: age || 0, parentContact: parentContact || '' }),
-        credentials: 'same-origin'
+        credentials: 'include'
     });
     if (!r.ok) { const err = await r.json(); throw new Error(err.error || 'Firebase registration failed'); }
     return await r.json();
 }
 
 async function serverLogout() {
-    try { await fetch(SERVER_BASE + '/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); }
+    try { await fetch(SERVER_BASE + '/api/auth/logout', { method: 'POST', credentials: 'include' }); }
     catch (e) {}
 }
 
 async function serverFetch(collection) {
-    const r = await fetch(SERVER_BASE + '/api/data/' + collection, { credentials: 'same-origin' });
+    const r = await fetch(SERVER_BASE + '/api/data/' + collection, { credentials: 'include' });
     if (!r.ok) throw new Error('Failed to fetch ' + collection);
     return await r.json();
 }
@@ -3141,7 +3141,7 @@ async function serverFetch(collection) {
 async function serverSave(collection, data) {
     const r = await fetch(SERVER_BASE + '/api/data/' + collection, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data), credentials: 'same-origin'
+        body: JSON.stringify(data), credentials: 'include'
     });
     if (!r.ok) throw new Error('Failed to save ' + collection);
     return await r.json();
@@ -3150,7 +3150,7 @@ async function serverSave(collection, data) {
 async function serverUpdate(collection, id, data) {
     const r = await fetch(SERVER_BASE + '/api/data/' + collection + '/' + id, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data), credentials: 'same-origin'
+        body: JSON.stringify(data), credentials: 'include'
     });
     if (!r.ok) throw new Error('Failed to update ' + collection);
     return await r.json();
@@ -3158,7 +3158,7 @@ async function serverUpdate(collection, id, data) {
 
 async function serverDelete(collection, id) {
     const r = await fetch(SERVER_BASE + '/api/data/' + collection + '/' + id, {
-        method: 'DELETE', credentials: 'same-origin'
+        method: 'DELETE', credentials: 'include'
     });
     if (!r.ok) throw new Error('Failed to delete ' + collection);
     return await r.json();
@@ -3169,7 +3169,7 @@ async function initServerBackend() {
     if (serverAvailable) {
         // If server has the Gemini API key, clear it from browser storage
         try {
-            const r = await fetch(SERVER_BASE + '/api/admin/gemini-key', { credentials: 'same-origin' });
+            const r = await fetch(SERVER_BASE + '/api/admin/gemini-key', { credentials: 'include' });
             if (r.ok) {
                 const data = await r.json();
                 if (data.configured) {

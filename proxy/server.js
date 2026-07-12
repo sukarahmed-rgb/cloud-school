@@ -1,24 +1,22 @@
 /**
- * Cloud School Server
+ * Cloud School Server (Render-ready)
  * 
- * Secure all-in-one backend:
- * - Static file serving (replaces serve.js)
- * - Auth with HTTP-only cookies + server-side password hashing
+ * API-only backend for Render (static files on Firebase Hosting):
+ * - Auth with HTTP-only cookies + Firebase ID token verification
  * - Rate limiting + input validation
  * - Data CRUD with JSON file persistence
  * - Session persistence across restarts
  * - Gemini AI proxy
  *
- * تشغيل: node proxy/server.js
- * الخادم على: http://localhost:{PORT} (افتراضي 8081)
+ * تشغيل محلي: node proxy/server.js
+ * أو على Render عبر render.yaml
  * 
  * الأمان:
- * - كلمات السر مشفرة بـ scrypt على السيرفر (مش في المتصفح)
  * - الجلسات عبر HTTP-only cookies (مش localStorage)
- * - البيانات محفوظة في proxy/data/ (مش في المتصفح)
+ * - البيانات محفوظة في proxy/data/
  * - API key للـ Gemini يبقى على السيرفر
  * - Rate limiting على auth endpoints
- * - الملفات الحساسة ممنوعة من الـ static serving
+ * - CORS مخصص لـ Firebase Hosting فقط
  */
 
 const express = require('express');
@@ -31,6 +29,18 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const app = express();
 const PORT = process.env.PORT || 8081;
 
+// ====== CORS (cross-origin for Firebase Hosting → Render) ======
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://cloud-school-6251a.web.app';
+const cors = require('cors');
+app.use(cors({
+  origin: CORS_ORIGIN,
+  credentials: true,
+}));
+app.options('*', cors({ origin: CORS_ORIGIN, credentials: true })); // Preflight
+
+// Trust proxy (for Render's load balancer to get real IP)
+app.set('trust proxy', 1);
+
 // ====== Configuration ======
 const DATA_DIR = path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
@@ -39,7 +49,6 @@ const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 const SESSION_TTL = 24 * 60 * 60 * 1000; // 24 hours
 const SESSION_COOKIE = 'cloud_school_sid';
 const GEMINI_API_KEY_PROXY = process.env.GEMINI_API_KEY || '';
-const PROJECT_ROOT = path.join(__dirname, '..');
 
 // Ensure data directory exists
 try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) { /* exists */ }
@@ -61,21 +70,6 @@ const MODELS = {
   tts: 'gemini-2.5-flash-preview-tts',
   transcribe: 'gemini-2.5-flash-preview-09-2025',
 };
-
-// Static file deny list — أي ملف ممنوع يتعرض للـ public
-const DENY_PATTERNS = [
-  /\/\.env$/i,
-  /\/proxy\/(data\/|server\.js$)/i,
-  /\/node_modules\//i,
-  /\/tests\//i,
-  /\/\.git\//i,
-  /\/package-lock\.json$/i,
-  /\/package\.json$/i,
-  /\/jest\.config\.js$/i,
-  /\/playwright\.config\.js$/i,
-  /\/\.gitignore$/i,
-  /\.(md|ps1|bat|cjs)$/i,
-];
 
 // ====== Simple In-Memory Rate Limiter ======
 const rateLimitStore = new Map();
@@ -267,9 +261,11 @@ app.use((_req, res, next) => {
 
 // Set cookie helper
 function setSessionCookie(res, token) {
+  const isLocal = !process.env.RENDER;
   res.cookie(SESSION_COOKIE, token, {
     httpOnly: true,
-    sameSite: 'strict',
+    sameSite: isLocal ? 'strict' : 'none',
+    secure: !isLocal,
     maxAge: SESSION_TTL,
     path: '/',
   });
@@ -595,47 +591,22 @@ app.post('/api/gemini/transcribe', async (req, res) => {
 
 // ====== Health Check ======
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), env: process.env.RENDER ? 'render' : 'local' });
 });
 
-// ====== Static File Protection ======
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api/')) return next();
-  for (const pattern of DENY_PATTERNS) {
-    if (pattern.test(decodeURIComponent(req.path))) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-  }
-  next();
-});
-
-// Serve static files — only safe, public-facing files
-app.use(express.static(PROJECT_ROOT, {
-  dotfiles: 'deny',
-  index: 'index.html',
-  extensions: ['html', 'js', 'css', 'json', 'svg', 'png', 'ico', 'webmanifest'],
-}));
-
-// SPA fallback (for client-side routing)
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: 'Not found' });
-  }
-  const indexPath = path.join(PROJECT_ROOT, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    return res.sendFile(indexPath);
-  }
-  return res.status(404).send('Not found');
+// ====== 404 for unknown API routes ======
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'Not found' });
 });
 
 // ====== Start Server ======
 app.listen(PORT, () => {
-  console.log(`\n☁️  Cloud School Server`);
-  console.log(`   http://localhost:${PORT}`);
-  console.log(`   Static files: ✓ (deny-list active)`);
+  const mode = process.env.RENDER ? 'Render' : 'local';
+  console.log(`\n☁️  Cloud School Server (${mode})`);
+  console.log(`   Port: ${PORT}`);
+  console.log(`   CORS origin: ${CORS_ORIGIN}`);
   console.log(`   Auth API: ✓ (HTTP-only cookies + rate limited)`);
   console.log(`   Data API: ✓ (${DATA_DIR})`);
   console.log(`   Sessions: ✓ (persistent — ${sessions.size} active)`);
-  console.log(`   Gemini proxy: ${GEMINI_API_KEY_PROXY ? 'env' : '(configurable in Settings > Server Settings)'}`);
-  console.log(`\n   ℹ️  هذا الخادم يغني عن serve.js — شغّل هذا فقط.\n`);
+  console.log(`   Gemini proxy: ${GEMINI_API_KEY_PROXY ? 'env' : '(not configured)'}`);
 });
