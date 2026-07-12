@@ -777,7 +777,7 @@ function showKeyboardHelp() {
     var overlay = document.createElement('div');
     overlay.id = 'shortcuts-help-overlay';
     overlay.className = 'fixed inset-0 bg-black bg-opacity-95 z-[100] flex items-center justify-center p-4';
-    overlay.innerHTML = '<div class="card p-6 rounded-3xl max-w-lg border-4 border-yellow-400 bg-slate-900 text-white w-full max-h-[80vh] overflow-y-auto" role="dialog" aria-label="' + __('keyboardHelpLabel') + '">' +
+    overlay.innerHTML = '<div class="card p-6 rounded-3xl max-w-lg border-4 border-yellow-400 bg-slate-900 text-white w-full max-h-[80vh] overflow-y-auto" role="dialog" aria-label="' + __('keyboardHelpLabel') + '" aria-modal="true">' +
         '<h2 class="text-3xl font-black text-yellow-400 mb-4 text-center">⌨️ ' + __('keyboardHelp') + '</h2>' +
         '<div class="space-y-3 text-right" dir="rtl">' +
         '<div class="grid grid-cols-2 gap-2 font-bold border-b border-gray-600 pb-2 mb-2"><span>' + __('keyboardColKey') + '</span><span>' + __('keyboardColFunc') + '</span></div>' +
@@ -805,6 +805,7 @@ function showKeyboardHelp() {
     document.body.appendChild(overlay);
     document.getElementById('btn-close-help')?.addEventListener('click', function() { overlay.remove(); });
     document.getElementById('btn-close-help')?.focus();
+    trapFocus(overlay);
     speak(__('keyboardHelpOpened'));
 }
 
@@ -889,10 +890,17 @@ var isRecording = false;
 
 function getIsRecording() { return isRecording; }
 
+function stopAudioTracks() {
+  if (mediaRecorder && mediaRecorder.stream) {
+    mediaRecorder.stream.getTracks().forEach(function(t) { t.stop(); });
+  }
+}
+
 function toggleAudioRecording() {
   var micBtn = document.getElementById('btn-mic-input');
   if (isRecording) {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    stopAudioTracks();
     isRecording = false;
     if (micBtn) micBtn.classList.remove('bg-red-600', 'animate-pulse');
     speak(__('micStop'));
@@ -921,6 +929,7 @@ function toggleAudioRecording() {
             speak(__('micCaptureOk'));
           }
         } catch(e) { speak(__('micError')); }
+        stopAudioTracks();
       };
       mediaRecorder.start();
       isRecording = true;
@@ -967,6 +976,36 @@ function playTone(startFreq, endFreq, type, duration) {
 }
 
 // ====== Focus Management ======
+function trapFocus(container) {
+  var focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  function handleKeyDown(e) {
+    if (e.key !== 'Tab') return;
+    var elements = container.querySelectorAll(focusableSelector);
+    if (elements.length === 0) return;
+    var first = elements[0];
+    var last = elements[elements.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
+  container.addEventListener('keydown', handleKeyDown);
+  var observer = new MutationObserver(function() {
+    if (!document.body.contains(container)) {
+      observer.disconnect();
+      container.removeEventListener('keydown', handleKeyDown);
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
 function focusElement(elementId) {
   const el = document.getElementById(elementId);
   if (el) {
@@ -1653,10 +1692,20 @@ function openStudentSection(section) {
     }
 
     container.scrollIntoView({ behavior: 'smooth' });
-    // تحسين إمكانية الوصول — نقل التركيز إلى عنوان القسم
+    // نقل التركيز إلى أول عنصر تفاعلي في القسم
     setTimeout(() => {
         setupAccessibleVoices();
-        focusElement('student-section-title');
+        var sectionEl = document.getElementById('student-sub-' + section);
+        if (sectionEl) {
+            var firstBtn = sectionEl.querySelector('button, [tabindex="0"], input, select, textarea, a');
+            if (firstBtn) {
+                firstBtn.focus();
+            } else {
+                focusElement('student-section-title');
+            }
+        } else {
+            focusElement('student-section-title');
+        }
     }, 200);
 }
 
@@ -1664,12 +1713,15 @@ function closeStudentSection() {
     document.getElementById('student-section-container').classList.add('hidden');
     controlAudiobook('stop');
     // إعادة التركيز إلى زر القسم المفتوح سابقاً
-    const sections = ['books', 'assignments', 'image-describer', 'games', 'ai-tutor'];
-    const activeBtn = document.querySelector(`[data-student-section].bg-yellow-400`);
+    var activeBtn = document.querySelector('[data-student-section].bg-yellow-400');
     if (activeBtn) {
         activeBtn.focus();
     } else {
-        document.getElementById('main-content')?.focus();
+        var mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            mainContent.setAttribute('tabindex', '-1');
+            mainContent.focus();
+        }
     }
     speak(__('sectionClosed'));
 }
@@ -1805,8 +1857,11 @@ function startQuiz(quizId) {
     }
 
     let totalSecondsLeft = 10 * 60;
+    let lastSpokenMinute = 10;
     const timerDisplay = document.getElementById('active-quiz-timer');
     timerDisplay.textContent = "10:00";
+    timerDisplay.setAttribute('aria-live', 'polite');
+    timerDisplay.setAttribute('aria-atomic', 'true');
 
     if (quizTimerInterval) clearInterval(quizTimerInterval);
     quizTimerInterval = setInterval(() => {
@@ -1814,7 +1869,17 @@ function startQuiz(quizId) {
 
         const mins = Math.floor(totalSecondsLeft / 60);
         const secs = totalSecondsLeft % 60;
-        timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        const display = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        timerDisplay.textContent = display;
+
+        // Speak the minute countdown silently (for screen readers and voice)
+        if (secs === 0 && mins !== lastSpokenMinute) {
+            lastSpokenMinute = mins;
+            announceToScreenReader(__('quizTimeRemaining', mins));
+            if (mins > 0 && !screenReaderMode) {
+                speak(__('quizTimeRemaining', mins));
+            }
+        }
 
         if (totalSecondsLeft === 5 * 60) {
             speak(__('quizWarn5min'));
@@ -2679,7 +2744,7 @@ function showNotificationsPanel() {
     overlay.id = 'notifications-panel-overlay';
     overlay.className = 'fixed inset-0 bg-black bg-opacity-95 z-[100] flex items-center justify-center p-4';
     var notifs = localData.notifications || [];
-    var html = '<div class="card p-6 rounded-3xl max-w-lg border-4 border-blue-400 bg-slate-900 text-white w-full max-h-[80vh] overflow-y-auto" role="dialog" aria-label="' + __('notifPanelLabel') + '">' +
+    var html = '<div class="card p-6 rounded-3xl max-w-lg border-4 border-blue-400 bg-slate-900 text-white w-full max-h-[80vh] overflow-y-auto" role="dialog" aria-label="' + __('notifPanelLabel') + '" aria-modal="true">' +
         '<h2 class="text-3xl font-black text-blue-400 mb-4 text-center">🔔 ' + __('notifPanelTitle') + '</h2>';
     if (notifs.length === 0) {
         html += '<p class="text-center text-gray-400">' + __('notifEmpty') + '</p>';

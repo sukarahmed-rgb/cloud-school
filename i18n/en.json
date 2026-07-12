@@ -242,6 +242,7 @@
   "optB": "B)",
   "optC": "C)",
   "optD": "D)",
+  "quizTimeRemaining": "Time remaining: {0} minutes",
 
   "dialogicStarting": "🎙️ AI Teacher starting the lesson...",
   "dialogicWelcome": "Welcome to the Smart Classroom! I'm your AI teacher. Press the microphone button and say a topic name.",
