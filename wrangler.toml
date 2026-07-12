@@ -2,26 +2,17 @@ name = "cloud-school-api"
 main = "worker/index.js"
 compatibility_date = "2025-04-16"
 
-# إنشاء KV namespaces بأمر:
-#   npx wrangler kv:namespace create DATA
-#   npx wrangler kv:namespace create SESSIONS
-#   npx wrangler kv:namespace create CONFIG
-# ثم ضع الـ IDs هنا
-
 [[kv_namespaces]]
 binding = "DATA"
-id = ""
-preview_id = ""
+id = "e7dab1f829384c019ad6079674f58013"
 
 [[kv_namespaces]]
 binding = "SESSIONS"
-id = ""
-preview_id = ""
+id = "59791fab3a5f4a1e888160154d53eba3"
 
 [[kv_namespaces]]
 binding = "CONFIG"
-id = ""
-preview_id = ""
+id = "d2ded6e401a6472ea2e0d03a24dba9fc"
 
 [vars]
 CORS_ORIGIN = "https://cloud-school-6251a.web.app"

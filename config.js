@@ -10,7 +10,7 @@ var __firebase_config = {
 };
 var __initial_auth_token = null;
 // Backend API URL — سيرفر Render (اتركه فارغاً للتشغيل المحلي)
-var __server_base = ''; // غيّر الرابط بعد نشر الـ Worker: 'https://cloud-school-api.<your-sub>.workers.dev'
+var __server_base = 'https://cloud-school-api.cloud-school-subdomain.workers.dev';
 
 window.__csErrors = [];
 window.onerror = function(msg, url, line) {
