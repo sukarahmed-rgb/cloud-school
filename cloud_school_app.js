@@ -11,18 +11,46 @@ const arabicBrailleMap = {
   '2,3,5': '!', '2,5,6': '؟'
 };
 
-function getBrailleChar(dotsSet) {
-  const sorted = Array.from(dotsSet).sort((a, b) => a - b);
-  return arabicBrailleMap[sorted.join(',')] || null;
+/** Shared Braille helpers */
+function updateBraillePreview(dotsSet, previewId, fallback) {
+    const dotsArray = Array.from(dotsSet).sort((a, b) => a - b);
+    const keyString = dotsArray.join(',');
+    const mappedChar = arabicBrailleMap[keyString] || fallback;
+    document.getElementById(previewId).textContent = __('brailleCurrentChar', mappedChar, keyString || '');
 }
 
-function getBraillePreview(dotsSet) {
-  const sorted = Array.from(dotsSet).sort((a, b) => a - b);
-  const keyString = sorted.join(',');
-  const mapped = arabicBrailleMap[keyString] || (dotsSet.size > 0 ? 'غير مكتمل' : 'لا يوجد');
-  return { keyString, mapped };
+function toggleDot(dotNumber, dotsSet, prefix, previewId, fallback) {
+    const btn = document.getElementById(`${prefix}-${dotNumber}`);
+    if (dotsSet.has(dotNumber)) {
+        dotsSet.delete(dotNumber);
+        btn.classList.remove('active');
+    } else {
+        dotsSet.add(dotNumber);
+        btn.classList.add('active');
+    }
+    updateBraillePreview(dotsSet, previewId, fallback);
 }
-/** Centralized Error Handler */
+
+function clearDots(dotsSet, prefix, previewId, speakOnClear) {
+    dotsSet.clear();
+    for (let i = 1; i <= 6; i++) {
+        const dot = document.getElementById(`${prefix}-${i}`);
+        if (dot) dot.classList.remove('active');
+    }
+    document.getElementById(previewId).textContent = __('brailleNoChar');
+    if (speakOnClear) speak(__('brailleCleared'));
+}
+
+function commitBrailleChar(keyString) {
+    const mappedChar = arabicBrailleMap[keyString];
+    if (mappedChar) {
+        const ansTextarea = document.getElementById('assignment-student-answer');
+        ansTextarea.value += mappedChar;
+        speak(mappedChar);
+        return true;
+    }
+    return false;
+}
 
 /** Centralized Error Handler */
 
@@ -68,10 +96,6 @@ function secureRandomInt(min, max) {
   return min + (array[0] % (max - min + 1));
 }
 
-function onError(callback) {
-  listeners.push(callback);
-}
-
 function notifyListeners(level, context, error) {
   listeners.forEach(fn => fn(level, context, error));
 }
@@ -112,22 +136,12 @@ function handleError(context, error) {
   showToast(userMessage);
 
   if (level === ERROR_LEVELS.FATAL) {
-    speakToUser(`خطأ حرج: ${userMessage}`);
+    speakToUser(__('criticalError', userMessage));
   } else {
     speakToUser(userMessage);
   }
 
   return { level, context, message };
-}
-
-function wrapAsync(fn, context) {
-  return async (...args) => {
-    try {
-      return await fn(...args);
-    } catch (error) {
-      handleError(context, error);
-    }
-  };
 }
 
 function setupGlobalErrorHandler() {
@@ -155,7 +169,7 @@ function setCurrentLang(lang) {
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   // تحديث نص زر اللغة
   const toggle = document.getElementById('lang-toggle');
-  if (toggle) toggle.textContent = lang === 'ar' ? 'English' : 'عربي';
+  if (toggle) toggle.textContent = lang === 'ar' ? __('langEnglish') : __('langArabic');
   // إعادة تطبيق كل الترجمات
   applyTranslations();
   applyJsTranslations();
@@ -243,10 +257,7 @@ if (typeof rawConfig === 'string') {
     try { firebaseConfig = JSON.parse(rawConfig); } catch (e) { firebaseConfig = {}; }
 }
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-function getUserId() { return userId; }
-function isReady() { return isAuthReady; }
-function getAppId() { return typeof __app_id !== 'undefined' ? __app_id : 'cloud-school-blind-v1'; }
+let currentCheatDots = new Set();
 
 async function initFirebase() {
   if (typeof firebase === 'undefined') {
@@ -414,58 +425,6 @@ async function describeImage(base64Image, mimeType) {
   ]);
 }
 
-/** سؤال المعلم الافتراضي */
-async function askTutor(question) {
-  return callGemini(question, getPrompt(getCurrentLang(), 'أنت معلم ودود تشرح للمكفوفين ببساطة. ', 'You are a friendly teacher who explains things simply for blind students. ') + getAgeTone());
-}
-
-
-/** تلخيص كتاب */
-async function summarizeBook(content) {
-  return callGemini(
-    `لخص: "${content}" مع 3 أسئلة مراجعة.`,
-    getPrompt(getCurrentLang(), 'أنت خبير تلخيص مناهج للمكفوفين. ', 'You are an expert in summarizing curricula for blind students. ') + getAgeTone()
-  );
-}
-
-/** تقييم إجابة برايل */
-async function evaluateBraille(text) {
-  return callGemini(
-    `صحح النص: "${text}" وقدم تقريراً تشجيعياً.`,
-    getPrompt(getCurrentLang(), 'أنت معلم لغة عربية وخبير برايل. ', 'You are an Arabic language teacher and Braille expert. ') + getAgeTone()
-  );
-}
-
-/** توليد اختبار */
-async function generateQuiz() {
-  const json = await callGemini(
-    'ولد سؤال اختيار من متعدد في العلوم. أخرج JSON فقط: {question, A, B, C, D, correct}.',
-    getPrompt(getCurrentLang(), 'أنت مصمم اختبارات. ', 'You are a quiz designer. ') + getAgeTone()
-  );
-  try { return JSON.parse(json.replace(/```json|```/g, '').trim()); }
-  catch (e) { return { question: 'خطأ في توليد السؤال', A: 'نعم', B: 'لا', C: '', D: '', correct: 'A' }; }
-}
-
-/** قصة تفاعلية */
-async function generateStory(choiceIndex) {
-  const prompt =
-    choiceIndex === null
-      ? 'اصنع قصة تفاعلية عن الفضاء بـ JSON: {story, options:[]}. 3 خيارات.'
-      : `استمرار القصة. اختار الطالب الخيار ${choiceIndex + 1}. أخرج JSON: {story, options:[]}.`;
-
-  const json = await callGemini(prompt, getPrompt(getCurrentLang(), 'أنت راوي قصص. ', 'You are a storyteller. ') + getAgeTone());
-  try { return JSON.parse(json.replace(/```json|```/g, '').trim()); }
-  catch (e) { return { story: 'عذراً، تعذر توليد القصة. حاول مرة أخرى.', options: ['حاول مرة أخرى', 'العودة للقائمة الرئيسية', 'اختيار قصة أخرى'] }; }
-}
-
-/** تصحيح إجابة مقالية */
-async function gradeAnswer(studentAnswer) {
-  return callGemini(
-    `قيم الإجابة: "${studentAnswer}" وأعط درجة من 100 مع تعليق.`,
-    getPrompt(getCurrentLang(), 'أنت مصحح.', 'You are a grader.')
-  );
-}
-
 // ====== مساعدات صوتية (محلية، لا تحتاج API) ======
 function base64ToArrayBuffer(base64) {
   const binary = window.atob(base64);
@@ -575,11 +534,6 @@ function showLoading(elementId, message) {
   el.innerHTML = `<div class="loading-overlay"><span class="loading-spinner"></span><span>${escapeHtml(message)}</span></div>`;
 }
 
-function hideLoading(elementId) {
-  const el = document.getElementById(elementId);
-  if (el) el.innerHTML = '';
-}
-
 // ====== Escape HTML (XSS Protection) ======
 function escapeHtml(str) {
   if (!str && str !== 0) return '';
@@ -646,8 +600,8 @@ function toggleAgeLevel() {
 
 function updateAgeLevelButton() {
     var btn = document.getElementById('btn-age-level');
-    var labels = { auto: 'تلقائي', child: 'طفل', teen: 'شاب', adult: 'بالغ' };
-    if (btn) btn.textContent = __('ageButton', labels[currentAgeLevel] || 'تلقائي');
+    var labels = { auto: __('ageLevelAuto'), child: __('ageLevelChild'), teen: __('ageLevelTeen'), adult: __('ageLevelAdult') };
+    if (btn) btn.textContent = __('ageButton', labels[currentAgeLevel] || __('ageLevelAuto'));
 }
 
 function getAgeTone() {
@@ -734,7 +688,7 @@ function cycleTheme() {
     var idx = themes.indexOf(current);
     var next = themes[(idx + 1) % themes.length];
     setTheme(next);
-    var labels = { 'dark-hc': 'أصفر على أسود', 'light-hc': 'أسود على أبيض', 'classic': 'كلاسيك أزرق' };
+    var labels = { 'dark-hc': __('themeDarkHC'), 'light-hc': __('themeLightHC'), 'classic': __('themeClassic') };
     speak(__('themeSet', labels[next] || next));
 }
 
@@ -888,8 +842,6 @@ var mediaRecorder = null;
 var audioChunks = [];
 var isRecording = false;
 
-function getIsRecording() { return isRecording; }
-
 function stopAudioTracks() {
   if (mediaRecorder && mediaRecorder.stream) {
     mediaRecorder.stream.getTracks().forEach(function(t) { t.stop(); });
@@ -949,14 +901,6 @@ function blobToBase64(blob) {
 }
 
 // ====== Sound Effects ======
-function playSuccessChime() {
-  playTone(523.25, 880, 'sine', 0.3);
-}
-
-function playFailChime() {
-  playTone(150, 80, 'sawtooth', 0.3);
-}
-
 function playTone(startFreq, endFreq, type, duration) {
   try {
     const ctx = getAudioContext();
@@ -1041,14 +985,6 @@ function getGeminiKey() {
     return key;
   }
   return '';
-}
-
-function setGeminiKey(key) {
-  if (key) {
-    localStorage.setItem('gemini_api_key', _obfuscate(key));
-  } else {
-    localStorage.removeItem('gemini_api_key');
-  }
 }
 
 function toggleRegFields() {
@@ -1313,24 +1249,6 @@ async function handleRegistrationSubmit(e) {
     }
 }
 
-// DEV-ONLY: bypass for testing — disabled unless __DEV__ flag is set
-window.__DEV__ = false;
-function bypassAuthDemo() {
-    if (!window.__DEV__) { console.warn('[SECURITY] bypassAuthDemo is disabled in production'); return; }
-    currentUserSession = {
-        name: "أحمد خالد (طالب)",
-        contact: "0555555555",
-        role: "student",
-        age: 14,
-        parentContact: "parent@cloudschool.com"
-    };
-    document.getElementById('auth-gate').classList.add('hidden');
-    document.getElementById('dev-role-bar').classList.remove('hidden');
-    document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
-    document.getElementById('active-user-badge').textContent = __('demoUserBadge');
-    switchRole('student');
-}
-
 function logout() {
     if (currentUserSession?.serverAuth) serverLogout();
     if (typeof firebase !== 'undefined' && firebase.auth) {
@@ -1429,7 +1347,7 @@ async function callGeminiAPI(userQuery, systemPrompt, maxRetries = 5) {
         return await callGemini(userQuery, systemPrompt, maxRetries);
     } catch (error) {
         handleError('GeminiAPI', error);
-        return "عذراً، تعذر الاتصال بخادم الذكاء الاصطناعي.";
+            return __('errorAIConnectionFailed');
     }
 }
 
@@ -1585,7 +1503,7 @@ async function generateAIQuiz() {
         const jsonText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "أنت مصمم اختبارات أكاديمي متميز. ", "You are an excellent academic quiz designer. ") + getAgeTone());
         const parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
 
-        document.getElementById('teacher-quiz-title').value = "اختبار العلوم الذكي التوليدي";
+        document.getElementById('teacher-quiz-title').value = __('autoGeneratedQuizTitle');
         document.getElementById('teacher-quiz-q').value = parsed.question;
         document.getElementById('teacher-quiz-oa').value = parsed.A;
         document.getElementById('teacher-quiz-ob').value = parsed.B;
@@ -1603,19 +1521,7 @@ async function generateAIQuiz() {
 }
 
 function toggleCheatDot(dotNum) {
-    const btn = document.getElementById(`cheat-dot-${dotNum}`);
-    if (currentCheatDots.has(dotNum)) {
-        currentCheatDots.delete(dotNum);
-        btn.classList.remove('active');
-    } else {
-        currentCheatDots.add(dotNum);
-        btn.classList.add('active');
-    }
-
-    const dotsArray = Array.from(currentCheatDots).sort((a, b) => a - b);
-    const keyString = dotsArray.join(',');
-    const mappedChar = arabicBrailleMap[keyString] || "غير مكتمل";
-    document.getElementById('cheat-char-preview').textContent = __('brailleCurrentChar', mappedChar, keyString || '');
+    toggleDot(dotNum, currentCheatDots, 'cheat-dot', 'cheat-char-preview', "غير مكتمل");
 }
 
 function pronounceCheatBraille() {
@@ -1631,13 +1537,7 @@ function pronounceCheatBraille() {
 }
 
 function clearCheatDots() {
-    currentCheatDots.clear();
-    for (let i = 1; i <= 6; i++) {
-        const dot = document.getElementById(`cheat-dot-${i}`);
-        if (dot) dot.classList.remove('active');
-    }
-    document.getElementById('cheat-char-preview').textContent = __('brailleNoChar');
-    speak(__('brailleCleared'));
+    clearDots(currentCheatDots, 'cheat-dot', 'cheat-char-preview', true);
 }
 
 function openStudentSection(section) {
@@ -1946,7 +1846,7 @@ function submitQuizAnswer() {
         quizTitle: quiz.title,
         studentAnswer: finalAnswer,
         initialScore: score,
-        graderFeedback: quiz.type === 'mcq' ? "تصحيح فوري آلي" : "بانتظار المراجعة الذكية للذكاء الاصطناعي",
+        graderFeedback: quiz.type === 'mcq' ? __('autoGradingFeedback') : __('awaitingAIGrading'),
         timestamp: new Date().toLocaleTimeString('ar-EG')
     };
 
@@ -1978,16 +1878,6 @@ function setupPerkinsKeyboard() {
             perkinsKeysPressed[key] = true;
         }
     });
-
-    window.addEventListener('keyup', (e) => {
-        if (document.getElementById('perkins-braille-keyboard').classList.contains('hidden')) return;
-
-        const key = e.key.toLowerCase();
-        if (perkinsKeysPressed[key]) {
-            processPerkinsChord();
-            perkinsKeysPressed = {};
-        }
-    });
 }
 
 function processPerkinsChord() {
@@ -2002,43 +1892,19 @@ function processPerkinsChord() {
     if (dots.length === 0) return;
 
     dots.sort((a, b) => a - b);
-    const keyString = dots.join(',');
-    const mappedChar = arabicBrailleMap[keyString];
-
-    if (mappedChar) {
-        const ansTextarea = document.getElementById('assignment-student-answer');
-        ansTextarea.value += mappedChar;
-        speak(mappedChar);
-    } else {
+    if (!commitBrailleChar(dots.join(','))) {
         speak(__('brailleUnknown'));
     }
 }
 
 function toggleBrailleDot(dotNumber) {
-    const btn = document.getElementById(`dot-${dotNumber}`);
-    if (currentBrailleDots.has(dotNumber)) {
-        currentBrailleDots.delete(dotNumber);
-        btn.classList.remove('active');
-    } else {
-        currentBrailleDots.add(dotNumber);
-        btn.classList.add('active');
-    }
-
-    const dotsArray = Array.from(currentBrailleDots).sort((a, b) => a - b);
-    const keyString = dotsArray.join(',');
-    const mappedChar = arabicBrailleMap[keyString] || "غير معروف";
-    document.getElementById('braille-char-preview').textContent = __('brailleCurrentChar', mappedChar, keyString || '');
+    toggleDot(dotNumber, currentBrailleDots, 'dot', 'braille-char-preview', "غير معروف");
 }
 
 function enterBrailleChar() {
     const dotsArray = Array.from(currentBrailleDots).sort((a, b) => a - b);
     const keyString = dotsArray.join(',');
-    const mappedChar = arabicBrailleMap[keyString];
-
-    if (mappedChar) {
-        const ansTextarea = document.getElementById('assignment-student-answer');
-        ansTextarea.value += mappedChar;
-        speak(mappedChar);
+    if (commitBrailleChar(keyString)) {
         clearBrailleDots();
     } else {
         speak(__('brailleInvalidChar'));
@@ -2046,12 +1912,7 @@ function enterBrailleChar() {
 }
 
 function clearBrailleDots() {
-    currentBrailleDots.clear();
-    for (let i = 1; i <= 6; i++) {
-        const dot = document.getElementById(`dot-${i}`);
-        if (dot) dot.classList.remove('active');
-    }
-    document.getElementById('braille-char-preview').textContent = __('brailleNoChar');
+    clearDots(currentBrailleDots, 'dot', 'braille-char-preview', false);
 }
 
 function addSpaceToAnswer() {
@@ -2437,7 +2298,6 @@ function endGame() {
     }
 }
 
-// (playSuccessChime and playFailChime defined above)
 
 function startAITutorSpeech() {
     if (speechRecognizer) {
@@ -2546,7 +2406,7 @@ function renderTeacherDashboard() {
         ? Math.round((totalSubmissions / (totalQuizzes * activeStudents)) * 100)
         : 0;
 
-    document.getElementById('stat-total-students').textContent = totalStudents + (activeStudents > 0 ? ' (' + activeStudents + ' نشط)' : '');
+        document.getElementById('stat-total-students').textContent = totalStudents + (activeStudents > 0 ? ' (' + activeStudents + __('activeStudentsSuffix') + ')' : '');
     document.getElementById('stat-total-quizzes').textContent = totalQuizzes;
     document.getElementById('stat-avg-score').textContent = avgScore + '%';
     document.getElementById('stat-completion').textContent = Math.min(completionRate, 100) + '%';
@@ -2603,7 +2463,7 @@ function renderStudentPerformanceTable(submissions, assignments) {
     }
     var studentMap = {};
     submissions.forEach(function(s) {
-        var name = s.studentName || 'غير معروف';
+        var name = s.studentName || __('unknownStudent');
         if (!studentMap[name]) studentMap[name] = [];
         studentMap[name].push(s.initialScore || 0);
     });
@@ -2644,9 +2504,9 @@ function generateTeacherReport() {
     report += '--- ' + __('reportPerStudent') + ' ---\n';
     var studentMap = {};
     submissions.forEach(function(s) {
-        var name = s.studentName || 'غير معروف';
+        var name = s.studentName || __('unknownStudent');
         if (!studentMap[name]) studentMap[name] = [];
-        studentMap[name].push({ title: s.quizTitle || 'اختبار', score: s.initialScore || 0 });
+        studentMap[name].push({ title: s.quizTitle || __('defaultQuizTitle'), score: s.initialScore || 0 });
     });
     Object.keys(studentMap).sort().forEach(function(name) {
         var subs = studentMap[name];
@@ -3021,7 +2881,6 @@ function bindAllEvents() {
     document.getElementById('reg-role')?.addEventListener('change', toggleRegFields);
     document.getElementById('reg-age')?.addEventListener('input', checkAgeLimitations);
     document.querySelector('[data-action="auth-form"]')?.addEventListener('submit', handleRegistrationSubmit);
-    document.querySelector('[data-action="bypass-demo"]')?.addEventListener('click', bypassAuthDemo);
 
     // Role switcher
     document.querySelectorAll('[data-role-switch]').forEach(btn => {
@@ -3209,23 +3068,6 @@ async function serverSave(collection, data) {
         body: JSON.stringify(data), credentials: 'include'
     });
     if (!r.ok) throw new Error('Failed to save ' + collection);
-    return await r.json();
-}
-
-async function serverUpdate(collection, id, data) {
-    const r = await fetch(SERVER_BASE + '/api/data/' + collection + '/' + id, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data), credentials: 'include'
-    });
-    if (!r.ok) throw new Error('Failed to update ' + collection);
-    return await r.json();
-}
-
-async function serverDelete(collection, id) {
-    const r = await fetch(SERVER_BASE + '/api/data/' + collection + '/' + id, {
-        method: 'DELETE', credentials: 'include'
-    });
-    if (!r.ok) throw new Error('Failed to delete ' + collection);
     return await r.json();
 }
 
