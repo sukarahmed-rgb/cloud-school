@@ -214,7 +214,7 @@ function applyJsTranslations() {
   // تحديث النصوص الديناميكية في الـ JS
   const ageLevelBtn = document.getElementById('btn-age-level');
   if (ageLevelBtn && typeof ageLevelLabels !== 'undefined') {
-    const labels = window['ageLevelLabels'] || ['تلقائي', 'طفل', 'شاب', 'بالغ'];
+    const labels = window['ageLevelLabels'] || [__('ageLevelAuto'), __('ageLevelChild'), __('ageLevelTeen'), __('ageLevelAdult')];
     const level = typeof currentAgeLevel !== 'undefined' ? currentAgeLevel : 0;
     ageLevelBtn.textContent = __('ageLevelLabel', labels[level] || labels[0]);
   }
@@ -590,7 +590,7 @@ function setupAgeLevel() {
 
 function toggleAgeLevel() {
     var levels = ['auto', 'child', 'teen', 'adult'];
-    var labels = { auto: 'تلقائي', child: 'طفل', teen: 'شاب', adult: 'بالغ' };
+    var labels = { auto: __('ageLevelAuto'), child: __('ageLevelChild'), teen: __('ageLevelTeen'), adult: __('ageLevelAdult') };
     var idx = levels.indexOf(currentAgeLevel);
     currentAgeLevel = levels[(idx + 1) % levels.length];
     localStorage.setItem('cloudSchoolAgeLevel', currentAgeLevel);

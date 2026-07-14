@@ -213,43 +213,54 @@
                 <span id="active-user-badge" class="text-xs bg-yellow-500 text-black font-bold px-2 py-1 rounded-full"></span>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="أدوات الوصول الفوري">
-                <button id="lang-toggle" class="p-2 border-2 border-blue-500 rounded text-xs font-bold" aria-label="عربي / English">عربي / English</button>
-                <button id="btn-age-level" class="p-2 border-2 border-cyan-500 rounded text-xs font-bold" aria-label="المرحلة العمرية">
-                    🧑 العمر: تلقائي
-                </button>
-                <button id="tts-engine-toggle" class="p-2 border-2 border-yellow-500 rounded text-xs font-bold" aria-label="تبديل محرك الصوت بين المتصفح وذكاء Gemini الاصطناعي">
-                    🎙️ صوت القراءة: ذكاء اصطناعي (Gemini)
-                </button>
+            <div class="flex flex-wrap items-center gap-1" role="toolbar" aria-label="أدوات الوصول الفوري">
 
-                <button data-theme="dark-hc" class="p-2 border border-current rounded text-xs font-bold" aria-label="النمط الداكن عالي التباين" data-i18n="themeDark">أصفر/أسود</button>
-                <button data-theme="light-hc" class="p-2 border border-current rounded text-xs font-bold" aria-label="النمط الفاتح عالي التباين" data-i18n="themeLight">أسود/أبيض</button>
-                <button data-theme="classic" class="p-2 border border-current rounded text-xs font-bold" aria-label="النمط الكلاسيكي الأزرق" data-i18n="themeClassic">كلاسيك</button>
+                <span class="toolbar-group flex items-center gap-1 p-1 border-l border-current/20 pl-2 ml-1">
+                    <button id="lang-toggle" class="p-2 border-2 border-blue-500 rounded text-xs font-bold" aria-label="عربي / English">عربي / English</button>
+                    <button id="btn-age-level" class="p-2 border-2 border-cyan-500 rounded text-xs font-bold" aria-label="المرحلة العمرية">
+                        🧑 العمر: تلقائي
+                    </button>
+                </span>
 
-                <div class="relative flex items-center gap-1">
-                    <button id="btn-gemini-key-toggle" class="p-2 border-2 border-purple-500 rounded text-xs font-bold" aria-label="إعداد مفتاح Gemini API">🔑 Gemini API</button>
-                    <div id="gemini-key-input-container" class="hidden absolute top-full mt-1 left-0 z-50 p-2 bg-slate-900 border-2 border-purple-500 rounded-lg flex gap-1" style="min-width:320px">
-                        <input type="text" id="gemini-key-input" class="flex-1 p-1 text-xs rounded bg-black text-yellow-400 border border-purple-500" placeholder="أدخل مفتاح Gemini API (AIza...)" aria-label="مفتاح Gemini API" data-i18n-placeholder="geminiKeyPlaceholder" data-i18n-aria="geminiKeyInputLabel">
-                        <button id="btn-gemini-key-save" class="px-2 py-1 bg-purple-600 text-white text-xs font-bold rounded" data-i18n="geminiKeySave">حفظ</button>
+                <span class="toolbar-group flex items-center gap-1 p-1 border-l border-current/20 pl-2 ml-1">
+                    <button data-theme="dark-hc" class="p-2 border-2 border-current rounded text-xs font-bold" aria-label="النمط الداكن عالي التباين" data-i18n="themeDark" style="background:rgba(245,158,11,0.15)">أصفر/أسود</button>
+                    <button data-theme="light-hc" class="p-2 border-2 border-current rounded text-xs font-bold" aria-label="النمط الفاتح عالي التباين" data-i18n="themeLight">أسود/أبيض</button>
+                    <button data-theme="classic" class="p-2 border-2 border-current rounded text-xs font-bold" aria-label="النمط الكلاسيكي" data-i18n="themeClassic">كلاسيك</button>
+                </span>
+
+                <span class="toolbar-group flex items-center gap-1 p-1 border-l border-current/20 pl-2 ml-1">
+                    <div class="flex border border-current rounded overflow-hidden">
+                        <button data-size-dir="1" class="px-3 py-1 text-lg font-black" aria-label="تكبير الخط" data-i18n-aria="fontIncrease" data-i18n="fontIncrease">+</button>
+                        <button data-size-dir="-1" class="px-3 py-1 text-lg font-black" aria-label="تصغير الخط" data-i18n-aria="fontDecrease" data-i18n="fontDecrease">-</button>
                     </div>
-                </div>
+                    <button id="tts-engine-toggle" class="p-2 border-2 border-yellow-500 rounded text-xs font-bold" aria-label="تبديل محرك الصوت">
+                        🎙️ Gemini
+                    </button>
+                </span>
 
-                <div class="flex border border-current rounded overflow-hidden">
-                    <button data-size-dir="1" class="px-3 py-1 text-lg font-black" aria-label="تكبير الخط" data-i18n-aria="fontIncrease" data-i18n="fontIncrease">+</button>
-                    <button data-size-dir="-1" class="px-3 py-1 text-lg font-black" aria-label="تصغير الخط" data-i18n-aria="fontDecrease" data-i18n="fontDecrease">-</button>
-                </div>
+                <span class="toolbar-group flex items-center gap-1 p-1 border-l border-current/20 pl-2 ml-1">
+                    <button id="btn-screen-reader-mode" class="p-2 border-2 border-red-500 rounded text-xs font-bold flex items-center gap-1" aria-pressed="false">
+                        🔊 خارجي: معطل
+                    </button>
+                    <button id="audio-co-pilot-toggle" class="p-2 border-2 border-green-500 rounded text-xs font-bold flex items-center gap-1" aria-pressed="true">
+                        🔊 داخلي: مفعل
+                    </button>
+                </span>
 
-                <button id="btn-screen-reader-mode" class="p-2 border-2 border-red-500 rounded text-xs font-bold flex items-center gap-1" aria-pressed="false">
-                    🔊 قارئ الشاشة الخارجي: معطل
-                </button>
-                <button id="audio-co-pilot-toggle" class="p-2 border-2 border-green-500 rounded text-xs font-bold flex items-center gap-1" aria-pressed="true">
-                    🔊 المساعد الداخلي: مفعل
-                </button>
-                <button id="btn-notifications" class="p-2 bg-blue-600 text-white text-xs font-bold rounded relative hidden" aria-label="الإشعارات">
-                    🔔 <span id="notif-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black">0</span>
-                </button>
-                <button id="btn-help-shortcuts" class="p-2 bg-purple-600 text-white text-xs font-bold rounded" aria-label="مساعدة الاختصارات">⌨️</button>
-                <button data-action="logout" data-i18n="logout" class="p-2 bg-red-600 text-white text-xs font-bold rounded hidden">تسجيل خروج 🚪</button>
+                <span class="toolbar-group flex items-center gap-1 p-1">
+                    <div class="relative flex items-center">
+                        <button id="btn-gemini-key-toggle" class="p-2 border-2 border-purple-500 rounded text-xs font-bold" aria-label="إعداد مفتاح Gemini API">🔑 API</button>
+                        <div id="gemini-key-input-container" class="hidden absolute top-full mt-1 left-0 z-50 p-2 bg-slate-900 border-2 border-purple-500 rounded-lg flex gap-1" style="min-width:280px">
+                            <input type="text" id="gemini-key-input" class="flex-1 p-1 text-xs rounded bg-black text-yellow-400 border border-purple-500" placeholder="AIza..." aria-label="مفتاح Gemini API" data-i18n-placeholder="geminiKeyPlaceholder" data-i18n-aria="geminiKeyInputLabel">
+                            <button id="btn-gemini-key-save" class="px-2 py-1 bg-purple-600 text-white text-xs font-bold rounded" data-i18n="geminiKeySave">حفظ</button>
+                        </div>
+                    </div>
+                    <button id="btn-notifications" class="p-2 bg-blue-600 text-white text-xs font-bold rounded relative hidden" aria-label="الإشعارات">
+                        🔔 <span id="notif-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black">0</span>
+                    </button>
+                    <button id="btn-help-shortcuts" class="p-2 bg-purple-600 text-white text-xs font-bold rounded" aria-label="مساعدة الاختصارات">⌨️</button>
+                    <button data-action="logout" data-i18n="logout" class="p-2 bg-red-600 text-white text-xs font-bold rounded hidden">تسجيل خروج 🚪</button>
+                </span>
             </div>
         </div>
     </header>
@@ -300,52 +311,53 @@
             </div>
 
             <!-- أزرار الأقسام الرئيسية -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-8 gap-6">
-                <button data-student-section="books" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="تصفح الكتب والمقررات الدراسية المرفوعة">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+                <button data-student-section="books" class="section-card-primary card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="تصفح الكتب والمقررات الدراسية المرفوعة">
                     <svg class="w-10 h-10 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                     <span class="text-2xl font-black mt-4 block group-hover:underline">المناهج والكتب</span>
                     <span class="text-sm mt-2">استمع للمقررات بصوت الذكاء الاصطناعي الطبيعي</span>
                 </button>
 
-                <button data-student-section="assignments" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="حل الواجبات والاختبارات المتاحة">
+                <button data-student-section="assignments" class="section-card-primary card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="حل الواجبات والاختبارات المتاحة">
                     <svg class="w-10 h-10 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                     <span class="text-2xl font-black mt-4 block group-hover:underline">الواجبات والاختبارات</span>
                     <span class="text-sm mt-2">اختبارات صوتية تفاعلية وكتابة ببرايل</span>
                 </button>
 
-                <button data-student-section="image-describer" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="واصف المخططات والرسوم البيانية بالذكاء الاصطناعي">
+                <button data-student-section="image-describer" class="section-card-secondary card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="واصف المخططات والرسوم البيانية بالذكاء الاصطناعي">
                     <svg class="w-10 h-10 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                     <span class="text-2xl font-black mt-4 block group-hover:underline">واصف الرسوم البيانية</span>
                     <span class="text-sm mt-2">ارفع أي رسم بياني أو شكل توضيحي ليقوم Gemini بوصفه صوتياً</span>
                 </button>
 
-                <button data-student-section="games" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="قسم الألعاب التنافسية والذكاء الصوتي">
+                <button data-student-section="games" class="section-card-secondary card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="قسم الألعاب التنافسية والذكاء الصوتي">
                     <svg class="w-10 h-10 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
                     <span class="text-2xl font-black mt-4 block group-hover:underline">ساحة الألعاب والقصص</span>
                     <span class="text-sm mt-2">تحدي الثواني والراوي والقصص التفاعلية الذكية</span>
                 </button>
 
-                <button data-student-section="ai-tutor" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="المعلم الافتراضي الصوتي المتاح دائماً">
+                <button data-student-section="ai-tutor" class="section-card-secondary card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="المعلم الافتراضي الصوتي المتاح دائماً">
                     <svg class="w-10 h-10 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                     <span class="text-2xl font-black mt-4 block group-hover:underline">المعلم الذكي الافتراضي</span>
                     <span class="text-sm mt-2">تحدث مباشرة وسل معلمك المساعد عن أي درس</span>
                 </button>
 
-                <button data-student-section="dialogic-classroom" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group border-2 border-green-400" aria-label="التعليم بالحوار الصوتي الذكي">
-                    <svg class="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
-                    <span class="text-2xl font-black mt-4 block group-hover:underline text-green-400">الفصل الذكي الحواري</span>
+                <button data-student-section="dialogic-classroom" class="section-card-accent card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="التعليم بالحوار الصوتي الذكي" style="border-color:#22c55e">
+                    <svg class="w-10 h-10" style="color:#22c55e" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                    <span class="text-2xl font-black mt-4 block group-hover:underline" style="color:#22c55e">الفصل الذكي الحواري</span>
                     <span class="text-sm mt-2">تعلّم بالحوار الصوتي التفاعلي — المدرس الخصوصي الذكي</span>
                 </button>
 
-                <button data-student-section="study-group" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group border-2 border-purple-400" aria-label="المذاكر الجماعي الصوتي">
-                    <svg class="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    <span class="text-2xl font-black mt-4 block group-hover:underline text-purple-400">المذاكر الجماعي الصوتي</span>
+                <button data-student-section="study-group" class="section-card-accent card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="المذاكر الجماعي الصوتي" style="border-color:#a78bfa">
+                    <svg class="w-10 h-10" style="color:#a78bfa" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <span class="text-2xl font-black mt-4 block group-hover:underline" style="color:#a78bfa">المذاكر الجماعي الصوتي</span>
                     <span class="text-sm mt-2">ناقش زملاءك والوسيط الذكي في جلسة صوتية جماعية</span>
                 </button>
 
-                <button data-student-section="dashboard" class="card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group border-2 border-yellow-400" aria-label="لوحة متابعة التقدم والإحصائيات">
-                    <svg class="w-10 h-10 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                    <span class="text-2xl font-black mt-4 block group-hover:underline text-yellow-400">لوحة متابعة التقدم</span>
+                <button data-student-section="dashboard" class="section-card-accent card p-8 rounded-2xl text-right flex flex-col justify-between items-start large-touch-target btn-interactive group" aria-label="لوحة متابعة التقدم والإحصائيات" style="border-color:#fbbf24">
+                    <svg class="w-10 h-10" style="color:#fbbf24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    <span class="text-2xl font-black mt-4 block group-hover:underline" style="color:#fbbf24">لوحة متابعة التقدم</span>
                     <span class="text-sm mt-2">إحصائياتك: الاختبارات، الكتب، والألعاب</span>
                 </button>
             </div>

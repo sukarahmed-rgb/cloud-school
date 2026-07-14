@@ -3,170 +3,320 @@
    منصة تعليمية للطلاب المكفوفين وضعاف البصر
    =================================== */
 
-/* بديل Tailwind hidden — ضروري لإخفاء/إظهار العناصر */
 .hidden { display: none !important; }
 
-/* إعدادات الخط الأساسي — خطوط النظام لضمان العمل بدون إنترنت */
 body {
     font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* المتغيرات الجذرية لتوحيد الأحجام */
 :root {
-    --color-primary: #f59e0b;
-    --color-bg-dark: #080c1a;
+    --gold-50: #fffbeb;
+    --gold-100: #fef3c7;
+    --gold-200: #fde68a;
+    --gold-300: #fcd34d;
+    --gold-400: #fbbf24;
+    --gold-500: #f59e0b;
+    --gold-600: #d97706;
+    --gold-700: #b45309;
+    --gold-800: #92400e;
+
+    --navy-900: #080c1a;
+    --navy-800: #0c1225;
+    --navy-700: #111935;
+    --navy-600: #1a2340;
+    --slate-950: #0f172a;
+    --slate-900: #1e293b;
+    --slate-800: #334155;
+    --slate-700: #475569;
+
+    --color-primary: var(--gold-500);
+    --color-primary-dark: var(--gold-600);
+    --color-primary-light: var(--gold-400);
+    --color-bg-dark: var(--navy-900);
     --color-bg-light: #ffffff;
-    --color-text-dark: #fbbf24;
+    --color-text-dark: var(--gold-400);
     --color-text-light: #000000;
-    --color-card-bg-dark: #111827;
+    --color-card-bg-dark: var(--navy-700);
     --color-card-bg-light: #fafafa;
-    --color-card-bg-classic: #1e293b;
+    --color-card-bg-classic: var(--slate-900);
     --color-accent: #6366f1;
-    --border-color-dark: #f59e0b;
-    --border-color-light: #000000;
-    --border-color-classic: #475569;
+    --color-accent-light: #a5b4fc;
+    --color-success: #22c55e;
+    --color-error: #ef4444;
+
     --base-text-size: 1.125rem;
     --button-padding: 1rem;
+    --card-radius: 1.5rem;
+    --card-shadow: 0 4px 24px rgba(245, 158, 11, 0.08);
+    --card-shadow-hover: 0 8px 40px rgba(245, 158, 11, 0.15);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* حجم النص الديناميكي القابل للتعديل */
 .dynamic-text {
     font-size: var(--base-text-size);
     line-height: 1.8;
 }
 
 /* ===================================
-   1. السمة الداكنة عالية التباين — نيلي غامق + ذهبي دافئ
-   ألوان احترافية أعمق مع تباين عالٍ للمكفوفين
+   1. السمة الداكنة عالية التباين
    =================================== */
 .theme-dark-high-contrast {
-    background-color: #080c1a;
-    color: #fbbf24;
+    background: linear-gradient(135deg, #080c1a 0%, #0c1225 25%, #111935 50%, #0c1225 75%, #080c1a 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 20s ease infinite;
+    color: var(--gold-400);
 }
+
 .theme-dark-high-contrast .card {
-    background-color: #111827;
-    border: 3px solid #f59e0b;
-    box-shadow: 0 4px 24px rgba(245, 158, 11, 0.08);
+    background: linear-gradient(145deg, #111827 0%, #0f172a 100%);
+    border: 2px solid var(--gold-600);
+    box-shadow: 0 4px 24px rgba(245, 158, 11, 0.06), inset 0 1px 0 rgba(245, 158, 11, 0.05);
 }
-.theme-dark-high-contrast input, .theme-dark-high-contrast textarea, .theme-dark-high-contrast select {
+
+.theme-dark-high-contrast .card:hover {
+    border-color: var(--gold-500);
+    box-shadow: 0 8px 40px rgba(245, 158, 11, 0.1), inset 0 1px 0 rgba(245, 158, 11, 0.08);
+}
+
+.theme-dark-high-contrast input,
+.theme-dark-high-contrast textarea,
+.theme-dark-high-contrast select {
     background-color: #000000;
-    border: 2px solid #f59e0b;
-    color: #fbbf24;
-    caret-color: #f59e0b;
+    border: 2px solid var(--gold-600);
+    color: var(--gold-400);
+    caret-color: var(--gold-500);
+    transition: var(--transition-smooth);
 }
+
+.theme-dark-high-contrast input:focus,
+.theme-dark-high-contrast textarea:focus,
+.theme-dark-high-contrast select:focus {
+    border-color: var(--gold-400);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
 .theme-dark-high-contrast button {
-    background-color: #f59e0b;
+    background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
     color: #080c1a;
     font-weight: 900;
+    border: none;
 }
+
+.theme-dark-high-contrast button:hover {
+    background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+}
+
 .theme-dark-high-contrast button.btn-secondary {
-    background-color: #111827;
-    color: #fbbf24;
-    border: 2px solid #f59e0b;
+    background: transparent;
+    color: var(--gold-400);
+    border: 2px solid var(--gold-600);
 }
+
+.theme-dark-high-contrast button.btn-secondary:hover {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: var(--gold-500);
+}
+
 .theme-dark-high-contrast .btn-accent {
-    background-color: #6366f1;
-    border-color: #6366f1;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
     color: #ffffff;
 }
+
 .theme-dark-high-contrast .btn-accent.btn-secondary {
-    background-color: transparent;
-    color: #a5b4fc;
+    background: transparent;
+    color: var(--color-accent-light);
     border: 2px solid #6366f1;
 }
 
+.theme-dark-high-contrast .card > .card {
+    border-width: 1px;
+    box-shadow: none;
+}
+
+.theme-dark-high-contrast::-webkit-scrollbar-track {
+    background: var(--navy-900);
+}
+
+.theme-dark-high-contrast::-webkit-scrollbar-thumb {
+    background: var(--gold-600);
+    border: 2px solid var(--navy-900);
+}
+
+.theme-dark-high-contrast::-webkit-scrollbar-thumb:hover {
+    background: var(--gold-500);
+}
+
 /* ===================================
-   2. السمة الفاتحة عالية التباين (Paper Contrast)
-   مناسبة للبيئات ذات الإضاءة العالية
+   2. السمة الفاتحة عالية التباين
    =================================== */
 .theme-light-high-contrast {
-    background-color: #ffffff;
+    background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 50%, #ffffff 100%);
     color: #000000;
 }
+
 .theme-light-high-contrast .card {
-    background-color: #fafafa;
-    border: 3px solid #000000;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    background: #ffffff;
+    border: 2px solid #000000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.03);
 }
-.theme-light-high-contrast input, .theme-light-high-contrast textarea, .theme-light-high-contrast select {
+
+.theme-light-high-contrast .card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.theme-light-high-contrast input,
+.theme-light-high-contrast textarea,
+.theme-light-high-contrast select {
     background-color: #ffffff;
     border: 2px solid #000000;
     color: #000000;
 }
+
+.theme-light-high-contrast input:focus,
+.theme-light-high-contrast textarea:focus,
+.theme-light-high-contrast select:focus {
+    border-color: #333333;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
 .theme-light-high-contrast button {
     background-color: #000000;
     color: #ffffff;
     font-weight: 900;
+    border: none;
 }
+
+.theme-light-high-contrast button:hover {
+    background-color: #1a1a1a;
+}
+
 .theme-light-high-contrast button.btn-secondary {
     background-color: #ffffff;
     color: #000000;
     border: 2px solid #000000;
 }
 
-/* ===================================
-   3. السمة السحابية الفاخرة (Premium Cloud Theme)
-   السمة الافتراضية بألوان سحابية أنيقة
-   =================================== */
-.theme-classic {
-    background-color: #0f172a;
-    color: #f8fafc;
+.theme-light-high-contrast button.btn-secondary:hover {
+    background-color: #f5f5f5;
 }
-.theme-classic .card {
-    background-color: #1e293b;
-    border: 1px solid #38bdf8;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.3);
+
+.theme-light-high-contrast::-webkit-scrollbar-track {
+    background: #e5e5e5;
 }
-.theme-classic input, .theme-classic textarea, .theme-classic select {
-    background-color: #0f172a;
-    border: 1px solid #475569;
-    color: #f8fafc;
+
+.theme-light-high-contrast::-webkit-scrollbar-thumb {
+    background: #666666;
+    border: 2px solid #e5e5e5;
 }
-.theme-classic button {
-    background-color: #0284c7;
-    color: #ffffff;
-    font-weight: 700;
-}
-.theme-classic button.btn-secondary {
-    background-color: #334155;
-    color: #f8fafc;
-    border: 1px solid #475569;
+
+.theme-light-high-contrast::-webkit-scrollbar-thumb:hover {
+    background: #444444;
 }
 
 /* ===================================
-   إمكانية الوصول - أهداف لمسية كبيرة
+   3. السمة الكلاسيكية (ذهبية موحّدة)
+   =================================== */
+.theme-classic {
+    background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    color: #f8fafc;
+}
+
+.theme-classic .card {
+    background: rgba(30, 41, 59, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.4);
+}
+
+.theme-classic .card:hover {
+    border-color: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 14px 40px rgba(15, 23, 42, 0.5);
+}
+
+.theme-classic input,
+.theme-classic textarea,
+.theme-classic select {
+    background-color: #0f172a;
+    border: 1px solid var(--slate-700);
+    color: #f8fafc;
+    transition: var(--transition-smooth);
+}
+
+.theme-classic input:focus,
+.theme-classic textarea:focus,
+.theme-classic select:focus {
+    border-color: var(--gold-500);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.theme-classic button {
+    background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
+    color: #ffffff;
+    font-weight: 700;
+    border: none;
+}
+
+.theme-classic button:hover {
+    background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+}
+
+.theme-classic button.btn-secondary {
+    background: rgba(51, 65, 85, 0.5);
+    color: #f8fafc;
+    border: 1px solid var(--slate-700);
+}
+
+.theme-classic button.btn-secondary:hover {
+    background: rgba(51, 65, 85, 0.8);
+}
+
+.theme-classic::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+
+.theme-classic::-webkit-scrollbar-thumb {
+    background: var(--gold-600);
+    border: 2px solid #0f172a;
+}
+
+.theme-classic::-webkit-scrollbar-thumb:hover {
+    background: var(--gold-500);
+}
+
+/* ===================================
+   أهداف لمسية كبيرة
    =================================== */
 .large-touch-target {
     min-height: 64px;
     padding: var(--button-padding);
 }
 
-/* حلقة التركيز البرتقالية الواضحة لجميع العناصر */
 *:focus {
     outline: 4px solid #f97316 !important;
     outline-offset: 4px;
 }
 
 /* ===================================
-   تأثيرات الأزرار التفاعلية
+   الأزرار التفاعلية
    =================================== */
 .btn-interactive {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 .btn-interactive:active {
     transform: scale(0.96);
 }
 
 /* ===================================
-   خلايا لوحة برايل - أزرار النقاط الدائرية
+   خلايا برايل
    =================================== */
 .braille-dot-btn {
     aspect-ratio: 1;
     border-radius: 50%;
     transition: all 0.1s ease;
 }
-/* حالة النقطة النشطة مع توهج أحمر */
+
 .braille-dot-btn.active {
     background-color: #ef4444 !important;
     color: white !important;
@@ -174,7 +324,7 @@ body {
 }
 
 /* ===================================
-   أشرطة الموجة الصوتية - مؤشر التشغيل
+   أشرطة الموجة الصوتية
    =================================== */
 .audio-wave-bar {
     display: inline-block;
@@ -185,23 +335,23 @@ body {
     margin: 0 2px;
     transition: height 0.15s ease;
 }
-/* تحريك الأشرطة أثناء التشغيل مع تأخير متتالي */
+
 .playing .audio-wave-bar {
     animation: bounce 0.8s ease-in-out infinite alternate;
 }
+
 .playing .audio-wave-bar:nth-child(2) { animation-delay: 0.15s; }
 .playing .audio-wave-bar:nth-child(3) { animation-delay: 0.3s; }
 .playing .audio-wave-bar:nth-child(4) { animation-delay: 0.45s; }
 .playing .audio-wave-bar:nth-child(5) { animation-delay: 0.6s; }
 
-/* حركة الارتداد للأشرطة الصوتية */
 @keyframes bounce {
     0% { height: 4px; }
     100% { height: 28px; }
 }
 
 /* ===================================
-   فئة الإخفاء البصري مع البقاء لقارئ الشاشة
+   إخفاء بصري مع بقاء لقارئ الشاشة
    =================================== */
 .sr-only {
     position: absolute;
@@ -216,7 +366,7 @@ body {
 }
 
 /* ===================================
-   مؤشر التحميل للعمليات المرتبطة بالذكاء الاصطناعي
+   مؤشر التحميل
    =================================== */
 .loading-spinner {
     display: inline-block;
@@ -224,18 +374,16 @@ body {
     height: 24px;
     border: 4px solid rgba(245, 158, 11, 0.25);
     border-radius: 50%;
-    border-top-color: #f59e0b;
+    border-top-color: var(--gold-500);
     animation: spin 0.8s ease-in-out infinite;
     margin-inline-end: 8px;
     vertical-align: middle;
 }
 
-/* حركة الدوران لمؤشر التحميل */
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
 
-/* طبقة التحميل مع محاذاة مركزية */
 .loading-overlay {
     display: flex;
     align-items: center;
@@ -246,55 +394,55 @@ body {
     font-size: 1.1rem;
 }
 
-/* تحسين أزرار Perkins مع مؤشر بصري عند الضغط */
+/* ===================================
+   أزرار Perkins
+   =================================== */
 .perkins-key-active {
-    background-color: #f59e0b !important;
+    background-color: var(--gold-500) !important;
     color: #080c1a !important;
     transform: scale(1.1);
     box-shadow: 0 0 14px rgba(245, 158, 11, 0.6);
 }
 
 /* ===================================
-   الهوية البصرية الجديدة — خلفيات متحركة وتأثيرات
+   الخلفية المتحركة
    =================================== */
-
-/* خلفية متدرجة متحركة للسمة الداكنة */
-.theme-dark-high-contrast {
-    background: linear-gradient(135deg, #080c1a 0%, #0c1225 25%, #111935 50%, #0c1225 75%, #080c1a 100%);
-    background-size: 400% 400%;
-    animation: gradientShift 20s ease infinite;
-}
-
-/* حركة تدرج الخلفية */
 @keyframes gradientShift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
 
-/* شاشة الترحيب */
+/* ===================================
+   شاشة الترحيب
+   =================================== */
 #splash-screen {
     will-change: opacity;
 }
 
-/* أنيميشن شعار الترحيب */
 .splash-logo {
     animation: splashFadeIn 1s ease-out forwards, splashFloat 3s ease-in-out infinite 1s;
 }
+
 .splash-title {
     animation: splashFadeIn 0.8s ease-out 0.3s both;
 }
+
 .splash-subtitle {
     animation: splashFadeIn 0.8s ease-out 0.5s both;
 }
+
 .splash-dots {
     animation: splashFadeIn 0.8s ease-out 0.7s both;
 }
+
 .splash-dot {
     animation: splashDotPulse 1.5s ease-in-out infinite;
 }
+
 .splash-dot:nth-child(2) { animation-delay: 0.3s; }
 .splash-dot:nth-child(3) { animation-delay: 0.6s; }
+
 .splash-skip {
     animation: splashFadeIn 0.8s ease-out 1s both;
 }
@@ -314,45 +462,155 @@ body {
     50% { opacity: 1; transform: scale(1.2); }
 }
 
-/* تحسين الكروت بظل مضيء */
+/* ===================================
+   الكروت (وهم عام — كل Theme عنده تخصيصه فوق)
+   =================================== */
 .card {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: var(--card-radius);
 }
+
 .card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(245, 158, 11, 0.08);
 }
 
-/* تأثير زجاجي للسمة الكلاسيكية */
-.theme-classic .card {
-    backdrop-filter: blur(8px);
-    background: rgba(30, 41, 59, 0.85);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-}
-
-/* شريط التمرير المخصص */
+/* ===================================
+   شريط التمرير العام
+   =================================== */
 ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
-::-webkit-scrollbar-track {
-    background: #080c1a;
-}
-::-webkit-scrollbar-thumb {
-    background: #f59e0b;
-    border-radius: 5px;
-    border: 2px solid #080c1a;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: #f59e0b;
+    width: 8px;
+    height: 8px;
 }
 
-/* توهج نصوص العناوين الرئيسية */
+::-webkit-scrollbar-track {
+    background: var(--navy-900);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gold-600);
+    border-radius: 4px;
+    border: 2px solid var(--navy-900);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gold-500);
+}
+
+/* ===================================
+   toolbar groups
+   =================================== */
+.toolbar-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.border-current\/20 {
+    border-color: rgba(251, 191, 36, 0.2);
+}
+
+.theme-light-high-contrast .border-current\/20 {
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+/* ===================================
+   توهج العناوين
+   =================================== */
 h2, h3 {
     text-shadow: 0 0 24px rgba(245, 158, 11, 0.06);
 }
 
-/* دعم الاتجاه LTR للغة الإنجليزية */
+/* ===================================
+   بطاقات الأقسام — هرمية مرئية
+   =================================== */
+.section-card-primary .card {
+    border-width: 3px;
+    border-color: var(--gold-500);
+}
+
+.section-card-primary .card:hover {
+    border-color: var(--gold-400);
+    box-shadow: 0 8px 48px rgba(245, 158, 11, 0.12);
+}
+
+.section-card-secondary .card {
+    border-width: 2px;
+}
+
+.section-card-accent .card {
+    border-width: 2px;
+    border-style: solid;
+}
+
+/* ===================================
+   شريط محاكاة الأدوار
+   =================================== */
+#dev-role-bar {
+    background: linear-gradient(135deg, var(--gold-600), var(--gold-700)) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 12px rgba(245, 158, 11, 0.15);
+}
+
+#dev-role-bar button {
+    background: rgba(0, 0, 0, 0.25) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(4px);
+}
+
+#dev-role-bar button:hover {
+    background: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ===================================
+   تأثير زجاجي لبطاقات التحميل
+   =================================== */
+.glass-card {
+    backdrop-filter: blur(16px);
+    background: rgba(17, 24, 39, 0.7);
+    border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+/* ===================================
+   شريط التبويب العلوي (header)
+   =================================== */
+header {
+    border-bottom-width: 3px !important;
+    border-image: linear-gradient(90deg, var(--gold-500), var(--gold-300), var(--gold-500)) 1;
+}
+
+.theme-light-high-contrast header {
+    border-image: linear-gradient(90deg, #000, #555, #000) 1;
+}
+
+/* ===================================
+   تحسين الجداول
+   =================================== */
+table {
+    border-collapse: collapse;
+}
+
+th {
+    background: rgba(0, 0, 0, 0.3);
+    font-weight: 700;
+}
+
+tr:hover td {
+    background: rgba(245, 158, 11, 0.03);
+}
+
+.theme-light-high-contrast th {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.theme-light-high-contrast tr:hover td {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+/* ===================================
+   دعم LTR
+   =================================== */
 html[dir="ltr"] .text-right { text-align: left; }
 html[dir="ltr"] .text-left { text-align: right; }
 html[dir="ltr"] .mr-auto { margin-left: auto; margin-right: 0; }
@@ -363,7 +621,9 @@ html[dir="ltr"] .justify-start { justify-content: flex-end; }
 html[dir="ltr"] .braille-dot-btn { float: none; }
 #splash-screen[dir="ltr"] .splash-title { direction: ltr; }
 
-/* إلغاء كل الحركات إذا فضل المستخدم تقليل الحركة */
+/* ===================================
+   تقليل الحركة
+   =================================== */
 @media (prefers-reduced-motion: reduce) {
     .theme-dark-high-contrast {
         animation: none;
@@ -377,5 +637,12 @@ html[dir="ltr"] .braille-dot-btn { float: none; }
     }
     .card:hover {
         transform: none;
+    }
+    header {
+        border-image: none;
+        border-bottom: 3px solid var(--gold-600);
+    }
+    .theme-light-high-contrast header {
+        border-bottom: 3px solid #000;
     }
 }
