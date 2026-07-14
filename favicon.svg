@@ -1,8 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="31" fill="#111935" stroke="#f59e0b" stroke-width="2"/>
-  <path d="M12,38 Q12,22 20,16 Q28,10 32,14 Q38,10 44,16 Q48,22 46,30 L12,30 Z" fill="#f59e0b"/>
-  <rect x="20" y="30" width="24" height="16" rx="2" fill="#080c1a" stroke="#f59e0b" stroke-width="1"/>
-  <polygon points="17,30 32,16 47,30" fill="#f59e0b"/>
-  <rect x="28" y="38" width="8" height="8" rx="3" fill="#f59e0b"/>
-  <text x="32" y="61" font-family="Segoe UI, Tahoma, sans-serif" font-size="6" font-weight="bold" text-anchor="middle" fill="#f59e0b">CS</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Cloud School">
+  <defs>
+    <linearGradient id="fav-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111935"/>
+      <stop offset="100%" stop-color="#080c1a"/>
+    </linearGradient>
+    <linearGradient id="fav-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="31" fill="url(#fav-bg)" stroke="url(#fav-gold)" stroke-width="2"/>
+  <g transform="translate(0,-2)">
+    <path d="M14,40 Q14,22 22,16 Q28,10 32,13 Q36,10 42,16 Q48,22 48,32 Q50,40 46,44 L14,44 Q12,40 14,40 Z" fill="url(#fav-gold)"/>
+    <rect x="20" y="30" width="24" height="20" rx="2" fill="#080c1a" stroke="#f59e0b" stroke-width="1"/>
+    <polygon points="17,30 32,14 47,30" fill="#f59e0b"/>
+    <rect x="28" y="40" width="8" height="10" rx="3" fill="#f59e0b"/>
+    <rect x="22" y="33" width="6" height="6" rx="1" fill="#6366f1" opacity="0.9"/>
+    <rect x="36" y="33" width="6" height="6" rx="1" fill="#6366f1" opacity="0.9"/>
+  </g>
 </svg>
