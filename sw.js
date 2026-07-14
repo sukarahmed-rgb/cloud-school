@@ -1,15 +1,18 @@
-var CACHE_NAME = 'cloud-school-v3';
-var STATIC_CACHE = 'cloud-school-static-v3';
-var API_CACHE = 'cloud-school-api-v3';
+var STATIC_CACHE = 'cloud-school-static-v4';
+var API_CACHE = 'cloud-school-api-v4';
+var MAX_CACHE_ENTRIES = 200;
 
 var STATIC_FILES = [
   '/',
   '/index.html',
+  '/offline.html',
   '/cloud_school_app.js',
   '/cloud_school_styles.css',
   '/features.js',
+  '/config.js',
   '/manifest.json',
   '/sw-init.js',
+  '/favicon.svg',
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',
   '/icons/logo.svg',
@@ -46,6 +49,7 @@ self.addEventListener('fetch', function(event) {
   var url = new URL(event.request.url);
 
   if (url.hostname === API_DOMAIN) {
+    if (event.request.method !== 'GET') return;
     event.respondWith(networkFirst(event.request, API_CACHE, API_TTL_MS));
     return;
   }
@@ -59,7 +63,10 @@ self.addEventListener('fetch', function(event) {
     event.respondWith(
       fetch(event.request).then(function(response) {
         var clone = response.clone();
-        caches.open(STATIC_CACHE).then(function(cache) { cache.put(event.request, clone); });
+        caches.open(STATIC_CACHE).then(function(cache) {
+          trimCache(cache, STATIC_CACHE);
+          return cache.put(event.request, clone);
+        });
         return response;
       }).catch(function() {
         return caches.match('/index.html');
@@ -74,17 +81,32 @@ self.addEventListener('fetch', function(event) {
   }
 });
 
+function trimCache(cache, cacheName) {
+  caches.open(cacheName).then(function(c) {
+    c.keys().then(function(keys) {
+      if (keys.length > MAX_CACHE_ENTRIES) {
+        c.delete(keys[0]).then(function() { trimCache(cache, cacheName); });
+      }
+    });
+  });
+}
+
 function cacheFirst(request) {
   return caches.match(request).then(function(cached) {
     return cached || fetch(request).then(function(response) {
       if (response && response.status === 200 && response.type === 'basic') {
         var clone = response.clone();
-        caches.open(STATIC_CACHE).then(function(cache) { cache.put(request, clone); });
+        caches.open(STATIC_CACHE).then(function(cache) {
+          trimCache(cache, STATIC_CACHE);
+          return cache.put(request, clone);
+        });
       }
       return response;
     }).catch(function() {
-      if (request.mode === 'navigate') return caches.match('/index.html');
-      return new Response('Offline', { status: 503 });
+      return new Response(JSON.stringify({ offline: true }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' }
+      });
     });
   });
 }
@@ -97,10 +119,10 @@ function networkFirst(request, cacheName, ttl) {
     if (response && response.status === 200) {
       var clone = response.clone();
       caches.open(cacheName).then(function(cache) {
-        cache.put(cacheKey, clone);
-        if (ttl) {
-          cache.put(metaKey, new Response(String(Date.now())));
-        }
+        trimCache(cache, cacheName);
+        return cache.put(cacheKey, clone).then(function() {
+          if (ttl) return cache.put(metaKey, new Response(String(Date.now())));
+        });
       });
     }
     return response;

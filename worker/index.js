@@ -3,6 +3,16 @@ const SESSION_TTL = 86400;
 const ALLOWED_COLLECTIONS = new Set([
   'curriculum_modules', 'assignments', 'submissions', 'students', 'notifications', 'exam_results'
 ]);
+
+// Role-based access: who can read/write each collection
+const COLLECTION_PERMISSIONS = {
+  curriculum_modules: { read: ['student','teacher','admin','parent'], write: ['teacher','admin'] },
+  assignments:        { read: ['student','teacher','admin','parent'], write: ['teacher','admin'] },
+  submissions:        { read: ['teacher','admin'], writeOwn: ['student'], write: ['teacher','admin'] },
+  students:           { read: ['teacher','admin'],                   write: ['teacher','admin'] },
+  notifications:      { read: ['student','teacher','admin','parent'], write: ['admin'] },
+  exam_results:       { read: ['teacher','admin'], writeOwn: ['student'], write: ['teacher','admin'] },
+};
 const RATE_LIMIT_WINDOW = 60;
 const RATE_LIMIT_MAX = 60;
 const RATE_LIMIT_GEMINI_MAX = 10;
@@ -203,15 +213,15 @@ export default {
       return session.slice(0, 64);
     }
 
+    // ====== Health Check (no rate limit) ======
+    if (path === '/api/health' && method === 'GET') {
+      return respond({ status: 'ok', timestamp: new Date().toISOString() });
+    }
+
     // Rate limiting for general endpoints
     const rlKey = rateLimitKey(request);
     if (!(await checkRateLimit(env, 'gen:' + rlKey, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW))) {
       return respond({ error: 'Rate limit exceeded. Try again later.' }, 429);
-    }
-
-    // ====== Health Check ======
-    if (path === '/api/health' && method === 'GET') {
-      return respond({ status: 'ok', timestamp: new Date().toISOString(), env: 'cloudflare' });
     }
 
     // ====== Auth Routes ======
@@ -309,7 +319,7 @@ export default {
       try {
         let body;
         try { body = await request.json(); } catch { return respond({ error: 'Invalid JSON' }, 400); }
-        const { idToken, name, role, age, parentContact } = body;
+        const { idToken, name, role, age, parentContact, adminInviteCode } = body;
         if (!idToken || typeof idToken !== 'string') {
           return respond({ error: 'Firebase ID token is required' }, 400);
         }
@@ -317,7 +327,11 @@ export default {
         const fbUser = await verifyFirebaseToken(idToken, apiKey);
         const email = (fbUser.email || '').toLowerCase();
         const displayName = sanitizeString(name || fbUser.displayName || email.split('@')[0] || 'User');
-        const userRole = ['student', 'teacher', 'parent', 'admin'].includes(role) ? role : 'student';
+        const userRole = (() => {
+          const allowed = ['student', 'teacher', 'parent'];
+          if (role === 'admin' && adminInviteCode && adminInviteCode === env.ADMIN_INVITE_CODE) return 'admin';
+          return allowed.includes(role) ? role : 'student';
+        })();
 
         let registered = await withCollectionLock(env, 'users', async (users) => {
           if (users.some(u => u.email === email)) return null;
@@ -400,23 +414,43 @@ export default {
       const collection = dataMatch[1];
       const id = dataMatch[2];
       if (!ALLOWED_COLLECTIONS.has(collection)) {
-        return respond({ error: `Unknown collection: ${collection}` }, 400);
+        return respond({ error: 'Unknown collection' }, 400);
+      }
+
+      const perms = COLLECTION_PERMISSIONS[collection];
+      const role = session.role;
+
+      function canRead() { return perms.read.includes(role); }
+      function canWrite(item) {
+        if (perms.write.includes(role)) return true;
+        if (perms.writeOwn && perms.writeOwn.includes(role) && item) {
+          return item.studentId === session.userId || item._createdBy === session.userId;
+        }
+        return false;
       }
 
       // List collection
       if (!id && method === 'GET') {
+        if (!canRead()) return respond({ error: 'Forbidden' }, 403);
         const data = await safeReadCollection(env, collection);
+        // Filter for writeOwn roles: only return own items
+        if (perms.writeOwn && perms.writeOwn.includes(role) && !perms.write.includes(role)) {
+          return respond(data.filter(d => d.studentId === session.userId || d._createdBy === session.userId));
+        }
         return respond(data);
       }
       // Get single item
       if (id && method === 'GET') {
+        if (!canRead()) return respond({ error: 'Forbidden' }, 403);
         const data = await safeReadCollection(env, collection);
         const item = data.find(d => d.id === id || d._id === id);
         if (!item) return respond({ error: 'Item not found' }, 404);
+        if (!canWrite(item) && !canRead()) return respond({ error: 'Forbidden' }, 403);
         return respond(item);
       }
       // Create item with lock
       if (!id && method === 'POST') {
+        if (!canWrite(null)) return respond({ error: 'Forbidden' }, 403);
         let body;
         try { body = await request.json(); } catch { return respond({ error: 'Invalid JSON' }, 400); }
         const safeBody = stripMetaFields(body);
@@ -440,7 +474,6 @@ export default {
           return respond({ error: 'Failed to create item' }, 500);
         }
 
-        // Return the last item (which is the one we just added)
         const items = await safeReadCollection(env, collection);
         const created = items[items.length - 1];
         return respond(created, 201);
@@ -454,6 +487,7 @@ export default {
         let result = await withCollectionLock(env, collection, async (data) => {
           const idx = data.findIndex(d => d.id === id || d._id === id);
           if (idx === -1) return null;
+          if (!canWrite(data[idx])) return null;
           data[idx] = {
             ...data[idx],
             ...safeBody,
@@ -471,7 +505,7 @@ export default {
           if (!existing.find(d => d.id === id || d._id === id)) {
             return respond({ error: 'Item not found' }, 404);
           }
-          return respond({ error: 'Failed to update item' }, 500);
+          return respond({ error: 'Forbidden or update failed' }, 403);
         }
 
         const items = await safeReadCollection(env, collection);
@@ -480,16 +514,16 @@ export default {
       }
       // Delete item with lock
       if (id && method === 'DELETE') {
-        let deleted = false;
         let result = await withCollectionLock(env, collection, async (data) => {
           const idx = data.findIndex(d => d.id === id || d._id === id);
           if (idx === -1) return null;
+          if (!canWrite(data[idx])) { return 'forbidden'; }
           data.splice(idx, 1);
-          deleted = true;
           return data;
         });
 
-        if (!deleted) return respond({ error: 'Item not found' }, 404);
+        if (!result) return respond({ error: 'Item not found' }, 404);
+        if (result === 'forbidden') return respond({ error: 'Forbidden' }, 403);
         return respond({ success: true });
       }
     }
@@ -511,7 +545,7 @@ export default {
       }
       const modelName = path.replace('/api/gemini/', '');
       const model = MODELS[modelName];
-      if (!model) return respond({ error: `Unknown model: ${modelName}` }, 400);
+      if (!model)         return respond({ error: 'Unknown model' }, 400);
       try {
         const body = await request.json();
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -527,7 +561,7 @@ export default {
         }
         return resp;
       } catch (err) {
-        return respond({ error: 'Failed to reach Gemini API', details: err.message }, 502);
+        return respond({ error: 'Failed to reach Gemini API' }, 502);
       }
     }
 

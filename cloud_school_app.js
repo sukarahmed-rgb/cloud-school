@@ -59,32 +59,30 @@ const ERROR_LEVELS = { INFO: 'info', WARN: 'warn', ERROR: 'error', FATAL: 'fatal
 const listeners = [];
 
 // ==== Timer tracking ==== 
-let activeIntervals = [];
-let activeTimeouts = [];
-const originalSetInterval = setInterval;
-setInterval = (callback, delay, ...args) => {
-  const id = originalSetInterval(callback, delay, ...args);
+var activeIntervals = [];
+var activeTimeouts = new Set();
+var originalSetInterval = setInterval;
+setInterval = function(cb, delay) {
+  var id = originalSetInterval(cb, delay);
   activeIntervals.push(id);
   return id;
 };
-const originalSetTimeout = setTimeout;
-setTimeout = (callback, delay, ...args) => {
-  const id = originalSetTimeout(callback, delay, ...args);
-  activeTimeouts.push(id);
+var originalSetTimeout = setTimeout;
+setTimeout = function(cb, delay) {
+  var wrapped = function() {
+    activeTimeouts.delete(id);
+    return cb.apply(this, arguments);
+  };
+  var id = originalSetTimeout(wrapped, delay);
+  activeTimeouts.add(id);
   return id;
 };
 
 function cleanupTimers() {
-  // Clear all active intervals
-  activeIntervals.forEach(id => {
-    try { clearInterval(id); } catch (e) { console.warn('Failed to clear interval', id, e); }
-  });
+  activeIntervals.forEach(function(id) { try { clearInterval(id); } catch(e) {} });
   activeIntervals = [];
-  // Clear all active timeouts
-  activeTimeouts.forEach(id => {
-    try { clearTimeout(id); } catch (e) { console.warn('Failed to clear timeout', id, e); }
-  });
-  activeTimeouts = [];
+  activeTimeouts.forEach(function(id) { try { clearTimeout(id); } catch(e) {} });
+  activeTimeouts = new Set();
 }
 
 window.addEventListener('beforeunload', cleanupTimers);
@@ -151,7 +149,6 @@ function setupGlobalErrorHandler() {
   window.addEventListener('error', (event) => {
     handleError('unhandledException', event.error || event.message);
   });
-  console.info('Global error handler initialized.');
 }
 /** i18n module - الترجمة */
 
@@ -518,13 +515,15 @@ function getAudioContext() {
 }
 
 // ====== Toast ======
-function showToast(text, isError = false) {
-  const toast = document.getElementById('toast-message');
+var _toastTimer = null;
+function showToast(text, isError) {
+  var toast = document.getElementById('toast-message');
   if (!toast) return;
+  if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
   toast.textContent = text;
-  toast.className = `fixed bottom-4 right-4 z-50 p-4 font-bold rounded-xl shadow-xl text-xl border-2 ${isError ? 'bg-red-600 text-white border-red-800' : 'bg-yellow-400 text-black border-black'} hidden`;
+  toast.className = 'fixed bottom-4 right-4 z-50 p-4 font-bold rounded-xl shadow-xl text-xl border-2 ' + (isError ? 'bg-red-600 text-white border-red-800' : 'bg-yellow-400 text-black border-black') + ' hidden';
   toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 4000);
+  _toastTimer = setTimeout(function() { toast.classList.add('hidden'); _toastTimer = null; }, 4000);
 }
 
 // ====== Loading Spinner ======
@@ -735,7 +734,7 @@ function showKeyboardHelp() {
         '<h2 class="text-3xl font-black text-yellow-400 mb-4 text-center">⌨️ ' + __('keyboardHelp') + '</h2>' +
         '<div class="space-y-3 text-right" dir="rtl">' +
         '<div class="grid grid-cols-2 gap-2 font-bold border-b border-gray-600 pb-2 mb-2"><span>' + __('keyboardColKey') + '</span><span>' + __('keyboardColFunc') + '</span></div>' +
-        shortcutRow('H أو F1', __('keyboardShortcutHelp')) +
+        shortcutRow(__('keyboardShortcutHelpKey'), __('keyboardShortcutHelp')) +
         shortcutRow('Escape', __('keyboardShortcutClose')) +
         shortcutRow('1', __('sectionBooks')) +
         shortcutRow('2', __('sectionAssignments')) +
@@ -1433,7 +1432,7 @@ async function startAiStoryRound(choiceIndex = null) {
             const btn = document.createElement('button');
             btn.className = "p-5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xl rounded-xl transition duration-150 text-right w-full large-touch-target border-2 border-current focus-ring btn-interactive";
             btn.textContent = `${idx + 1}) ${opt}`;
-            btn.setAttribute('aria-label', `الخيار ${idx + 1}: ${opt}`);
+            btn.setAttribute('aria-label', __('storyOptionLabel', idx + 1, opt));
             btn.addEventListener('click', () => {
                 playSuccess3D();
                 startAiStoryRound(idx);
@@ -1521,7 +1520,7 @@ async function generateAIQuiz() {
 }
 
 function toggleCheatDot(dotNum) {
-    toggleDot(dotNum, currentCheatDots, 'cheat-dot', 'cheat-char-preview', "غير مكتمل");
+    toggleDot(dotNum, currentCheatDots, 'cheat-dot', 'cheat-char-preview', __('brailleIncompleteShort'));
 }
 
 function pronounceCheatBraille() {
@@ -1839,7 +1838,7 @@ function submitQuizAnswer() {
     }
 
     const submission = {
-        studentName: currentUserSession?.name || "طالب تجريبي",
+        studentName: currentUserSession?.name || __('fallbackStudent'),
         studentContact: currentUserSession?.contact || "0555555555",
         parentContact: currentUserSession?.parentContact || "parent@cloudschool.com",
         quizId: selectedQuizId,
@@ -1898,7 +1897,7 @@ function processPerkinsChord() {
 }
 
 function toggleBrailleDot(dotNumber) {
-    toggleDot(dotNumber, currentBrailleDots, 'dot', 'braille-char-preview', "غير معروف");
+    toggleDot(dotNumber, currentBrailleDots, 'dot', 'braille-char-preview', __('brailleUnknown'));
 }
 
 function enterBrailleChar() {
@@ -2550,11 +2549,11 @@ function renderTeacherSubmissions() {
             <td class="p-3 border border-current">${escapeHtml(s.quizTitle)}</td>
             <td class="p-3 border border-current font-mono text-xs">${escapeHtml(s.studentAnswer)}</td>
             <td class="p-3 border border-current">
-                <span class="font-bold text-yellow-400">الدرجة: ${escapeHtml(String(s.initialScore))}</span><br>
+                <span class="font-bold text-yellow-400">${__('gradeLabel')} ${escapeHtml(String(s.initialScore))}</span><br>
                 <span class="text-xs text-gray-300 block max-w-xs overflow-hidden text-ellipsis">${escapeHtml(s.graderFeedback)}</span>
             </td>
             <td class="p-3 border border-current">
-                <button data-action="grade-ai" data-index="${idx}" class="px-2 py-1 bg-purple-600 text-white font-bold rounded text-xs btn-interactive">🤖 تصحيح وتغذية AI</button>
+                <button data-action="grade-ai" data-index="${idx}" class="px-2 py-1 bg-purple-600 text-white font-bold rounded text-xs btn-interactive">${__('btnAIGradeFeedback')}</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -2737,7 +2736,7 @@ function renderParentDashboard() {
     const linkedContact = currentUserSession?.childContact || "0555555555";
     const childSubmissions = localData.submissions.filter(s => s.studentContact === linkedContact || s.parentContact === currentUserSession?.contact);
 
-    const childName = childSubmissions.length > 0 ? childSubmissions[0].studentName : "عبد الرحمن (حساب مرتبط)";
+    const childName = childSubmissions.length > 0 ? childSubmissions[0].studentName : __('fallbackLinkedChild');
     document.getElementById('parent-linked-child-name').textContent = childName;
 
     if (childSubmissions.length === 0) {
@@ -2826,7 +2825,7 @@ function updateProxyStatus() {
         document.getElementById('proxy-status-icon').textContent = ok ? '🟢' : '🔴';
         const el = document.getElementById('proxy-status');
         if (el) {
-            el.textContent = ok ? (i18n.proxyConnected || 'متصل') : (i18n.proxyDisconnected || 'غير متصل');
+            el.textContent = ok ? __('proxyConnected') : __('proxyDisconnected');
         }
     });
 }
@@ -3175,18 +3174,18 @@ function runInit() {
 
     // كل دالة بناديها عن طريق الاسم عشان نتأكد إنها موجودة
     var steps = [
-        ['setupGlobalErrorHandler', 'معالج الأخطاء'],
-        ['loadTheme', 'السمات'],
-        ['loadTextSize', 'حجم الخط'],
+        ['setupGlobalErrorHandler', __('initStepErrorHandler')],
+        ['loadTheme', __('initStepThemes')],
+        ['loadTextSize', __('initStepFontSize')],
         ['initFirebase', 'Firebase'],
-        ['initServerBackend', 'الخادم'],
-        ['setupAccessibleVoices', 'الصوت'],
-        ['setupPerkinsKeyboard', 'برايل'],
-        ['toggleRegFields', 'الحقول'],
-        ['setupKeyboardShortcuts', 'اختصارات'],
-        ['setupAgeLevel', 'العمر'],
-        ['initI18n', 'الترجمة'],
-        ['bindAllEvents', 'الأزرار']
+        ['initServerBackend', __('initStepServer')],
+        ['setupAccessibleVoices', __('initStepAudio')],
+        ['setupPerkinsKeyboard', __('initStepBraille')],
+        ['toggleRegFields', __('initStepFields')],
+        ['setupKeyboardShortcuts', __('initStepShortcuts')],
+        ['setupAgeLevel', __('initStepAge')],
+        ['initI18n', __('initStepI18n')],
+        ['bindAllEvents', __('initStepButtons')]
     ];
 
     for (var i = 0; i < steps.length; i++) {

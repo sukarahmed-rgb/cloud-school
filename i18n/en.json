@@ -478,5 +478,21 @@
   "ageLevelAdult": "Adult",
   "unknownStudent": "Unknown",
   "autoGradingFeedback": "Automatic instant correction",
-  "awaitingAIGrading": "Awaiting AI smart review"
+  "awaitingAIGrading": "Awaiting AI smart review",
+  "keyboardShortcutHelpKey": "H or F1",
+  "storyOptionLabel": "Option {0}: {1}",
+  "brailleIncompleteShort": "Incomplete",
+  "fallbackStudent": "Demo Student",
+  "fallbackLinkedChild": "Linked Account",
+  "initStepErrorHandler": "Error Handler",
+  "initStepThemes": "Themes",
+  "initStepFontSize": "Font Size",
+  "initStepServer": "Server",
+  "initStepAudio": "Audio",
+  "initStepBraille": "Braille",
+  "initStepFields": "Fields",
+  "initStepShortcuts": "Shortcuts",
+  "initStepAge": "Age",
+  "initStepI18n": "Translation",
+  "initStepButtons": "Buttons"
 }

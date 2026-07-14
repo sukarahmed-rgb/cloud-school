@@ -478,5 +478,21 @@
   "ageLevelAdult": "بالغ",
   "unknownStudent": "غير معروف",
   "autoGradingFeedback": "تصحيح فوري آلي",
-  "awaitingAIGrading": "بانتظار المراجعة الذكية للذكاء الاصطناعي"
+  "awaitingAIGrading": "بانتظار المراجعة الذكية للذكاء الاصطناعي",
+  "keyboardShortcutHelpKey": "H أو F1",
+  "storyOptionLabel": "الخيار {0}: {1}",
+  "brailleIncompleteShort": "غير مكتمل",
+  "fallbackStudent": "طالب تجريبي",
+  "fallbackLinkedChild": "عبد الرحمن (حساب مرتبط)",
+  "initStepErrorHandler": "معالج الأخطاء",
+  "initStepThemes": "السمات",
+  "initStepFontSize": "حجم الخط",
+  "initStepServer": "الخادم",
+  "initStepAudio": "الصوت",
+  "initStepBraille": "برايل",
+  "initStepFields": "الحقول",
+  "initStepShortcuts": "اختصارات",
+  "initStepAge": "العمر",
+  "initStepI18n": "الترجمة",
+  "initStepButtons": "الأزرار"
 }
