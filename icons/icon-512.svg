@@ -1,4 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="64" fill="#1e3a5f"/>
-  <text x="256" y="340" font-family="Arial,sans-serif" font-size="256" font-weight="bold" text-anchor="middle" fill="#fbbf24">ش</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Cloud School">
+  <defs>
+    <linearGradient id="g512-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111935"/>
+      <stop offset="100%" stop-color="#080c1a"/>
+    </linearGradient>
+    <linearGradient id="g512-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#g512-bg)" stroke="url(#g512-gold)" stroke-width="4"/>
+  <g transform="translate(256,220)">
+    <path d="M-150,38 Q-150,-52 -84,-74 Q-30,-112 30,-90 Q90,-112 142,-68 Q172,-38 158,8 Q180,38 150,54 L-150,54 Q-180,38 -150,38 Z" fill="url(#g512-gold)"/>
+    <rect x="-68" y="8" width="136" height="90" rx="6" fill="#080c1a" stroke="#f59e0b" stroke-width="3"/>
+    <polygon points="-84,8 0,-44 84,8" fill="#f59e0b"/>
+    <rect x="-10" y="52" width="20" height="46" rx="8" fill="#f59e0b"/>
+    <rect x="-54" y="18" width="28" height="28" rx="4" fill="#6366f1" opacity="0.9"/>
+    <rect x="26" y="18" width="28" height="28" rx="4" fill="#6366f1" opacity="0.9"/>
+  </g>
 </svg>
