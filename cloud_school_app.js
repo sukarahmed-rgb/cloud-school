@@ -499,8 +499,6 @@ var gameTimerInterval = null;
 var uploadedImageBase64 = null;
 var uploadedImageMime = null;
 var accessibleVoicesController = null;
-var gameAudioContext = null;
-
 let sharedAudioContext = null;
 
 // ====== Audio Context Singleton ======
@@ -897,25 +895,6 @@ function blobToBase64(blob) {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
-}
-
-// ====== Sound Effects ======
-function playTone(startFreq, endFreq, type, duration) {
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(startFreq, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(endFreq, ctx.currentTime + duration * 0.7);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + duration);
-  } catch { /* audio not available */ }
 }
 
 // ====== Focus Management ======
@@ -1373,7 +1352,7 @@ async function translateAndEvaluateBrailleWithAI() {
         evalText.textContent = resultText;
         speak(resultText);
     } catch (error) {
-        console.error(error);
+        handleError(error, 'brailleEval');
         evalText.textContent = __('brailleEvalError');
         speak(__('brailleEvalFailed'));
     }
@@ -1396,7 +1375,7 @@ async function summarizeCurriculumBookWithAI() {
         document.getElementById('book-ai-summary-text').textContent = resultText;
         speak(resultText);
     } catch (error) {
-        console.error(error);
+        handleError(error, 'bookSummary');
         document.getElementById('book-ai-summary-text').textContent = __('bookSummaryError');
         speak(__('bookSummaryFailed'));
     }
@@ -1512,7 +1491,7 @@ async function generateAIQuiz() {
 
         speak(__('quizReady'));
     } catch (e) {
-        console.error(e);
+        handleError(e, 'quizGeneration');
         speak(__('quizFailed'));
     } finally {
         btn.textContent = __('quizGenerateBtn');
@@ -3134,12 +3113,6 @@ function playFail3D() {
 
 function playTick3D() {
     play3DTone(800, 1200, 'square', 0.1, 0, 0.8, 0.3);
-}
-
-function playDirectionSound(direction) {
-    var x = direction === 'left' ? -1 : direction === 'right' ? 1 : 0;
-    var y = direction === 'up' ? 1 : direction === 'down' ? -1 : 0;
-    play3DTone(440, 660, 'sine', 0.2, x, y, 0.5);
 }
 
 // ====== Audio Co-Pilot Init ======
