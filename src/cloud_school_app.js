@@ -1,3 +1,12 @@
+import { speakToUser } from './modules/audio-core.js';
+import {
+  ERROR_LEVELS, listeners, activeIntervals, activeTimeouts,
+  originalSetInterval, originalSetTimeout,
+  cleanupTimers, secureRandomInt, notifyListeners,
+  handleError, setupGlobalErrorHandler,
+} from './modules/error-handler.js';
+import { escapeHtml, base64ToArrayBuffer, pcmToWav, blobToBase64 } from './modules/helpers.js';
+
 /** Braille module - لغة برايل */
 
 const arabicBrailleMap = {
@@ -52,104 +61,6 @@ function commitBrailleChar(keyString) {
     return false;
 }
 
-/** Centralized Error Handler */
-
-const ERROR_LEVELS = { INFO: 'info', WARN: 'warn', ERROR: 'error', FATAL: 'fatal' };
-
-const listeners = [];
-
-// ==== Timer tracking ==== 
-var activeIntervals = [];
-var activeTimeouts = new Set();
-var originalSetInterval = setInterval;
-setInterval = function(cb, delay) {
-  var id = originalSetInterval(cb, delay);
-  activeIntervals.push(id);
-  return id;
-};
-var originalSetTimeout = setTimeout;
-setTimeout = function(cb, delay) {
-  var wrapped = function() {
-    activeTimeouts.delete(id);
-    return cb.apply(this, arguments);
-  };
-  var id = originalSetTimeout(wrapped, delay);
-  activeTimeouts.add(id);
-  return id;
-};
-
-function cleanupTimers() {
-  activeIntervals.forEach(function(id) { try { clearInterval(id); } catch(e) {} });
-  activeIntervals = [];
-  activeTimeouts.forEach(function(id) { try { clearTimeout(id); } catch(e) {} });
-  activeTimeouts = new Set();
-}
-
-window.addEventListener('beforeunload', cleanupTimers);
-
-// Secure Random
-function secureRandomInt(min, max) {
-  const array = new Uint32Array(1);
-  window.crypto.getRandomValues(array);
-  return min + (array[0] % (max - min + 1));
-}
-
-function notifyListeners(level, context, error) {
-  listeners.forEach(fn => fn(level, context, error));
-}
-
-function speakToUser(message) {
-  const ariaLive = document.getElementById('aria-live');
-  if (ariaLive) ariaLive.textContent = message;
-  try {
-    const utterance = new SpeechSynthesisUtterance(message);
-    utterance.lang = window.__speechLang || 'ar-SA';
-    window.speechSynthesis.speak(utterance);
-  } catch { /* speech not available */ }
-}
-
-function handleError(context, error) {
-  const message = error?.message || String(error);
-  const level = error?.fatal ? ERROR_LEVELS.FATAL : ERROR_LEVELS.ERROR;
-
-  console.error(`[${context}] ${message}`, error);
-  notifyListeners(level, context, error);
-
-  const userMessages = {
-    'api key': __('errorApiKey'),
-    'network': __('errorNetwork'),
-    'fetch': __('errorFetch'),
-    'timeout': __('errorTimeout'),
-    'permission': __('errorPermission'),
-    'audio': __('errorAudio'),
-    'firebase': __('errorFirebase'),
-  };
-
-  let userMessage = __('errorDefault');
-  const lowerMsg = message.toLowerCase();
-  for (const [key, msg] of Object.entries(userMessages)) {
-    if (lowerMsg.includes(key)) { userMessage = msg; break; }
-  }
-
-  showToast(userMessage);
-
-  if (level === ERROR_LEVELS.FATAL) {
-    speakToUser(__('criticalError', userMessage));
-  } else {
-    speakToUser(userMessage);
-  }
-
-  return { level, context, message };
-}
-
-function setupGlobalErrorHandler() {
-  window.addEventListener('unhandledrejection', (event) => {
-    handleError('unhandledRejection', event.reason);
-  });
-  window.addEventListener('error', (event) => {
-    handleError('unhandledException', event.error || event.message);
-  });
-}
 /** i18n module - الترجمة */
 
 const i18n = {};
@@ -422,35 +333,6 @@ async function describeImage(base64Image, mimeType) {
   ]);
 }
 
-// ====== مساعدات صوتية (محلية، لا تحتاج API) ======
-function base64ToArrayBuffer(base64) {
-  const binary = window.atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes.buffer;
-}
-
-function pcmToWav(pcmBuffer, sampleRate) {
-  const buf = new ArrayBuffer(44 + pcmBuffer.byteLength);
-  const v = new DataView(buf);
-  const w = (o, s, l) => { if (l) v.setUint32(o, s, true); else v.setUint32(o, s, false); };
-  w(0, 0x52494646, false);
-  w(4, 36 + pcmBuffer.byteLength, true);
-  w(8, 0x57415645, false);
-  w(12, 0x666d7420, false);
-  w(16, 16, true);
-  v.setUint16(20, 1, true);
-  v.setUint16(22, 1, true);
-  w(24, sampleRate, true);
-  w(28, sampleRate * 2, true);
-  v.setUint16(32, 2, true);
-  v.setUint16(34, 16, true);
-  w(36, 0x64617461, false);
-  w(40, pcmBuffer.byteLength, true);
-  const pcm = new Int16Array(pcmBuffer);
-  for (let i = 0; i < pcm.length; i++) v.setInt16(44 + i * 2, pcm[i], true);
-  return new Blob([buf], { type: 'audio/wav' });
-}
 /** UI module - أدوات واجهة المستخدم */
 
 const STORAGE_KEYS = {
@@ -529,14 +411,6 @@ function showLoading(elementId, message) {
   const el = document.getElementById(elementId);
   if (!el) return;
   el.innerHTML = `<div class="loading-overlay"><span class="loading-spinner"></span><span>${escapeHtml(message)}</span></div>`;
-}
-
-// ====== Escape HTML (XSS Protection) ======
-function escapeHtml(str) {
-  if (!str && str !== 0) return '';
-  const div = document.createElement('div');
-  div.textContent = String(str);
-  return div.innerHTML;
 }
 
 // ====== Speech ======
@@ -874,15 +748,6 @@ function toggleAudioRecording() {
       speak(__('micStart'));
     }).catch(function() { speak(__('micPermission')); });
   }
-}
-
-function blobToBase64(blob) {
-  return new Promise(function(resolve, reject) {
-    var reader = new FileReader();
-    reader.onloadend = function() { resolve(reader.result.split(',')[1]); };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 }
 
 // ====== Focus Management ======
