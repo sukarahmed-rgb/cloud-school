@@ -93,7 +93,7 @@
                         <button type="submit" id="btn-login-submit" class="w-full p-4 bg-yellow-400 text-black font-black text-xl rounded-xl large-touch-target hover:bg-yellow-300 transition btn-interactive" data-i18n="loginSubmit">
                             تسجيل الدخول 🔑
                         </button>
-                        <button type="button" id="btn-show-register" class="w-full p-3 bg-gray-800 border-2 border-current text-current font-bold rounded-xl btn-interactive" data-i18n="registerNew">
+                        <button type="button" id="btn-show-register" class="w-full p-4 bg-gray-800 border-2 border-current text-current font-bold rounded-xl btn-interactive large-touch-target" data-i18n="registerNew">
                             إنشاء حساب جديد 📝
                         </button>
                     </div>
@@ -143,7 +143,7 @@
                         <input type="text" id="reg-parent-contact" class="w-full p-3 rounded-lg font-bold border-red-500" placeholder="اكتب بريد، جوال، أو معرف حساب ولي أمرك على المنصة">
                         
                         <div class="mb-4">
-                          <label class="block font-bold mb-1">طريقة التحقق:</label>
+                          <label for="otp-method" class="block font-bold mb-1">طريقة التحقق:</label>
                           <select id="otp-method" class="w-full p-3 rounded-lg font-bold text-black bg-white">
                             <option value="email">البريد الإلكتروني</option>
                             <option value="sms">رسالة نصية (SMS)</option>
@@ -154,7 +154,7 @@
                         <div id="otp-section" class="hidden mt-4">
                           <p class="font-bold mb-2" id="otp-instruction">أدخل الرمز المرسل إلى بريدك الإلكتروني أو هاتفك.</p>
                           <div class="flex space-x-2">
-                            <input type="text" id="otp-input" maxlength="6" class="flex-1 p-2 rounded-lg font-bold" placeholder="رمز OTP" />
+                            <input type="text" id="otp-input" maxlength="6" class="flex-1 p-2 rounded-lg font-bold" placeholder="رمز OTP" aria-label="رمز OTP" />
                             <button type="button" id="btn-verify-otp" class="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition">تحقق</button>
                           </div>
                         </div>
@@ -223,9 +223,9 @@
                 </span>
 
                 <span class="toolbar-group flex items-center gap-1 p-1 border-l border-current/20 pl-2 ml-1">
-                    <button data-theme="dark-hc" class="p-2 border-2 border-current rounded text-xs font-bold" aria-label="النمط الداكن عالي التباين" data-i18n="themeDark" style="background:rgba(245,158,11,0.15)">أصفر/أسود</button>
-                    <button data-theme="light-hc" class="p-2 border-2 border-current rounded text-xs font-bold" aria-label="النمط الفاتح عالي التباين" data-i18n="themeLight">أسود/أبيض</button>
-                    <button data-theme="classic" class="p-2 border-2 border-current rounded text-xs font-bold" aria-label="النمط الكلاسيكي" data-i18n="themeClassic">كلاسيك</button>
+                    <button data-theme="dark-hc" aria-pressed="false" class="p-2 border-2 border-current rounded text-xs font-bold" aria-label="النمط الداكن عالي التباين" data-i18n="themeDark" style="background:rgba(245,158,11,0.15)">أصفر/أسود</button>
+                    <button data-theme="light-hc" aria-pressed="false" class="p-2 border-2 border-current rounded text-xs font-bold" aria-label="النمط الفاتح عالي التباين" data-i18n="themeLight">أسود/أبيض</button>
+                    <button data-theme="classic" aria-pressed="false" class="p-2 border-2 border-current rounded text-xs font-bold" aria-label="النمط الكلاسيكي" data-i18n="themeClassic">كلاسيك</button>
                 </span>
 
                 <span class="toolbar-group flex items-center gap-1 p-1 border-l border-current/20 pl-2 ml-1">
@@ -770,15 +770,15 @@
                     <h3 class="text-2xl font-bold">📚 رفع كتاب أو وحدة تعليمية جديدة</h3>
                     <form data-action="teacher-book-form" class="space-y-4">
                         <div>
-                            <label class="block font-bold mb-1">عنوان الكتاب/المقرر الدراسي:</label>
+                            <label for="teacher-book-title" class="block font-bold mb-1">عنوان الكتاب/المقرر الدراسي:</label>
                             <input type="text" id="teacher-book-title" required class="w-full p-3 rounded" placeholder="مثل: جغرافيا الوطن العربي">
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">رابط المادة الصوتية (Audiobook URL - اختياري):</label>
+                            <label for="teacher-book-audio" class="block font-bold mb-1">رابط المادة الصوتية (Audiobook URL - اختياري):</label>
                             <input type="url" id="teacher-book-audio" class="w-full p-3 rounded" placeholder="https://example.com/audiobook.mp3">
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">المحتوى النصي الكامل للمقرر:</label>
+                            <label for="teacher-book-content" class="block font-bold mb-1">المحتوى النصي الكامل للمقرر:</label>
                             <textarea id="teacher-book-content" required rows="6" class="w-full p-3 rounded" placeholder="اكتب أو الصق محتوى الوحدة بالتفصيل ليتمكن القارئ الآلي من قراءته للطالب بسلاسة."></textarea>
                         </div>
                         <button type="submit" class="w-full p-4 bg-green-600 text-white font-bold rounded-xl btn-interactive">حفظ ونشر المقرر 🚀</button>
@@ -793,11 +793,11 @@
                     </div>
                     <form data-action="teacher-quiz-form" class="space-y-4">
                         <div>
-                            <label class="block font-bold mb-1">عنوان الواجب/الاختبار:</label>
+                            <label for="teacher-quiz-title" class="block font-bold mb-1">عنوان الواجب/الاختبار:</label>
                             <input type="text" id="teacher-quiz-title" required class="w-full p-3 rounded" placeholder="مثل: اختبار الكيمياء الأسبوعي">
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">نوع السؤال الرئيسي:</label>
+                            <label for="teacher-quiz-type" class="block font-bold mb-1">نوع السؤال الرئيسي:</label>
                             <select id="teacher-quiz-type" class="w-full p-3 rounded text-black bg-white font-bold">
                                 <option value="mcq">اختيار من متعدد (MCQ) - صوتي تفاعلي</option>
                                 <option value="text">سؤال مقالي نصي (يتطلب حل ببرايل أو بالصوت)</option>
@@ -805,17 +805,17 @@
                         </div>
                         <div id="teacher-mcq-fields" class="space-y-3">
                             <div>
-                                <label class="block font-bold mb-1">السؤال:</label>
+                                <label for="teacher-quiz-q" class="block font-bold mb-1">السؤال:</label>
                                 <input type="text" id="teacher-quiz-q" class="w-full p-3 rounded" placeholder="ما هي الصيغة الكيميائية للماء؟">
                             </div>
                             <div class="grid grid-cols-2 gap-2">
-                                <input type="text" id="teacher-quiz-oa" class="p-3 rounded" placeholder="الخيار أ">
-                                <input type="text" id="teacher-quiz-ob" class="p-3 rounded" placeholder="الخيار ب">
-                                <input type="text" id="teacher-quiz-oc" class="p-3 rounded" placeholder="الخيار ج">
-                                <input type="text" id="teacher-quiz-od" class="p-3 rounded" placeholder="الخيار د">
+                                <input type="text" id="teacher-quiz-oa" class="p-3 rounded" placeholder="الخيار أ" aria-label="الخيار أ">
+                                <input type="text" id="teacher-quiz-ob" class="p-3 rounded" placeholder="الخيار ب" aria-label="الخيار ب">
+                                <input type="text" id="teacher-quiz-oc" class="p-3 rounded" placeholder="الخيار ج" aria-label="الخيار ج">
+                                <input type="text" id="teacher-quiz-od" class="p-3 rounded" placeholder="الخيار د" aria-label="الخيار د">
                             </div>
                             <div>
-                                <label class="block font-bold mb-1">الخيار الصحيح:</label>
+                                <label for="teacher-quiz-correct" class="block font-bold mb-1">الخيار الصحيح:</label>
                                 <select id="teacher-quiz-correct" class="w-full p-3 rounded text-black bg-white font-bold">
                                     <option value="A">أ</option>
                                     <option value="B">ب</option>
@@ -826,11 +826,11 @@
                         </div>
                         <div id="teacher-text-fields" class="space-y-3 hidden">
                             <div>
-                                <label class="block font-bold mb-1">السؤال المقالي:</label>
+                                <label for="teacher-quiz-text-q" class="block font-bold mb-1">السؤال المقالي:</label>
                                 <input type="text" id="teacher-quiz-text-q" class="w-full p-3 rounded" placeholder="تحدث عن أهمية الأكسجين للحياة؟">
                             </div>
                             <div>
-                                <label class="block font-bold mb-1">الإجابة النموذجية (لتقييم الذكاء الاصطناعي):</label>
+                                <label for="teacher-quiz-ideal-ans" class="block font-bold mb-1">الإجابة النموذجية (لتقييم الذكاء الاصطناعي):</label>
                                 <textarea id="teacher-quiz-ideal-ans" rows="3" class="w-full p-3 rounded" placeholder="الإجابة النموذجية التي سيقوم مصحح الذكاء الاصطناعي بالمقارنة بناءً عليها..."></textarea>
                             </div>
                         </div>
@@ -901,11 +901,11 @@
                     <h3 class="text-2xl font-bold">➕ إضافة طالب جديد للمنصة</h3>
                     <form data-action="admin-student-form" class="space-y-4">
                         <div>
-                            <label class="block font-bold mb-1">اسم الطالب رباعي:</label>
+                            <label for="admin-student-name" class="block font-bold mb-1">اسم الطالب رباعي:</label>
                             <input type="text" id="admin-student-name" required class="w-full p-3 rounded" placeholder="مثل: أحمد خالد">
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">الصف الدراسي:</label>
+                            <label for="admin-student-grade" class="block font-bold mb-1">الصف الدراسي:</label>
                             <input type="text" id="admin-student-grade" required class="w-full p-3 rounded" placeholder="مثل: الصف العاشر">
                         </div>
                         <button type="submit" class="w-full p-4 bg-yellow-500 text-black font-black rounded-xl btn-interactive">توليد الحساب والرمز السري 🔒</button>

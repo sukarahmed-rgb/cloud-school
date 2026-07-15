@@ -19,7 +19,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npx live-server . --port=8080 --no-browser',
+    command: 'npx vite --port=8080 --host=127.0.0.1 --strictPort',
     url: 'http://127.0.0.1:8080/index.html',
     reuseExistingServer: !process.env.CI,
     timeout: 15000,
