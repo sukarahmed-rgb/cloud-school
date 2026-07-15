@@ -4,6 +4,8 @@
 // 2. المذاكر الجماعي الصوتي (Audio Study Groups)
 // =============================================================================
 
+import { speak, __, callGeminiAPI } from './cloud_school_app.js';
+
 // ===================== المساعد الصوتي للمتصفح (Speech-to-Text) =====================
 let speechRecognition = null;
 let isSpeechRecognitionActive = false;
@@ -898,3 +900,11 @@ document.addEventListener('DOMContentLoaded', function() {
         voiceExamToggleBtn.addEventListener('click', toggleVoiceExamMode);
     }
 });
+
+export {
+  initSpeechRecognition, startMicrophone, listenForSpeech,
+  startDialogicClassroom, stopDialogicClassroom,
+  startStudyGroup, stopStudyGroup,
+  toggleVoiceExamMode, startVoiceExamListening,
+  confirmVoiceSubmit, doVoiceSubmit, updateVoiceExamStatus
+};

@@ -953,12 +953,10 @@
         <p>© 2026 منصة Cloud School السحابية للمكفوفين. صُممت بنسبة تباين متوافقة مع معايير WCAG AAA العالمية ودعم كامل لـ Gemini API.</p>
     </footer>
 
-    <!-- ملف JavaScript الرئيسي -->
-    <script src="cloud_school_app.js"></script>
-    <!-- ميزات الفصل الذكي والمذاكر الجماعي -->
-    <script src="features.js"></script>
+    <!-- ملف JavaScript الرئيسي (مجمّع عبر Vite) -->
+    <script type="module" src="/src/main.js"></script>
 
     <!-- تسجيل Service Worker + تهيئة احتياطية -->
-    <script src="sw-init.js"></script>
+    <script src="/sw-init.js"></script>
 </body>
 </html>

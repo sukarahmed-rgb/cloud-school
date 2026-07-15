@@ -1,32 +1,10 @@
 {
   "hosting": {
-    "public": ".",
+    "public": "dist",
     "ignore": [
-      "firebase.json",
+      ".firebase",
       "**/.*",
-      "**/node_modules/**",
-      "proxy/**",
-      "worker/**",
-      "wrangler.toml",
-      "wrangler.toml.example",
-      "src/**",
-      "tests/**",
-      "**/.agents/**",
-      "output_parts/**",
-      "*.md",
-      "*.bat",
-      "*.ps1",
-      "*.cjs",
-      "*.mjs",
-      "*.docx",
-      ".env",
-      ".env.example",
-      "skills-lock.json",
-      "jest.config.js",
-      "playwright.config.js",
-      "package.json",
-      "package-lock.json",
-      "ابدأ.bat"
+      "firebase.json"
     ],
     "rewrites": [
       {
