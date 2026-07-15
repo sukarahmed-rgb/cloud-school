@@ -1,8 +1,4 @@
 {
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
   "hosting": {
     "public": ".",
     "ignore": [
@@ -30,8 +26,6 @@
       "playwright.config.js",
       "package.json",
       "package-lock.json",
-      "firestore.rules",
-      "firestore.indexes.json",
       "ابدأ.bat"
     ],
     "rewrites": [

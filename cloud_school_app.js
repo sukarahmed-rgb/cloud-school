@@ -539,18 +539,6 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// ====== Password Hashing (SHA-256 via SubtleCrypto) ======
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-function isHashed(password) {
-  return /^[a-f0-9]{64}$/.test(password);
-}
-
 // ====== Speech ======
 function speak(text) {
   if (!audioCoPilotEnabled) return;
@@ -945,10 +933,23 @@ function announceToScreenReader(text) {
 
 // ====== Gemini API Key (obfuscated at rest) ======
 function _obfuscate(str) {
-  return btoa(str.split('').reverse().join(''));
+  const k = 'cs2026!';
+  let r = '';
+  for (let i = 0; i < str.length; i++) {
+    r += String.fromCharCode(str.charCodeAt(i) ^ k.charCodeAt(i % k.length));
+  }
+  return btoa(r);
 }
 function _deobfuscate(str) {
-  try { return atob(str).split('').reverse().join(''); } catch { return ''; }
+  try {
+    const k = 'cs2026!';
+    const d = atob(str);
+    let r = '';
+    for (let i = 0; i < d.length; i++) {
+      r += String.fromCharCode(d.charCodeAt(i) ^ k.charCodeAt(i % k.length));
+    }
+    return r;
+  } catch { return ''; }
 }
 
 function getGeminiKey() {
@@ -1085,26 +1086,10 @@ async function handleLoginSubmit(e) {
             }
             enterApp(currentUserSession);
         } else {
-            // Fallback: localStorage accounts
-            let savedAccounts = [];
-            try { savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]'); } catch (e) { savedAccounts = []; }
-            const hashedInput = await hashPassword(password);
-            let account = savedAccounts.find(a => a.contact === email && a.password === hashedInput);
-            if (!account) {
-                account = savedAccounts.find(a => a.contact === email && a.password === password);
-                if (account && !isHashed(password)) {
-                    account.password = hashedInput;
-                    localStorage.setItem('cloudSchoolAccounts', JSON.stringify(savedAccounts));
-                }
-            }
-            if (account) {
-                currentUserSession = account;
-                enterApp(currentUserSession);
-            } else {
-                warningText.textContent = __('loginFailed');
-                warningBox.classList.remove('hidden');
-                speak(__('loginFailed'));
-            }
+            // Fallback: server unavailable — no localStorage auth (security)
+            warningText.textContent = __('errorNetwork');
+            warningBox.classList.remove('hidden');
+            speak(__('errorNetwork'));
         }
     } catch (err) {
         console.error('Login error:', err);
@@ -1201,19 +1186,11 @@ async function handleRegistrationSubmit(e) {
                 serverAuth: false
             });
         } else {
-            // Fallback: localStorage
-            const hashedPassword = await hashPassword(plainPassword);
-            if (role === 'parent') {
-                const childContact = document.getElementById('reg-child-contact').value.trim();
-                currentUserSession = { name, contact, role, childContact, password: hashedPassword };
-            } else {
-                currentUserSession = { name, contact, role, age, parentContact, password: hashedPassword };
-            }
-            let savedAccounts = [];
-            try { savedAccounts = JSON.parse(localStorage.getItem('cloudSchoolAccounts') || '[]'); } catch (e) { savedAccounts = []; }
-            savedAccounts.push(currentUserSession);
-            localStorage.setItem('cloudSchoolAccounts', JSON.stringify(savedAccounts));
-            enterApp(currentUserSession);
+            // Fallback: server unavailable — cannot register locally (security)
+            const msg = __('errorNetwork');
+            warningText.textContent = msg;
+            warningBox.classList.remove('hidden');
+            speak(msg);
         }
     } catch (err) {
         console.error('Registration error:', err);

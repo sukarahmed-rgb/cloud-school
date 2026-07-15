@@ -8,10 +8,10 @@ const ALLOWED_COLLECTIONS = new Set([
 const COLLECTION_PERMISSIONS = {
   curriculum_modules: { read: ['student','teacher','admin','parent'], write: ['teacher','admin'] },
   assignments:        { read: ['student','teacher','admin','parent'], write: ['teacher','admin'] },
-  submissions:        { read: ['teacher','admin'], writeOwn: ['student'], write: ['teacher','admin'] },
+  submissions:        { read: ['teacher','admin','parent'], writeOwn: ['student'], write: ['teacher','admin'] },
   students:           { read: ['teacher','admin'],                   write: ['teacher','admin'] },
   notifications:      { read: ['student','teacher','admin','parent'], write: ['admin'] },
-  exam_results:       { read: ['teacher','admin'], writeOwn: ['student'], write: ['teacher','admin'] },
+  exam_results:       { read: ['teacher','admin','parent'], writeOwn: ['student'], write: ['teacher','admin'] },
 };
 const RATE_LIMIT_WINDOW = 60;
 const RATE_LIMIT_MAX = 60;
@@ -28,10 +28,10 @@ const MODELS = {
 
 function corsHeaders(origin) {
   return {
-    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Origin': origin || 'https://cloud-school-6251a.web.app',
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, X-CSRF-Token',
     'Access-Control-Max-Age': '86400',
   };
 }
@@ -436,6 +436,13 @@ export default {
         // Filter for writeOwn roles: only return own items
         if (perms.writeOwn && perms.writeOwn.includes(role) && !perms.write.includes(role)) {
           return respond(data.filter(d => d.studentId === session.userId || d._createdBy === session.userId));
+        }
+        // Filter for parent: only return items belonging to linked children
+        if (role === 'parent' && (collection === 'submissions' || collection === 'exam_results')) {
+          const users = await safeReadCollection(env, 'users');
+          const parent = users.find(u => u.id === session.userId);
+          const childIds = users.filter(u => u.parentContact === parent?.email).map(u => u.id);
+          return respond(data.filter(d => childIds.includes(d.studentId)));
         }
         return respond(data);
       }
