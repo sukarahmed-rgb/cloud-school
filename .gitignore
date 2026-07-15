@@ -10,4 +10,5 @@ users.json
 .firebase/
 worker/.dev.vars
 .wrangler/
-wrangler.toml
+playwright-report/
+test-results/

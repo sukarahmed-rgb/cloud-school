@@ -51,6 +51,15 @@ function handleError(context, error) {
   console.error(`[${context}] ${message}`, error);
   notifyListeners(level, context, error);
 
+  if (typeof window.firebase !== 'undefined' && typeof window.firebase.analytics === 'function') {
+    try {
+      window.firebase.analytics().logEvent('exception', {
+        description: `[${context}] ${message}`,
+        fatal: level === ERROR_LEVELS.FATAL
+      });
+    } catch (e) {}
+  }
+
   const userMessages = {
     'api key': __('errorApiKey'),
     'network': __('errorNetwork'),

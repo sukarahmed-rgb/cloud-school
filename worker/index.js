@@ -3,8 +3,6 @@ const SESSION_TTL = 86400;
 const ALLOWED_COLLECTIONS = new Set([
   'curriculum_modules', 'assignments', 'submissions', 'students', 'notifications', 'exam_results'
 ]);
-
-// Role-based access: who can read/write each collection
 const COLLECTION_PERMISSIONS = {
   curriculum_modules: { read: ['student','teacher','admin','parent'], write: ['teacher','admin'] },
   assignments:        { read: ['student','teacher','admin','parent'], write: ['teacher','admin'] },
@@ -24,6 +22,27 @@ const MODELS = {
   vision: 'gemini-2.5-flash-preview-09-2025',
   tts: 'gemini-2.5-flash-preview-tts',
   transcribe: 'gemini-2.5-flash-preview-09-2025',
+};
+
+const TABLE_MAP = {
+  curriculum_modules: 'curriculum_modules',
+  assignments: 'assignments',
+  submissions: 'submissions',
+  students: 'students',
+  notifications: 'notifications',
+  exam_results: 'exam_results',
+  users: 'users',
+};
+
+// Common typed columns per table (subsets of the body keys to extract)
+const EXTRACT_COLUMNS = {
+  curriculum_modules: ['title', 'subject', 'grade_level'],
+  assignments: ['title', 'subject', 'grade_level'],
+  submissions: ['assignment_id', 'student_id', 'student_name', 'status'],
+  students: ['name', 'email', 'parent_email', 'grade_level', 'age_group'],
+  notifications: ['title', 'category', 'is_read'],
+  exam_results: ['student_id', 'exam_title', 'score', 'total'],
+  users: ['firebase_uid', 'email', 'name', 'role', 'age_group', 'parent_contact'],
 };
 
 function corsHeaders(origin) {
@@ -85,6 +104,57 @@ function stripMetaFields(obj) {
   return safe;
 }
 
+function collectionToTable(name) {
+  return TABLE_MAP[name] || name;
+}
+
+function camelToSnake(str) {
+  return str.replace(/([A-Z])/g, '_$1').toLowerCase();
+}
+
+function snakeToCamel(str) {
+  return str.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+// Convert a DB row (with data JSON + typed columns) to a frontend item (camelCase)
+function rowToItem(row) {
+  if (!row) return null;
+  let data = {};
+  try { data = JSON.parse(row.data || '{}'); } catch (e) { data = {}; }
+  const item = { ...data, id: row.id };
+  // Typed columns may have values that are not in data (e.g., created_by, created_at)
+  // But data from the client already has camelCase versions; prefer data values
+  if (!item.created_by && row.created_by) item.created_by = row.created_by;
+  if (!item.created_at && row.created_at) item.created_at = row.created_at;
+  if (!item.updated_at && row.updated_at) item.updated_at = row.updated_at;
+  // Ensure snake_case columns are also exposed as camelCase for the frontend
+  for (const [key, value] of Object.entries(row)) {
+    if (key === 'id' || key === 'data') continue;
+    const camel = snakeToCamel(key);
+    if (item[camel] === undefined && value !== null) item[camel] = value;
+  }
+  return item;
+}
+
+function rowsToItems(rows) {
+  return (rows || []).map(rowToItem);
+}
+
+// Extract known fields from a body object and return { column -> value } map
+function extractTypedFields(table, body) {
+  const extracted = {};
+  const cols = EXTRACT_COLUMNS[table] || [];
+  for (const col of cols) {
+    // Try camelCase key first, then snake_case
+    const camelKey = snakeToCamel(col);
+    let val = body[camelKey] !== undefined ? body[camelKey] : body[col];
+    if (val !== undefined) {
+      extracted[col] = typeof val === 'string' ? val.slice(0, MAX_STRING_LENGTH) : val;
+    }
+  }
+  return extracted;
+}
+
 async function verifyFirebaseToken(idToken, apiKey) {
   const url = `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`;
   const response = await fetch(url, {
@@ -92,13 +162,9 @@ async function verifyFirebaseToken(idToken, apiKey) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ idToken }),
   });
-  if (!response.ok) {
-    throw new Error('Firebase token verification failed');
-  }
+  if (!response.ok) throw new Error('Firebase token verification failed');
   const data = await response.json();
-  if (!data.users || data.users.length === 0) {
-    throw new Error('No Firebase user found');
-  }
+  if (!data.users || data.users.length === 0) throw new Error('No Firebase user found');
   return data.users[0];
 }
 
@@ -111,24 +177,6 @@ async function checkRateLimit(env, key, max, windowSec) {
   if (count >= max) return false;
   await env.DATA.put(rateKey, String(count + 1), { expirationTtl: windowSec * 2 });
   return true;
-}
-
-async function safeReadCollection(env, name) {
-  try {
-    const raw = await env.DATA.get(`col:${name}`);
-    return raw ? JSON.parse(raw) : [];
-  } catch (err) {
-    return [];
-  }
-}
-
-async function safeWriteCollection(env, name, data) {
-  try {
-    await env.DATA.put(`col:${name}`, JSON.stringify(data));
-    return true;
-  } catch (err) {
-    return false;
-  }
 }
 
 async function safeGetSession(env, token) {
@@ -145,40 +193,6 @@ async function safeGetSession(env, token) {
   } catch (err) {
     return null;
   }
-}
-
-async function acquireLock(env, name, ttl = 5) {
-  const lockKey = `lock:col:${name}`;
-  const locked = await env.DATA.get(lockKey);
-  if (locked === '1') return false;
-  await env.DATA.put(lockKey, '1', { expirationTtl: ttl });
-  return true;
-}
-
-async function releaseLock(env, name) {
-  try {
-    await env.DATA.delete(`lock:col:${name}`);
-  } catch (_) {}
-}
-
-async function withCollectionLock(env, name, fn, maxRetries = 5) {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    if (await acquireLock(env, name)) {
-      try {
-        const data = await safeReadCollection(env, name);
-        const result = await fn(data);
-        if (result !== null) {
-          const wrote = await safeWriteCollection(env, name, result);
-          return wrote ? result : null;
-        }
-        return null;
-      } finally {
-        await releaseLock(env, name);
-      }
-    }
-    await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
-  }
-  return null;
 }
 
 export default {
@@ -213,12 +227,12 @@ export default {
       return session.slice(0, 64);
     }
 
-    // ====== Health Check (no rate limit) ======
+    // Health Check
     if (path === '/api/health' && method === 'GET') {
       return respond({ status: 'ok', timestamp: new Date().toISOString() });
     }
 
-    // Rate limiting for general endpoints
+    // Rate limiting
     const rlKey = rateLimitKey(request);
     if (!(await checkRateLimit(env, 'gen:' + rlKey, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW))) {
       return respond({ error: 'Rate limit exceeded. Try again later.' }, 429);
@@ -264,47 +278,42 @@ export default {
         const fbUser = await verifyFirebaseToken(idToken, apiKey);
         const email = (fbUser.email || '').toLowerCase();
 
-        let loginResult = await withCollectionLock(env, 'users', async (users) => {
-          let user = users.find(u => u.email === email || u.firebaseUid === fbUser.localId);
-          if (!user) {
-            user = {
-              id: generateId(),
-              firebaseUid: fbUser.localId,
-              email,
-              name: fbUser.displayName || email.split('@')[0] || 'User',
-              role: 'student',
-              ageGroup: '7-12',
-              parentContact: '',
-              createdAt: new Date().toISOString(),
-            };
-            users.push(user);
-          } else if (!user.firebaseUid) {
-            user.firebaseUid = fbUser.localId;
-          }
-          return users;
-        });
+        let user = await env.DB.prepare(
+          'SELECT * FROM users WHERE email = ? OR firebase_uid = ?'
+        ).bind(email, fbUser.localId).first();
 
-        if (!loginResult) return respond({ error: 'Failed to process login' }, 500);
+        if (!user) {
+          const newId = generateId();
+          const now = new Date().toISOString();
+          const name = fbUser.displayName || email.split('@')[0] || 'User';
+          const data = JSON.stringify({ name, email, firebaseUid: fbUser.localId });
+          await env.DB.prepare(
+            `INSERT INTO users (id, data, firebase_uid, email, name, role, age_group, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, 'student', '7-12', ?, ?)`
+          ).bind(newId, data, fbUser.localId, email, name, now, now).run();
+          user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(newId).first();
+        } else if (!user.firebase_uid) {
+          const now = new Date().toISOString();
+          const existingData = JSON.parse(user.data || '{}');
+          existingData.firebaseUid = fbUser.localId;
+          await env.DB.prepare(
+            'UPDATE users SET firebase_uid = ?, data = ?, updated_at = ? WHERE id = ?'
+          ).bind(fbUser.localId, JSON.stringify(existingData), now, user.id).run();
+        }
 
-        // Re-read user after lock to get the latest
-        const users = await safeReadCollection(env, 'users');
-        let user = users.find(u => u.email === email || u.firebaseUid === fbUser.localId);
         if (!user) return respond({ error: 'User not found after registration' }, 500);
 
-        const { token } = await (async () => {
-          const t = generateId();
-          const session = {
-            userId: user.id, email: user.email, name: user.name,
-            role: user.role || 'student', ageGroup: user.ageGroup || '7-12',
-            createdAt: Date.now(), expiresAt: Date.now() + SESSION_TTL * 1000,
-          };
-          await env.SESSIONS.put(`sess:${t}`, JSON.stringify(session), { expirationTtl: SESSION_TTL });
-          return { token: t, session };
-        })();
+        const token = generateId();
+        const session = {
+          userId: user.id, email: user.email, name: user.name,
+          role: user.role || 'student', ageGroup: user.age_group || '7-12',
+          createdAt: Date.now(), expiresAt: Date.now() + SESSION_TTL * 1000,
+        };
+        await env.SESSIONS.put(`sess:${token}`, JSON.stringify(session), { expirationTtl: SESSION_TTL });
 
         const resp = respond({
           id: user.id, email: user.email, name: user.name,
-          role: user.role, ageGroup: user.ageGroup,
+          role: user.role, ageGroup: user.age_group,
         });
         resp.headers.append('Set-Cookie', setCookie(SESSION_COOKIE, token, {
           httpOnly: true, sameSite: 'none', secure: true, path: '/', maxAge: SESSION_TTL,
@@ -333,45 +342,38 @@ export default {
           return allowed.includes(role) ? role : 'student';
         })();
 
-        let registered = await withCollectionLock(env, 'users', async (users) => {
-          if (users.some(u => u.email === email)) return null;
-          const newUser = {
-            id: generateId(),
-            firebaseUid: fbUser.localId,
-            email,
-            name: displayName,
-            role: userRole,
-            ageGroup: age ? (age + '-17') : '7-12',
-            parentContact: sanitizeString(parentContact || ''),
-            createdAt: new Date().toISOString(),
-          };
-          users.push(newUser);
-          return users;
+        const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+        if (existing) return respond({ error: 'Email already registered' }, 409);
+
+        const newId = generateId();
+        const now = new Date().toISOString();
+        const ageGroup = age ? (age + '-17') : '7-12';
+        const parentContactSanitized = sanitizeString(parentContact || '');
+        const data = JSON.stringify({
+          name: displayName, email, firebaseUid: fbUser.localId,
+          role: userRole, ageGroup, parentContact: parentContactSanitized,
         });
 
-        if (!registered) {
-          return respond({ error: 'Email already registered or registration failed' }, 409);
-        }
+        await env.DB.prepare(
+          `INSERT INTO users (id, data, firebase_uid, email, name, role, age_group, parent_contact, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(newId, data, fbUser.localId, email, displayName, userRole, ageGroup,
+          parentContactSanitized, now, now).run();
 
-        // Re-read to get the actual user
-        const userList = await safeReadCollection(env, 'users');
-        const user = userList.find(u => u.email === email);
+        const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(newId).first();
         if (!user) return respond({ error: 'Registration failed' }, 500);
 
-        const { token } = await (async () => {
-          const t = generateId();
-          const session = {
-            userId: user.id, email: user.email, name: user.name,
-            role: user.role || 'student', ageGroup: user.ageGroup || '7-12',
-            createdAt: Date.now(), expiresAt: Date.now() + SESSION_TTL * 1000,
-          };
-          await env.SESSIONS.put(`sess:${t}`, JSON.stringify(session), { expirationTtl: SESSION_TTL });
-          return { token: t, session };
-        })();
+        const token = generateId();
+        const session = {
+          userId: user.id, email: user.email, name: user.name,
+          role: user.role || 'student', ageGroup: user.age_group || '7-12',
+          createdAt: Date.now(), expiresAt: Date.now() + SESSION_TTL * 1000,
+        };
+        await env.SESSIONS.put(`sess:${token}`, JSON.stringify(session), { expirationTtl: SESSION_TTL });
 
         const resp = respond({
           id: user.id, email: user.email, name: user.name,
-          role: user.role, ageGroup: user.ageGroup,
+          role: user.role, ageGroup: user.age_group,
         }, 201);
         resp.headers.append('Set-Cookie', setCookie(SESSION_COOKIE, token, {
           httpOnly: true, sameSite: 'none', secure: true, path: '/', maxAge: SESSION_TTL,
@@ -406,6 +408,65 @@ export default {
       return respond({ success: true });
     }
 
+    if (path === '/api/admin/migrate' && method === 'POST') {
+      const session = await requireAuth();
+      if (!session) return respond({ error: 'Not authenticated' }, 401);
+      if (session.role !== 'admin') {
+        return respond({ error: 'Only admins can trigger data migration' }, 403);
+      }
+
+      const collections = [
+        { name: 'users', table: 'users' },
+        { name: 'curriculum_modules', table: 'curriculum_modules' },
+        { name: 'assignments', table: 'assignments' },
+        { name: 'submissions', table: 'submissions' },
+        { name: 'notifications', table: 'notifications' },
+        { name: 'exam_results', table: 'exam_results' }
+      ];
+
+      const report = {};
+      for (const col of collections) {
+        try {
+          const raw = await env.DATA.get(`col:${col.name}`);
+          if (!raw) {
+            report[col.name] = 0;
+            continue;
+          }
+          let items = [];
+          try { items = JSON.parse(raw); } catch { items = []; }
+          let count = 0;
+          for (const item of items) {
+            const id = item.id;
+            if (!id) continue;
+            const safeBody = stripMetaFields(item);
+            const dataJson = JSON.stringify(safeBody);
+            const now = new Date().toISOString();
+            const createdBy = item._createdBy || session.userId;
+            const createdAt = item._createdAt || now;
+            const updatedAt = item.updatedAt || now;
+
+            const extracted = extractTypedFields(col.table, safeBody);
+            const columns = ['id', 'data', 'created_by', 'created_at', 'updated_at'];
+            const values = [id, dataJson, createdBy, createdAt, updatedAt];
+            for (const [column, val] of Object.entries(extracted)) {
+              columns.push(column);
+              values.push(val);
+            }
+            const placeholders = columns.map(() => '?');
+            await env.DB.prepare(
+              `INSERT OR REPLACE INTO ${col.table} (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`
+            ).bind(...values).run();
+            count++;
+          }
+          report[col.name] = count;
+        } catch (err) {
+          report[col.name] = `Error: ${err.message}`;
+        }
+      }
+
+      return respond({ success: true, report });
+    }
+
     // ====== Data CRUD Routes ======
     const dataMatch = path.match(/^\/api\/data\/([^/]+)(?:\/([^/]+))?$/);
     if (dataMatch) {
@@ -419,130 +480,162 @@ export default {
 
       const perms = COLLECTION_PERMISSIONS[collection];
       const role = session.role;
+      const table = collectionToTable(collection);
 
       function canRead() { return perms.read.includes(role); }
       function canWrite(item) {
         if (perms.write.includes(role)) return true;
         if (perms.writeOwn && perms.writeOwn.includes(role) && item) {
-          return item.studentId === session.userId || item._createdBy === session.userId;
+          return item.created_by === session.userId;
         }
         return false;
+      }
+
+      // Build filtered list query based on role
+      async function getFilteredItems() {
+        let query = `SELECT * FROM ${table}`;
+        const params = [];
+        const conditions = [];
+
+        if (perms.writeOwn && perms.writeOwn.includes(role) && !perms.write.includes(role)) {
+          conditions.push('created_by = ?');
+          params.push(session.userId);
+        }
+
+        if (role === 'parent' && (collection === 'submissions' || collection === 'exam_results')) {
+          const parentUser = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(session.userId).first();
+          const children = await env.DB.prepare(
+            'SELECT id FROM users WHERE parent_contact = ?'
+          ).bind(parentUser?.email || '').all();
+          const childIds = (children.results || []).map(c => c.id);
+          if (childIds.length > 0) {
+            const placeholders = childIds.map(() => '?').join(',');
+            conditions.push(`student_id IN (${placeholders})`);
+            params.push(...childIds);
+          } else {
+            conditions.push('1=0');
+          }
+        }
+
+        if (conditions.length > 0) {
+          query += ' WHERE ' + conditions.join(' AND ');
+        }
+        query += ' ORDER BY created_at DESC';
+
+        const { results } = await env.DB.prepare(query).bind(...params).all();
+        return rowsToItems(results);
       }
 
       // List collection
       if (!id && method === 'GET') {
         if (!canRead()) return respond({ error: 'Forbidden' }, 403);
-        const data = await safeReadCollection(env, collection);
-        // Filter for writeOwn roles: only return own items
-        if (perms.writeOwn && perms.writeOwn.includes(role) && !perms.write.includes(role)) {
-          return respond(data.filter(d => d.studentId === session.userId || d._createdBy === session.userId));
-        }
-        // Filter for parent: only return items belonging to linked children
-        if (role === 'parent' && (collection === 'submissions' || collection === 'exam_results')) {
-          const users = await safeReadCollection(env, 'users');
-          const parent = users.find(u => u.id === session.userId);
-          const childIds = users.filter(u => u.parentContact === parent?.email).map(u => u.id);
-          return respond(data.filter(d => childIds.includes(d.studentId)));
-        }
-        return respond(data);
+        const items = await getFilteredItems();
+        return respond(items);
       }
+
       // Get single item
       if (id && method === 'GET') {
         if (!canRead()) return respond({ error: 'Forbidden' }, 403);
-        const data = await safeReadCollection(env, collection);
-        const item = data.find(d => d.id === id || d._id === id);
-        if (!item) return respond({ error: 'Item not found' }, 404);
+        const row = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(id).first();
+        if (!row) return respond({ error: 'Item not found' }, 404);
+        const item = rowToItem(row);
         if (!canWrite(item) && !canRead()) return respond({ error: 'Forbidden' }, 403);
         return respond(item);
       }
-      // Create item with lock
+
+      // Create item
       if (!id && method === 'POST') {
         if (!canWrite(null)) return respond({ error: 'Forbidden' }, 403);
         let body;
         try { body = await request.json(); } catch { return respond({ error: 'Invalid JSON' }, 400); }
         const safeBody = stripMetaFields(body);
 
-        let result = await withCollectionLock(env, collection, async (data) => {
-          if (data.length >= MAX_ARRAY_ITEMS) return null;
-          const newItem = {
-            ...safeBody,
-            id: generateId(),
-            _createdBy: session.userId,
-            _createdAt: new Date().toISOString(),
-          };
-          data.push(newItem);
-          return data;
-        });
-
-        if (!result) {
-          if ((await safeReadCollection(env, collection)).length >= MAX_ARRAY_ITEMS) {
-            return respond({ error: 'Collection size limit exceeded' }, 413);
-          }
-          return respond({ error: 'Failed to create item' }, 500);
+        // Check collection size limit
+        const { total } = await env.DB.prepare(`SELECT COUNT(*) as total FROM ${table}`).first();
+        if (total >= MAX_ARRAY_ITEMS) {
+          return respond({ error: 'Collection size limit exceeded' }, 413);
         }
 
-        const items = await safeReadCollection(env, collection);
-        const created = items[items.length - 1];
-        return respond(created, 201);
+        const newId = generateId();
+        const now = new Date().toISOString();
+
+        // Store the full body as data JSON
+        const dataJson = JSON.stringify(safeBody);
+
+        // Extract known typed fields
+        const extracted = extractTypedFields(table, safeBody);
+
+        // Build INSERT with data + known columns
+        const columns = ['id', 'data', 'created_by', 'created_at', 'updated_at'];
+        const values = [newId, dataJson, session.userId, now, now];
+
+        for (const [col, val] of Object.entries(extracted)) {
+          columns.push(col);
+          values.push(val);
+        }
+
+        const placeholders = columns.map(() => '?');
+        await env.DB.prepare(
+          `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`
+        ).bind(...values).run();
+
+        const created = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(newId).first();
+        return respond(rowToItem(created), 201);
       }
-      // Update item with lock
+
+      // Update item
       if (id && method === 'PUT') {
         let body;
         try { body = await request.json(); } catch { return respond({ error: 'Invalid JSON' }, 400); }
         const safeBody = stripMetaFields(body);
 
-        let result = await withCollectionLock(env, collection, async (data) => {
-          const idx = data.findIndex(d => d.id === id || d._id === id);
-          if (idx === -1) return null;
-          if (!canWrite(data[idx])) return null;
-          data[idx] = {
-            ...data[idx],
-            ...safeBody,
-            id: data[idx].id,
-            _updatedBy: session.userId,
-            _updatedAt: new Date().toISOString(),
-            _createdBy: data[idx]._createdBy,
-            _createdAt: data[idx]._createdAt,
-          };
-          return data;
-        });
+        const existing = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(id).first();
+        if (!existing) return respond({ error: 'Item not found' }, 404);
+        if (!canWrite(rowToItem(existing))) return respond({ error: 'Forbidden' }, 403);
 
-        if (!result) {
-          const existing = await safeReadCollection(env, collection);
-          if (!existing.find(d => d.id === id || d._id === id)) {
-            return respond({ error: 'Item not found' }, 404);
-          }
-          return respond({ error: 'Forbidden or update failed' }, 403);
+        // Merge existing data with new body
+        let existingData = {};
+        try { existingData = JSON.parse(existing.data || '{}'); } catch (e) { existingData = {}; }
+        const mergedData = { ...existingData, ...safeBody };
+        const dataJson = JSON.stringify(mergedData);
+        const now = new Date().toISOString();
+
+        // Extract known typed fields
+        const extracted = extractTypedFields(table, mergedData);
+
+        const setClauses = ['data = ?', 'updated_at = ?'];
+        const params = [dataJson, now];
+
+        for (const [col, val] of Object.entries(extracted)) {
+          setClauses.push(`${col} = ?`);
+          params.push(val);
         }
 
-        const items = await safeReadCollection(env, collection);
-        const updated = items.find(d => d.id === id || d._id === id);
-        return respond(updated);
-      }
-      // Delete item with lock
-      if (id && method === 'DELETE') {
-        let result = await withCollectionLock(env, collection, async (data) => {
-          const idx = data.findIndex(d => d.id === id || d._id === id);
-          if (idx === -1) return null;
-          if (!canWrite(data[idx])) { return 'forbidden'; }
-          data.splice(idx, 1);
-          return data;
-        });
+        params.push(id);
+        await env.DB.prepare(
+          `UPDATE ${table} SET ${setClauses.join(', ')} WHERE id = ?`
+        ).bind(...params).run();
 
-        if (!result) return respond({ error: 'Item not found' }, 404);
-        if (result === 'forbidden') return respond({ error: 'Forbidden' }, 403);
+        const updated = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(id).first();
+        return respond(rowToItem(updated));
+      }
+
+      // Delete item
+      if (id && method === 'DELETE') {
+        const existing = await env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(id).first();
+        if (!existing) return respond({ error: 'Item not found' }, 404);
+        if (!canWrite(rowToItem(existing))) return respond({ error: 'Forbidden' }, 403);
+
+        await env.DB.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id).run();
         return respond({ success: true });
       }
     }
 
-    // ====== Gemini Proxy (Authenticated) ======
+    // ====== Gemini Proxy ======
     if (path.startsWith('/api/gemini/') && method === 'POST') {
-      // Apply stricter rate limit for Gemini
       if (!(await checkRateLimit(env, 'gemini:' + rlKey, RATE_LIMIT_GEMINI_MAX, RATE_LIMIT_WINDOW))) {
         return respond({ error: 'Rate limit exceeded for AI requests. Try again later.' }, 429);
       }
-
-      // Require authentication
       const session = await requireAuth();
       if (!session) return respond({ error: 'Authentication required to use AI features' }, 401);
 
@@ -552,7 +645,7 @@ export default {
       }
       const modelName = path.replace('/api/gemini/', '');
       const model = MODELS[modelName];
-      if (!model)         return respond({ error: 'Unknown model' }, 400);
+      if (!model) return respond({ error: 'Unknown model' }, 400);
       try {
         const body = await request.json();
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;

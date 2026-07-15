@@ -10,6 +10,7 @@ export default defineConfig({
   timeout: 30000,
   use: {
     trace: 'on-first-retry',
+    baseURL: 'http://127.0.0.1:8080',
   },
   projects: [
     {

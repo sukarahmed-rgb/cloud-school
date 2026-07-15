@@ -1,4 +1,4 @@
-import { speakToUser } from './modules/audio-core.js';
+﻿import { speakToUser } from './modules/audio-core.js';
 import {
   ERROR_LEVELS, listeners, activeIntervals, activeTimeouts,
   originalSetInterval, originalSetTimeout,
@@ -6,334 +6,55 @@ import {
   handleError, setupGlobalErrorHandler,
 } from './modules/error-handler.js';
 import { escapeHtml, base64ToArrayBuffer, pcmToWav, blobToBase64 } from './modules/helpers.js';
+import {
+  arabicBrailleMap, updateBraillePreview, toggleDot, clearDots, commitBrailleChar
+} from './modules/braille.js';
+import {
+  _toastTimer, sharedAudioContext, getAudioContext,
+  showToast, showLoading, trapFocus, focusElement, announceToScreenReader,
+  shortcutRow, showKeyboardHelp, showNotificationsPanel,
+  saveLocalData, loadLocalData
+} from './modules/ui-core.js';
+import {
+  openStudentSection, closeStudentSection, setupKeyboardShortcuts
+} from './modules/router.js';
+import {
+  activeGameType, currentGameScore, gameTimeLeft, gameTimerInterval,
+  currentCorrectAnswer, questionBank,
+  audioMemorySequence, audioMemoryStep, audioMemoryPatterns,
+  pickQuestionByDifficulty, initGame, startNewGameRound,
+  listenForGameAnswer, answerGame, endGame,
+  startAudioMemoryGame, addAudioMemoryStep, playAudioMemorySequence,
+  answerAudioMemory, initAudioMemoryUI
+} from './modules/audio-game.js';
+import {
+  i18n, currentLang, getCurrentLang, setCurrentLang, __, getPrompt,
+  applyTranslations, applyJsTranslations, initTtsLang, loadLocale, initI18n
+} from './modules/i18n.js';
+import {
+  app as fbApp, db as fbDb, auth as fbAuth, userId as fbUserId,
+  isAuthReady as fbIsAuthReady, snapshotUnsubscribers as fbSnapshotUnsubscribers,
+  initFirebase
+} from './modules/firebase-client.js';
+import {
+  getProxyBase, proxyFetch, buildTextPayload, buildMediaPayload,
+  extractText, extractAudio, callGemini, callGeminiWithMedia,
+  speakWithGeminiTTS, transcribeAudio, describeImage
+} from './modules/gemini-client.js';
 
-/** Braille module - لغة برايل */
 
-const arabicBrailleMap = {
-  '1': 'ا', '1,2': 'ب', '2,3,4,5': 'ت', '1,4,5,6': 'ث',
-  '2,4,5': 'ج', '1,5,6': 'ح', '1,3,4,6': 'خ', '1,4,5': 'د',
-  '2,3,4,6': 'ذ', '1,2,3,5': 'ر', '1,3,5,6': 'ز', '2,3,4': 'س',
-  '1,4,6': 'ش', '1,2,3,4,6': 'ص', '1,2,4,6': 'ض', '2,3,4,5,6': 'ط',
-  '1,2,3,4,5,6': 'ظ', '1,2,3,5,6': 'ع', '1,2,6': 'غ', '1,2,4': 'ف',
-  '1,2,3,4,5': 'ق', '1,3': 'ك', '1,2,3': 'ل', '1,3,4': 'م',
-  '1,3,4,5': 'ن', '1,2,5': 'هـ', '2,4,5,6': 'و', '2,4': 'ي',
-  '2,3,5': '!', '2,5,6': '؟'
-};
+/** Firebase module - ط§ظ„ظ…طµط§ط¯ظ‚ط© ظˆط§ظ„طھط®ط²ظٹظ† ط§ظ„ط³ط­ط§ط¨ظٹ */
 
-/** Shared Braille helpers */
-function updateBraillePreview(dotsSet, previewId, fallback) {
-    const dotsArray = Array.from(dotsSet).sort((a, b) => a - b);
-    const keyString = dotsArray.join(',');
-    const mappedChar = arabicBrailleMap[keyString] || fallback;
-    document.getElementById(previewId).textContent = __('brailleCurrentChar', mappedChar, keyString || '');
-}
+Object.defineProperty(window, 'userId', {
+  get() { return fbUserId; },
+  set(val) { /* read-only from module */ }
+});
 
-function toggleDot(dotNumber, dotsSet, prefix, previewId, fallback) {
-    const btn = document.getElementById(`${prefix}-${dotNumber}`);
-    if (dotsSet.has(dotNumber)) {
-        dotsSet.delete(dotNumber);
-        btn.classList.remove('active');
-    } else {
-        dotsSet.add(dotNumber);
-        btn.classList.add('active');
-    }
-    updateBraillePreview(dotsSet, previewId, fallback);
-}
-
-function clearDots(dotsSet, prefix, previewId, speakOnClear) {
-    dotsSet.clear();
-    for (let i = 1; i <= 6; i++) {
-        const dot = document.getElementById(`${prefix}-${i}`);
-        if (dot) dot.classList.remove('active');
-    }
-    document.getElementById(previewId).textContent = __('brailleNoChar');
-    if (speakOnClear) speak(__('brailleCleared'));
-}
-
-function commitBrailleChar(keyString) {
-    const mappedChar = arabicBrailleMap[keyString];
-    if (mappedChar) {
-        const ansTextarea = document.getElementById('assignment-student-answer');
-        ansTextarea.value += mappedChar;
-        speak(mappedChar);
-        return true;
-    }
-    return false;
-}
-
-/** i18n module - الترجمة */
-
-const i18n = {};
-let currentLang = localStorage.getItem('cloudSchoolLang') || 'ar';
-
-function getCurrentLang() {
-  return currentLang;
-}
-
-function setCurrentLang(lang) {
-  currentLang = lang;
-  localStorage.setItem('cloudSchoolLang', lang);
-  document.documentElement.lang = lang;
-  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-  // تحديث نص زر اللغة
-  const toggle = document.getElementById('lang-toggle');
-  if (toggle) toggle.textContent = lang === 'ar' ? __('langEnglish') : __('langArabic');
-  // إعادة تطبيق كل الترجمات
-  applyTranslations();
-  applyJsTranslations();
-  // تحديث لغة TTS
-  initTtsLang();
-  speak(__('langChanged'));
-}
-
-function __(key, ...args) {
-  let val = i18n[key];
-  if (!val) return key;
-  if (args.length) {
-    args.forEach((arg, i) => { val = val.replace(`{${i}}`, arg); });
-  }
-  return val;
-}
-
-function getPrompt(lang, arabicText, englishText) {
-  return lang === 'ar' ? arabicText : englishText;
-}
-
-function applyTranslations() {
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (i18n[key]) el.textContent = i18n[key];
-  });
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.getAttribute('data-i18n-placeholder');
-    if (i18n[key]) el.placeholder = i18n[key];
-  });
-  document.querySelectorAll('[data-i18n-title]').forEach(el => {
-    const key = el.getAttribute('data-i18n-title');
-    if (i18n[key]) el.title = i18n[key];
-  });
-  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
-    const key = el.getAttribute('data-i18n-aria');
-    if (i18n[key]) el.setAttribute('aria-label', i18n[key]);
-  });
-}
-
-function applyJsTranslations() {
-  // تحديث النصوص الديناميكية في الـ JS
-  const ageLevelBtn = document.getElementById('btn-age-level');
-  if (ageLevelBtn && typeof ageLevelLabels !== 'undefined') {
-    const labels = window['ageLevelLabels'] || [__('ageLevelAuto'), __('ageLevelChild'), __('ageLevelTeen'), __('ageLevelAdult')];
-    const level = typeof currentAgeLevel !== 'undefined' ? currentAgeLevel : 0;
-    ageLevelBtn.textContent = __('ageLevelLabel', labels[level] || labels[0]);
-  }
-}
-
-function initTtsLang() {
-  const speechLang = currentLang === 'ar' ? 'ar-SA' : 'en-US';
-  // تحديث النصوص الصوتية الثابتة (بناءً على اللغة الحالية)
-  window.__speechLang = speechLang;
-}
-
-function loadLocale(lang) {
-  return fetch(`i18n/${lang}.json`)
-    .then(r => {
-      if (!r.ok) throw new Error(`Failed to load locale: ${lang}`);
-      return r.json();
-    })
-    .then(data => {
-      Object.assign(i18n, data);
-      applyTranslations();
-    })
-    .catch(err => console.error('i18n load error:', err));
-}
-
-function initI18n() {
-  loadLocale(currentLang);
-}
-/** Firebase module - المصادقة والتخزين السحابي */
-
-let app = null;
-let db = null;
-let auth = null;
-let userId = null;
-let isAuthReady = false;
-let snapshotUnsubscribers = [];
-
-const rawConfig = typeof __firebase_config !== 'undefined' ? __firebase_config : {};
-let firebaseConfig = rawConfig;
-if (typeof rawConfig === 'string') {
-    try { firebaseConfig = JSON.parse(rawConfig); } catch (e) { firebaseConfig = {}; }
-}
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 let currentCheatDots = new Set();
 
-async function initFirebase() {
-  if (typeof firebase === 'undefined') {
-    console.warn('Firebase SDK not loaded');
-    return;
-  }
-  if (Object.keys(firebaseConfig).length === 0) return;
 
-  try {
-    app = firebase.initializeApp(firebaseConfig);
-    auth = firebase.auth();
-    auth.useDeviceLanguage();
-
-    firebase.auth().onAuthStateChanged(async (user) => {
-      if (user) {
-        userId = user.uid;
-        isAuthReady = true;
-        const el = document.getElementById('user-id-display');
-        if (el) el.textContent = `${user.email || userId.substring(0, 8)}`;
-      } else {
-        userId = null;
-        isAuthReady = false;
-      }
-    });
-  } catch (e) {
-    console.warn('Firebase init error:', e.message);
-  }
-}
-/**
- * Gemini module - جميع استدعاءات الذكاء الاصطناعي
- * 
- * جميع الطلبات تذهب عبر الـ proxy server لحماية مفتاح API.
- * المفتاح موجود فقط في .env على السيرفر، وليس في الواجهة الأمامية.
- */
-
-function getProxyBase() {
-    if (serverAvailable) return '';
-    const override = localStorage.getItem('cloudSchoolProxyUrl');
-    return override || 'http://localhost:3001';
-}
-
-async function proxyFetch(endpoint, payload) {
-  const url = `${getProxyBase()}/api/gemini/${endpoint}`;
-  const headers = { 'Content-Type': 'application/json' };
-  // عندما الخادم متاح، هو اللي عنده المفتاح — ما نرسل header
-  if (!serverAvailable) {
-    const apiKey = getGeminiKey();
-    if (apiKey) headers['x-api-key'] = apiKey;
-  }
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: headers,
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Proxy error (${response.status}): ${errText}`);
-  }
-
-  return response.json();
-}
-
-function buildTextPayload(text, systemPrompt) {
-  const payload = { contents: [{ parts: [{ text }] }] };
-  if (systemPrompt) {
-    payload.systemInstruction = { parts: [{ text: systemPrompt }] };
-  }
-  return payload;
-}
-
-function buildMediaPayload(parts, systemPrompt) {
-  const payload = { contents: [{ parts }] };
-  if (systemPrompt) {
-    payload.systemInstruction = { parts: [{ text: systemPrompt }] };
-  }
-  return payload;
-}
-
-function extractText(result) {
-  return result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response.';
-}
-
-function extractAudio(result) {
-  const part = result?.candidates?.[0]?.content?.parts?.[0];
-  const audioData = part?.inlineData?.data;
-  const mimeType = part?.inlineData?.mimeType;
-  if (!audioData || !mimeType?.startsWith('audio/')) return null;
-  return { audioData, mimeType };
-}
-
-/** استدعاء Gemini نصوص مع إعادة محاولة */
-async function callGemini(userQuery, systemPrompt, maxRetries = 3) {
-  const payload = buildTextPayload(userQuery, systemPrompt);
-  let delay = 1000;
-
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const result = await proxyFetch('text', payload);
-      return extractText(result);
-    } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, delay));
-      delay *= 2;
-    }
-  }
-}
-
-/** استدعاء مع وسائط (صور/صوت) */
-async function callGeminiWithMedia(parts, systemPrompt, endpoint = 'vision') {
-  const payload = buildMediaPayload(parts, systemPrompt);
-  const result = await proxyFetch(endpoint, payload);
-  return extractText(result);
-}
-
-/** تحويل النص إلى كلام عبر Gemini TTS */
-async function speakWithGeminiTTS(text) {
-  try {
-    const payload = {
-      contents: [{
-        parts: [{ text: `تحدث باللغة العربية الفصحى بصوت دافئ: ${text}` }],
-      }],
-      generationConfig: {
-        responseModalities: ['AUDIO'],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Puck' },
-          },
-        },
-      },
-    };
-
-    const result = await proxyFetch('tts', payload);
-    const audio = extractAudio(result);
-    if (!audio) return null;
-
-    const { audioData, mimeType } = audio;
-    const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)?.[1] || '24000', 10);
-    const pcmBuffer = base64ToArrayBuffer(audioData);
-    const wavBlob = pcmToWav(pcmBuffer, sampleRate);
-    return URL.createObjectURL(wavBlob);
-  } catch {
-    return null;
-  }
-}
-
-/** تفريغ الصوت إلى نص */
-async function transcribeAudio(base64Audio, mimeType) {
-  const text = await callGeminiWithMedia(
-    [
-      { text: getPrompt(getCurrentLang(), 'فرغ ما يقال حرفياً بالعربية بدون إضافات.', 'Transcribe the speech verbatim in English without any additions.') },
-      { inlineData: { mimeType, data: base64Audio } },
-    ],
-    null,
-    'transcribe'
-  );
-  return text;
-}
-
-/** تحليل الصور */
-async function describeImage(base64Image, mimeType) {
-  return callGeminiWithMedia([
-    { text: getPrompt(getCurrentLang(), 'صف هذه الصورة بالتفصيل لطالب كفيف بالعربية.', 'Describe this image in detail for a blind student in English. Describe the scene, colors, people, and details accurately.') },
-    { inlineData: { mimeType, data: base64Image } },
-  ]);
-}
-
-/** UI module - أدوات واجهة المستخدم */
+/** UI module - ط£ط¯ظˆط§طھ ظˆط§ط¬ظ‡ط© ط§ظ„ظ…ط³طھط®ط¯ظ… */
 
 const STORAGE_KEYS = {
   sizeOffset: 'cloudSchoolSizeOffset',
@@ -344,18 +65,18 @@ const STORAGE_KEYS = {
 // ====== Local Data ======
 var localData = {
     books: [
-        { id: 'b1', title: 'كيمياء الصف العاشر - الوحدة الأولى', content: 'مرحبًا بك في وحدة الكيمياء. في هذا الدرس، سنتعرف على العناصر والروابط التساهمية والأيونية وتفاعلات الطاقة والحرارة.', audio: '' },
-        { id: 'b2', title: 'تاريخ وحضارة الوطن العربي', content: 'مرحبًا بك في تاريخ العرب المجيد. سنتعلم اليوم عن الحضارات القديمة التي قامت في شبه الجزيرة العربية والهلال الخصيب ومصر الفرعونية.', audio: '' }
+        { id: 'b1', title: 'ظƒظٹظ…ظٹط§ط، ط§ظ„طµظپ ط§ظ„ط¹ط§ط´ط± - ط§ظ„ظˆط­ط¯ط© ط§ظ„ط£ظˆظ„ظ‰', content: 'ظ…ط±ط­ط¨ظ‹ط§ ط¨ظƒ ظپظٹ ظˆط­ط¯ط© ط§ظ„ظƒظٹظ…ظٹط§ط،. ظپظٹ ظ‡ط°ط§ ط§ظ„ط¯ط±ط³طŒ ط³ظ†طھط¹ط±ظپ ط¹ظ„ظ‰ ط§ظ„ط¹ظ†ط§طµط± ظˆط§ظ„ط±ظˆط§ط¨ط· ط§ظ„طھط³ط§ظ‡ظ…ظٹط© ظˆط§ظ„ط£ظٹظˆظ†ظٹط© ظˆطھظپط§ط¹ظ„ط§طھ ط§ظ„ط·ط§ظ‚ط© ظˆط§ظ„ط­ط±ط§ط±ط©.', audio: '' },
+        { id: 'b2', title: 'طھط§ط±ظٹط® ظˆط­ط¶ط§ط±ط© ط§ظ„ظˆط·ظ† ط§ظ„ط¹ط±ط¨ظٹ', content: 'ظ…ط±ط­ط¨ظ‹ط§ ط¨ظƒ ظپظٹ طھط§ط±ظٹط® ط§ظ„ط¹ط±ط¨ ط§ظ„ظ…ط¬ظٹط¯. ط³ظ†طھط¹ظ„ظ… ط§ظ„ظٹظˆظ… ط¹ظ† ط§ظ„ط­ط¶ط§ط±ط§طھ ط§ظ„ظ‚ط¯ظٹظ…ط© ط§ظ„طھظٹ ظ‚ط§ظ…طھ ظپظٹ ط´ط¨ظ‡ ط§ظ„ط¬ط²ظٹط±ط© ط§ظ„ط¹ط±ط¨ظٹط© ظˆط§ظ„ظ‡ظ„ط§ظ„ ط§ظ„ط®طµظٹط¨ ظˆظ…طµط± ط§ظ„ظپط±ط¹ظˆظ†ظٹط©.', audio: '' }
     ],
     assignments: [
-        { id: 'a1', title: 'واجب العلوم والفيزياء الأول', type: 'mcq', question: 'ما هو المكون الأساسي لغاز الأوزون؟', options: { A: 'الهيدروجين', B: 'الأكسجين الثلاثي', C: 'النيتروجين', D: 'غاز ثاني أكسيد الكربون' }, correct: 'B' },
-        { id: 'a2', title: 'اختبار اللغة العربية المقالي', type: 'text', question: 'اكتب فقرة قصيرة تتحدث فيها عن فضل المعلم في المجتمع وأهمية العلم؟', ideal: 'يعد العلم ركيزة المجتمعات الأساسية، والمعلم هو النور الذي يبدد الظلام...' }
+        { id: 'a1', title: 'ظˆط§ط¬ط¨ ط§ظ„ط¹ظ„ظˆظ… ظˆط§ظ„ظپظٹط²ظٹط§ط، ط§ظ„ط£ظˆظ„', type: 'mcq', question: 'ظ…ط§ ظ‡ظˆ ط§ظ„ظ…ظƒظˆظ† ط§ظ„ط£ط³ط§ط³ظٹ ظ„ط؛ط§ط² ط§ظ„ط£ظˆط²ظˆظ†طں', options: { A: 'ط§ظ„ظ‡ظٹط¯ط±ظˆط¬ظٹظ†', B: 'ط§ظ„ط£ظƒط³ط¬ظٹظ† ط§ظ„ط«ظ„ط§ط«ظٹ', C: 'ط§ظ„ظ†ظٹطھط±ظˆط¬ظٹظ†', D: 'ط؛ط§ط² ط«ط§ظ†ظٹ ط£ظƒط³ظٹط¯ ط§ظ„ظƒط±ط¨ظˆظ†' }, correct: 'B' },
+        { id: 'a2', title: 'ط§ط®طھط¨ط§ط± ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط© ط§ظ„ظ…ظ‚ط§ظ„ظٹ', type: 'text', question: 'ط§ظƒطھط¨ ظپظ‚ط±ط© ظ‚طµظٹط±ط© طھطھط­ط¯ط« ظپظٹظ‡ط§ ط¹ظ† ظپط¶ظ„ ط§ظ„ظ…ط¹ظ„ظ… ظپظٹ ط§ظ„ظ…ط¬طھظ…ط¹ ظˆط£ظ‡ظ…ظٹط© ط§ظ„ط¹ظ„ظ…طں', ideal: 'ظٹط¹ط¯ ط§ظ„ط¹ظ„ظ… ط±ظƒظٹط²ط© ط§ظ„ظ…ط¬طھظ…ط¹ط§طھ ط§ظ„ط£ط³ط§ط³ظٹط©طŒ ظˆط§ظ„ظ…ط¹ظ„ظ… ظ‡ظˆ ط§ظ„ظ†ظˆط± ط§ظ„ط°ظٹ ظٹط¨ط¯ط¯ ط§ظ„ط¸ظ„ط§ظ…...' }
     ],
     submissions: [],
     notifications: [],
     students: [
-        { name: 'أحمد خالد', grade: 'الصف العاشر', pin: '0000' },
-        { name: 'سارة عبد الله', grade: 'الصف التاسع', pin: '0000' }
+        { name: 'ط£ط­ظ…ط¯ ط®ط§ظ„ط¯', grade: 'ط§ظ„طµظپ ط§ظ„ط¹ط§ط´ط±', pin: '0000' },
+        { name: 'ط³ط§ط±ط© ط¹ط¨ط¯ ط§ظ„ظ„ظ‡', grade: 'ط§ظ„طµظپ ط§ظ„طھط§ط³ط¹', pin: '0000' }
     ]
 };
 
@@ -365,10 +86,6 @@ var screenReaderMode = false;
 var activeRole = 'student';
 var currentBrailleDots = new Set();
 var selectedQuizId = null;
-var activeGameTimer = null;
-var activeGameType = '';
-var currentGameScore = 0;
-var gameTimeLeft = 30;
 var ttsEngineMode = localStorage.getItem('cloudSchoolTtsEngine') || 'browser';
 var activeAudioElement = null;
 var currentUserSession = null;
@@ -376,42 +93,9 @@ var currentAgeLevel = localStorage.getItem('cloudSchoolAgeLevel') || 'auto';
 var currentlyPlayingBookId = null;
 var selectedOption = null;
 var quizTimerInterval = null;
-var currentCorrectAnswer = null;
-var gameTimerInterval = null;
 var uploadedImageBase64 = null;
 var uploadedImageMime = null;
 var accessibleVoicesController = null;
-let sharedAudioContext = null;
-
-// ====== Audio Context Singleton ======
-function getAudioContext() {
-  const Ctor = window.AudioContext || window.webkitAudioContext;
-  if (!Ctor) return null;
-  if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
-    sharedAudioContext = new Ctor();
-  }
-  if (sharedAudioContext.state === 'suspended') sharedAudioContext.resume();
-  return sharedAudioContext;
-}
-
-// ====== Toast ======
-var _toastTimer = null;
-function showToast(text, isError) {
-  var toast = document.getElementById('toast-message');
-  if (!toast) return;
-  if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
-  toast.textContent = text;
-  toast.className = 'fixed bottom-4 right-4 z-50 p-4 font-bold rounded-xl shadow-xl text-xl border-2 ' + (isError ? 'bg-red-600 text-white border-red-800' : 'bg-yellow-400 text-black border-black') + ' hidden';
-  toast.classList.remove('hidden');
-  _toastTimer = setTimeout(function() { toast.classList.add('hidden'); _toastTimer = null; }, 4000);
-}
-
-// ====== Loading Spinner ======
-function showLoading(elementId, message) {
-  const el = document.getElementById(elementId);
-  if (!el) return;
-  el.innerHTML = `<div class="loading-overlay"><span class="loading-spinner"></span><span>${escapeHtml(message)}</span></div>`;
-}
 
 // ====== Speech ======
 function speak(text) {
@@ -433,13 +117,13 @@ function toggleTtsEngine() {
   const btn = document.getElementById('tts-engine-toggle');
   if (btn) {
     btn.textContent = ttsEngineMode === 'gemini'
-      ? '🎙️ ' + __('ttsGemini')
-      : '🎙️ ' + __('ttsBrowser');
+      ? 'ًںژ™ï¸ڈ ' + __('ttsGemini')
+      : 'ًںژ™ï¸ڈ ' + __('ttsBrowser');
   }
   speak(ttsEngineMode === 'gemini' ? __('ttsGeminiActivated') : __('ttsBrowserActivated'));
 }
 
-// ====== المرحلة العمرية ======
+// ====== ط§ظ„ظ…ط±ط­ظ„ط© ط§ظ„ط¹ظ…ط±ظٹط© ======
 function setupAgeLevel() {
     var btn = document.getElementById('btn-age-level');
     if (!btn) return;
@@ -466,13 +150,13 @@ function updateAgeLevelButton() {
 function getAgeTone() {
     var age = currentUserSession?.age || 14;
     switch (currentAgeLevel) {
-        case 'child': return 'استخدم أسلوباً مبسطاً جداً مناسباً للأطفال، مع أمثلة يومية ملموسة، وتشجيع مستمر.';
-        case 'teen': return 'استخدم أسلوباً شبابياً مناسباً للمراهقين، مع تحديات فكرية مناسبة، ولغة واضحة لكنها غير طفولية.';
-        case 'adult': return 'استخدم أسلوباً أكاديمياً رصيناً مناسباً للبالغين، مع تحليل عميق ومصطلحات دقيقة.';
+        case 'child': return 'ط§ط³طھط®ط¯ظ… ط£ط³ظ„ظˆط¨ط§ظ‹ ظ…ط¨ط³ط·ط§ظ‹ ط¬ط¯ط§ظ‹ ظ…ظ†ط§ط³ط¨ط§ظ‹ ظ„ظ„ط£ط·ظپط§ظ„طŒ ظ…ط¹ ط£ظ…ط«ظ„ط© ظٹظˆظ…ظٹط© ظ…ظ„ظ…ظˆط³ط©طŒ ظˆطھط´ط¬ظٹط¹ ظ…ط³طھظ…ط±.';
+        case 'teen': return 'ط§ط³طھط®ط¯ظ… ط£ط³ظ„ظˆط¨ط§ظ‹ ط´ط¨ط§ط¨ظٹط§ظ‹ ظ…ظ†ط§ط³ط¨ط§ظ‹ ظ„ظ„ظ…ط±ط§ظ‡ظ‚ظٹظ†طŒ ظ…ط¹ طھط­ط¯ظٹط§طھ ظپظƒط±ظٹط© ظ…ظ†ط§ط³ط¨ط©طŒ ظˆظ„ط؛ط© ظˆط§ط¶ط­ط© ظ„ظƒظ†ظ‡ط§ ط؛ظٹط± ط·ظپظˆظ„ظٹط©.';
+        case 'adult': return 'ط§ط³طھط®ط¯ظ… ط£ط³ظ„ظˆط¨ط§ظ‹ ط£ظƒط§ط¯ظٹظ…ظٹط§ظ‹ ط±طµظٹظ†ط§ظ‹ ظ…ظ†ط§ط³ط¨ط§ظ‹ ظ„ظ„ط¨ط§ظ„ط؛ظٹظ†طŒ ظ…ط¹ طھط­ظ„ظٹظ„ ط¹ظ…ظٹظ‚ ظˆظ…طµط·ظ„ط­ط§طھ ط¯ظ‚ظٹظ‚ط©.';
         default:
-            if (age < 12) return 'استخدم أسلوباً مبسطاً جداً مناسباً للأطفال.';
-            if (age < 18) return 'استخدم أسلوباً مناسباً للمراهقين، واضح وجذاب.';
-            return 'استخدم أسلوباً أكاديمياً مناسباً للبالغين.';
+            if (age < 12) return 'ط§ط³طھط®ط¯ظ… ط£ط³ظ„ظˆط¨ط§ظ‹ ظ…ط¨ط³ط·ط§ظ‹ ط¬ط¯ط§ظ‹ ظ…ظ†ط§ط³ط¨ط§ظ‹ ظ„ظ„ط£ط·ظپط§ظ„.';
+            if (age < 18) return 'ط§ط³طھط®ط¯ظ… ط£ط³ظ„ظˆط¨ط§ظ‹ ظ…ظ†ط§ط³ط¨ط§ظ‹ ظ„ظ„ظ…ط±ط§ظ‡ظ‚ظٹظ†طŒ ظˆط§ط¶ط­ ظˆط¬ط°ط§ط¨.';
+            return 'ط§ط³طھط®ط¯ظ… ط£ط³ظ„ظˆط¨ط§ظ‹ ط£ظƒط§ط¯ظٹظ…ظٹط§ظ‹ ظ…ظ†ط§ط³ط¨ط§ظ‹ ظ„ظ„ط¨ط§ظ„ط؛ظٹظ†.';
     }
 }
 
@@ -583,119 +267,6 @@ async function checkProxyHealth() {
   }
 }
 
-// ====== Keyboard Shortcuts Help ======
-function showKeyboardHelp() {
-    var existing = document.getElementById('shortcuts-help-overlay');
-    if (existing) { existing.remove(); return; }
-    var overlay = document.createElement('div');
-    overlay.id = 'shortcuts-help-overlay';
-    overlay.className = 'fixed inset-0 bg-black bg-opacity-95 z-[100] flex items-center justify-center p-4';
-    overlay.innerHTML = '<div class="card p-6 rounded-3xl max-w-lg border-4 border-yellow-400 bg-slate-900 text-white w-full max-h-[80vh] overflow-y-auto" role="dialog" aria-label="' + __('keyboardHelpLabel') + '" aria-modal="true">' +
-        '<h2 class="text-3xl font-black text-yellow-400 mb-4 text-center">⌨️ ' + __('keyboardHelp') + '</h2>' +
-        '<div class="space-y-3 text-right" dir="rtl">' +
-        '<div class="grid grid-cols-2 gap-2 font-bold border-b border-gray-600 pb-2 mb-2"><span>' + __('keyboardColKey') + '</span><span>' + __('keyboardColFunc') + '</span></div>' +
-        shortcutRow(__('keyboardShortcutHelpKey'), __('keyboardShortcutHelp')) +
-        shortcutRow('Escape', __('keyboardShortcutClose')) +
-        shortcutRow('1', __('sectionBooks')) +
-        shortcutRow('2', __('sectionAssignments')) +
-        shortcutRow('3', __('sectionGames')) +
-        shortcutRow('4', __('keyboardSecTutor')) +
-        shortcutRow('5', __('keyboardSecVision')) +
-        shortcutRow('6', __('sectionDialogic')) +
-        shortcutRow('7', __('sectionStudyGroup')) +
-        shortcutRow('8', __('sectionDashboard')) +
-        shortcutRow('0', __('keyboardHome')) +
-        shortcutRow('B', __('keyboardBraille')) +
-        shortcutRow('T', __('keyboardTheme')) +
-        shortcutRow('R', __('keyboardRoles')) +
-        shortcutRow('Ctrl+M', __('keyboardMic')) +
-        shortcutRow('Ctrl+Shift+S', __('keyboardSR')) +
-        shortcutRow('Ctrl+Shift+A', __('keyboardAudioCp')) +
-        shortcutRow('Ctrl+Shift+T', __('keyboardTts')) +
-        shortcutRow('+ / -', __('keyboardFontSize')) +
-        '</div>' +
-        '<button id="btn-close-help" class="w-full mt-4 p-4 bg-yellow-400 text-black font-black text-xl rounded-xl btn-interactive">' + __('keyboardClose') + '</button></div>';
-    document.body.appendChild(overlay);
-    document.getElementById('btn-close-help')?.addEventListener('click', function() { overlay.remove(); });
-    document.getElementById('btn-close-help')?.focus();
-    trapFocus(overlay);
-    speak(__('keyboardHelpOpened'));
-}
-
-function shortcutRow(key, desc) {
-    return '<div class="grid grid-cols-2 gap-2 py-1"><span class="font-mono bg-gray-800 px-2 py-1 rounded text-yellow-300 text-center dir-ltr text-sm">' + key + '</span><span class="text-gray-200">' + desc + '</span></div>';
-}
-
-function setupKeyboardShortcuts() {
-    document.addEventListener('keydown', function(e) {
-        var tag = document.activeElement?.tagName || '';
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-        var helpOverlay = document.getElementById('shortcuts-help-overlay');
-        var key = e.key;
-        var ctrl = e.ctrlKey;
-
-        // Help
-        if (key === 'h' || key === 'H' || key === 'F1') {
-            e.preventDefault();
-            showKeyboardHelp();
-            return;
-        }
-        // Close help / go back
-        if (key === 'Escape') {
-            if (helpOverlay) { helpOverlay.remove(); return; }
-            closeStudentSection();
-            return;
-        }
-        // Only work when student view is active
-        if (document.getElementById('view-student')?.classList.contains('hidden')) return;
-        if (helpOverlay) return;
-
-        if (!ctrl) {
-            // Navigation shortcuts (single key)
-            switch (key) {
-                case '1': e.preventDefault(); openStudentSection('books'); break;
-                case '2': e.preventDefault(); openStudentSection('assignments'); break;
-                case '3': e.preventDefault(); openStudentSection('games'); break;
-                case '4': e.preventDefault(); openStudentSection('ai-tutor'); break;
-                case '5': e.preventDefault(); openStudentSection('image-describer'); break;
-                case '6': e.preventDefault(); openStudentSection('dialogic-classroom'); break;
-                case '7': e.preventDefault(); openStudentSection('study-group'); break;
-                case '8': e.preventDefault(); openStudentSection('dashboard'); break;
-                case '0': e.preventDefault(); closeStudentSection(); break;
-                case 'b': case 'B':
-                    e.preventDefault();
-                    document.getElementById('dot-1')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    document.getElementById('dot-1')?.focus();
-                    speak(__('brailleBoardHelp'));
-                    break;
-                case 't': case 'T':
-                    e.preventDefault();
-                    cycleTheme();
-                    break;
-                case 'r': case 'R':
-                    e.preventDefault();
-                    var roleBar = document.getElementById('dev-role-bar');
-                    if (roleBar) {
-                        roleBar.classList.toggle('hidden');
-                        speak(roleBar.classList.contains('hidden') ? __('roleBarHidden') : __('roleBarVisible'));
-                    }
-                    break;
-            }
-        } else {
-            // Ctrl+ combinations
-            var shift = e.shiftKey;
-            switch (key) {
-                case 'm': case 'M': e.preventDefault(); toggleAudioRecording(); break;
-                case 's': case 'S': if (shift) { e.preventDefault(); toggleScreenReaderMode(); } break;
-                case 'a': case 'A': if (shift) { e.preventDefault(); toggleAudioCoPilot(); } break;
-                case 't': case 'T': if (shift) { e.preventDefault(); toggleTtsEngine(); } break;
-                case '=': e.preventDefault(); adjustTextSize(1); break;
-                case '-': e.preventDefault(); adjustTextSize(-1); break;
-            }
-        }
-    });
-}
-
 // ====== Audio Recording ======
 var mediaRecorder = null;
 var audioChunks = [];
@@ -748,52 +319,6 @@ function toggleAudioRecording() {
       speak(__('micStart'));
     }).catch(function() { speak(__('micPermission')); });
   }
-}
-
-// ====== Focus Management ======
-function trapFocus(container) {
-  var focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-  function handleKeyDown(e) {
-    if (e.key !== 'Tab') return;
-    var elements = container.querySelectorAll(focusableSelector);
-    if (elements.length === 0) return;
-    var first = elements[0];
-    var last = elements[elements.length - 1];
-    if (e.shiftKey) {
-      if (document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      }
-    } else {
-      if (document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-  }
-  container.addEventListener('keydown', handleKeyDown);
-  var observer = new MutationObserver(function() {
-    if (!document.body.contains(container)) {
-      observer.disconnect();
-      container.removeEventListener('keydown', handleKeyDown);
-    }
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-}
-
-function focusElement(elementId) {
-  const el = document.getElementById(elementId);
-  if (el) {
-    el.focus();
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-}
-
-function announceToScreenReader(text) {
-  const ariaLive = document.getElementById('aria-live');
-  if (!ariaLive) return;
-  ariaLive.textContent = '';
-  requestAnimationFrame(() => { ariaLive.textContent = text; });
 }
 
 // ====== Gemini API Key (obfuscated at rest) ======
@@ -951,7 +476,7 @@ async function handleLoginSubmit(e) {
             }
             enterApp(currentUserSession);
         } else {
-            // Fallback: server unavailable — no localStorage auth (security)
+            // Fallback: server unavailable â€” no localStorage auth (security)
             warningText.textContent = __('errorNetwork');
             warningBox.classList.remove('hidden');
             speak(__('errorNetwork'));
@@ -1051,7 +576,7 @@ async function handleRegistrationSubmit(e) {
                 serverAuth: false
             });
         } else {
-            // Fallback: server unavailable — cannot register locally (security)
+            // Fallback: server unavailable â€” cannot register locally (security)
             const msg = __('errorNetwork');
             warningText.textContent = msg;
             warningBox.classList.remove('hidden');
@@ -1150,7 +675,7 @@ function switchRole(role) {
         renderAdminDashboard();
     }
 
-    // نقل التركيز إلى عنوان الواجهة الجديدة
+    // ظ†ظ‚ظ„ ط§ظ„طھط±ظƒظٹط² ط¥ظ„ظ‰ ط¹ظ†ظˆط§ظ† ط§ظ„ظˆط§ط¬ظ‡ط© ط§ظ„ط¬ط¯ظٹط¯ط©
     setTimeout(() => {
         setupAccessibleVoices();
         const viewMap = { student: 'student-welcome-msg', teacher: 'view-teacher', parent: 'view-parent', admin: 'view-admin' };
@@ -1187,10 +712,10 @@ async function translateAndEvaluateBrailleWithAI() {
     showLoading('braille-evaluation-text', __('loadingBrailleTranslate'));
     speak(__('brailleChecking'));
 
-    const prompt = `لقد كتب طالب كفيف هذا النص التعليمي باللغة العربية: "${answerText}". قم بمراجعة الإملاء، وتوضيح الكلمات المترجمة والتركيبات النحوية، وإعطائه تقريراً تربوياً وصوتياً فائق التشجيع لتنمية مهارات برايل لديه، مع تقديم النص المصحح والنهائي بشكل واضح وبسيط ومريح للقراءة.`;
+    const prompt = `ظ„ظ‚ط¯ ظƒطھط¨ ط·ط§ظ„ط¨ ظƒظپظٹظپ ظ‡ط°ط§ ط§ظ„ظ†طµ ط§ظ„طھط¹ظ„ظٹظ…ظٹ ط¨ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط©: "${answerText}". ظ‚ظ… ط¨ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¥ظ…ظ„ط§ط،طŒ ظˆطھظˆط¶ظٹط­ ط§ظ„ظƒظ„ظ…ط§طھ ط§ظ„ظ…طھط±ط¬ظ…ط© ظˆط§ظ„طھط±ظƒظٹط¨ط§طھ ط§ظ„ظ†ط­ظˆظٹط©طŒ ظˆط¥ط¹ط·ط§ط¦ظ‡ طھظ‚ط±ظٹط±ط§ظ‹ طھط±ط¨ظˆظٹط§ظ‹ ظˆطµظˆطھظٹط§ظ‹ ظپط§ط¦ظ‚ ط§ظ„طھط´ط¬ظٹط¹ ظ„طھظ†ظ…ظٹط© ظ…ظ‡ط§ط±ط§طھ ط¨ط±ط§ظٹظ„ ظ„ط¯ظٹظ‡طŒ ظ…ط¹ طھظ‚ط¯ظٹظ… ط§ظ„ظ†طµ ط§ظ„ظ…طµط­ط­ ظˆط§ظ„ظ†ظ‡ط§ط¦ظٹ ط¨ط´ظƒظ„ ظˆط§ط¶ط­ ظˆط¨ط³ظٹط· ظˆظ…ط±ظٹط­ ظ„ظ„ظ‚ط±ط§ط،ط©.`;
 
     try {
-        const resultText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "أنت معلم لغة عربية متميز وخبير في ترجمة وتصحيح لغة برايل وطريقة Perkins للمكفوفين من جميع المراحل العمرية. ", "You are an excellent Arabic language teacher and expert in Braille translation and grading for blind students of all ages using the Perkins method. ") + getAgeTone());
+        const resultText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "ط£ظ†طھ ظ…ط¹ظ„ظ… ظ„ط؛ط© ط¹ط±ط¨ظٹط© ظ…طھظ…ظٹط² ظˆط®ط¨ظٹط± ظپظٹ طھط±ط¬ظ…ط© ظˆطھطµط­ظٹط­ ظ„ط؛ط© ط¨ط±ط§ظٹظ„ ظˆط·ط±ظٹظ‚ط© Perkins ظ„ظ„ظ…ظƒظپظˆظپظٹظ† ظ…ظ† ط¬ظ…ظٹط¹ ط§ظ„ظ…ط±ط§ط­ظ„ ط§ظ„ط¹ظ…ط±ظٹط©. ", "You are an excellent Arabic language teacher and expert in Braille translation and grading for blind students of all ages using the Perkins method. ") + getAgeTone());
         evalText.textContent = resultText;
         speak(resultText);
     } catch (error) {
@@ -1210,10 +735,10 @@ async function summarizeCurriculumBookWithAI() {
     showLoading('book-ai-summary-text', __('loadingBookSummary'));
     speak(__('bookSummarizing'));
 
-    const prompt = `قم بتلخيص المحتوى الدراسي التالي بالتفصيل بأسلوب نقاطي سمعي فائق الوضوح ومناسب للمكفوفين من جميع الأعمار لتسهيل الحفظ كبطاقات استذكار سريعة: "${book.content}". ولد أيضاً ثلاثة أسئلة مراجعة وتنشيط للذاكرة في نهاية التلخيص. ` + getAgeTone();
+    const prompt = `ظ‚ظ… ط¨طھظ„ط®ظٹطµ ط§ظ„ظ…ط­طھظˆظ‰ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„طھط§ظ„ظٹ ط¨ط§ظ„طھظپطµظٹظ„ ط¨ط£ط³ظ„ظˆط¨ ظ†ظ‚ط§ط·ظٹ ط³ظ…ط¹ظٹ ظپط§ط¦ظ‚ ط§ظ„ظˆط¶ظˆط­ ظˆظ…ظ†ط§ط³ط¨ ظ„ظ„ظ…ظƒظپظˆظپظٹظ† ظ…ظ† ط¬ظ…ظٹط¹ ط§ظ„ط£ط¹ظ…ط§ط± ظ„طھط³ظ‡ظٹظ„ ط§ظ„ط­ظپط¸ ظƒط¨ط·ط§ظ‚ط§طھ ط§ط³طھط°ظƒط§ط± ط³ط±ظٹط¹ط©: "${book.content}". ظˆظ„ط¯ ط£ظٹط¶ط§ظ‹ ط«ظ„ط§ط«ط© ط£ط³ط¦ظ„ط© ظ…ط±ط§ط¬ط¹ط© ظˆطھظ†ط´ظٹط· ظ„ظ„ط°ط§ظƒط±ط© ظپظٹ ظ†ظ‡ط§ظٹط© ط§ظ„طھظ„ط®ظٹطµ. ` + getAgeTone();
 
     try {
-        const resultText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "أنت خبير تعليمي متميز في صياغة وتلخيص المناهج الدراسية لضعاف البصر بطريقة سمعية مبسطة للغاية.", "You are an excellent educational expert in formulating and summarizing curricula for the visually impaired in a highly simplified audio manner."));
+        const resultText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "ط£ظ†طھ ط®ط¨ظٹط± طھط¹ظ„ظٹظ…ظٹ ظ…طھظ…ظٹط² ظپظٹ طµظٹط§ط؛ط© ظˆطھظ„ط®ظٹطµ ط§ظ„ظ…ظ†ط§ظ‡ط¬ ط§ظ„ط¯ط±ط§ط³ظٹط© ظ„ط¶ط¹ط§ظپ ط§ظ„ط¨طµط± ط¨ط·ط±ظٹظ‚ط© ط³ظ…ط¹ظٹط© ظ…ط¨ط³ط·ط© ظ„ظ„ط؛ط§ظٹط©.", "You are an excellent educational expert in formulating and summarizing curricula for the visually impaired in a highly simplified audio manner."));
         document.getElementById('book-ai-summary-text').textContent = resultText;
         speak(resultText);
     } catch (error) {
@@ -1237,13 +762,13 @@ async function startAiStoryRound(choiceIndex = null) {
 
     let prompt = "";
     if (choiceIndex === null) {
-        prompt = "اصنع قصة تعليمية تفاعلية قصيرة مشوقة وملهمة باللغة العربية الفصحى لطلاب مكفوفين عن مغامرة في النظام الشمسي لتعلم الكواكب. أنهِ المقطع الأول بـ 3 خيارات لمواصلة المغامرة. أخرج النتيجة بصيغة JSON فقط بدون علامات markdown، وتحتوي الهيكل التالي: { 'story': 'نص المقطع المثير والمبسط وعلاقته بالمقرر الدراسي', 'options': ['خيار المغامرة الأول المثير كجملة قصيرة', 'خيار المغامرة الثاني المثير كجملة قصيرة', 'خيار المغامرة الثالث المثير كجملة قصيرة'] }";
+        prompt = "ط§طµظ†ط¹ ظ‚طµط© طھط¹ظ„ظٹظ…ظٹط© طھظپط§ط¹ظ„ظٹط© ظ‚طµظٹط±ط© ظ…ط´ظˆظ‚ط© ظˆظ…ظ„ظ‡ظ…ط© ط¨ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط© ط§ظ„ظپطµط­ظ‰ ظ„ط·ظ„ط§ط¨ ظ…ظƒظپظˆظپظٹظ† ط¹ظ† ظ…ط؛ط§ظ…ط±ط© ظپظٹ ط§ظ„ظ†ط¸ط§ظ… ط§ظ„ط´ظ…ط³ظٹ ظ„طھط¹ظ„ظ… ط§ظ„ظƒظˆط§ظƒط¨. ط£ظ†ظ‡ظگ ط§ظ„ظ…ظ‚ط·ط¹ ط§ظ„ط£ظˆظ„ ط¨ظ€ 3 ط®ظٹط§ط±ط§طھ ظ„ظ…ظˆط§طµظ„ط© ط§ظ„ظ…ط؛ط§ظ…ط±ط©. ط£ط®ط±ط¬ ط§ظ„ظ†طھظٹط¬ط© ط¨طµظٹط؛ط© JSON ظپظ‚ط· ط¨ط¯ظˆظ† ط¹ظ„ط§ظ…ط§طھ markdownطŒ ظˆطھط­طھظˆظٹ ط§ظ„ظ‡ظٹظƒظ„ ط§ظ„طھط§ظ„ظٹ: { 'story': 'ظ†طµ ط§ظ„ظ…ظ‚ط·ط¹ ط§ظ„ظ…ط«ظٹط± ظˆط§ظ„ظ…ط¨ط³ط· ظˆط¹ظ„ط§ظ‚طھظ‡ ط¨ط§ظ„ظ…ظ‚ط±ط± ط§ظ„ط¯ط±ط§ط³ظٹ', 'options': ['ط®ظٹط§ط± ط§ظ„ظ…ط؛ط§ظ…ط±ط© ط§ظ„ط£ظˆظ„ ط§ظ„ظ…ط«ظٹط± ظƒط¬ظ…ظ„ط© ظ‚طµظٹط±ط©', 'ط®ظٹط§ط± ط§ظ„ظ…ط؛ط§ظ…ط±ط© ط§ظ„ط«ط§ظ†ظٹ ط§ظ„ظ…ط«ظٹط± ظƒط¬ظ…ظ„ط© ظ‚طµظٹط±ط©', 'ط®ظٹط§ط± ط§ظ„ظ…ط؛ط§ظ…ط±ط© ط§ظ„ط«ط§ظ„ط« ط§ظ„ظ…ط«ظٹط± ظƒط¬ظ…ظ„ط© ظ‚طµظٹط±ط©'] }";
     } else {
-        prompt = `استكمالاً للقصة السابقة المروية، اختار الطالب الخيار رقم ${choiceIndex + 1}. تابع تفاصيل المغامرة في الفضاء وعلمهم معلومات جديدة ومفيدة، ثم أنهِ المقطع مجدداً بـ 3 خيارات جديدة لمتابعة القصة ومواصلة التحدي. أخرج النتيجة بصيغة JSON فقط بنفس التنسيق: { 'story': 'نص المقطع المثير والمبسط وعلاقته بالمقرر الدراسي', 'options': ['خيار 1', 'خيار 2', 'خيار 3'] }`;
+        prompt = `ط§ط³طھظƒظ…ط§ظ„ط§ظ‹ ظ„ظ„ظ‚طµط© ط§ظ„ط³ط§ط¨ظ‚ط© ط§ظ„ظ…ط±ظˆظٹط©طŒ ط§ط®طھط§ط± ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ط®ظٹط§ط± ط±ظ‚ظ… ${choiceIndex + 1}. طھط§ط¨ط¹ طھظپط§طµظٹظ„ ط§ظ„ظ…ط؛ط§ظ…ط±ط© ظپظٹ ط§ظ„ظپط¶ط§ط، ظˆط¹ظ„ظ…ظ‡ظ… ظ…ط¹ظ„ظˆظ…ط§طھ ط¬ط¯ظٹط¯ط© ظˆظ…ظپظٹط¯ط©طŒ ط«ظ… ط£ظ†ظ‡ظگ ط§ظ„ظ…ظ‚ط·ط¹ ظ…ط¬ط¯ط¯ط§ظ‹ ط¨ظ€ 3 ط®ظٹط§ط±ط§طھ ط¬ط¯ظٹط¯ط© ظ„ظ…طھط§ط¨ط¹ط© ط§ظ„ظ‚طµط© ظˆظ…ظˆط§طµظ„ط© ط§ظ„طھط­ط¯ظٹ. ط£ط®ط±ط¬ ط§ظ„ظ†طھظٹط¬ط© ط¨طµظٹط؛ط© JSON ظپظ‚ط· ط¨ظ†ظپط³ ط§ظ„طھظ†ط³ظٹظ‚: { 'story': 'ظ†طµ ط§ظ„ظ…ظ‚ط·ط¹ ط§ظ„ظ…ط«ظٹط± ظˆط§ظ„ظ…ط¨ط³ط· ظˆط¹ظ„ط§ظ‚طھظ‡ ط¨ط§ظ„ظ…ظ‚ط±ط± ط§ظ„ط¯ط±ط§ط³ظٹ', 'options': ['ط®ظٹط§ط± 1', 'ط®ظٹط§ط± 2', 'ط®ظٹط§ط± 3'] }`;
     }
 
     try {
-        const jsonText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "أنت مصمم قصص تفاعلية وتعليمية ملهمة ومختص في صياغة ملفات JSON نقية ومبسطة.", "You are a designer of inspiring interactive educational stories and an expert in formulating clean and simplified JSON files."));
+        const jsonText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "ط£ظ†طھ ظ…طµظ…ظ… ظ‚طµطµ طھظپط§ط¹ظ„ظٹط© ظˆطھط¹ظ„ظٹظ…ظٹط© ظ…ظ„ظ‡ظ…ط© ظˆظ…ط®طھطµ ظپظٹ طµظٹط§ط؛ط© ظ…ظ„ظپط§طھ JSON ظ†ظ‚ظٹط© ظˆظ…ط¨ط³ط·ط©.", "You are a designer of inspiring interactive educational stories and an expert in formulating clean and simplified JSON files."));
         const parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
 
         questionText.textContent = parsed.story;
@@ -1303,7 +828,7 @@ async function askAITutor() {
     speak(__('tutorThinking'));
 
     try {
-        const responseText = await callGeminiAPI(queryText, getPrompt(getCurrentLang(), "أنت معلم ودود متخصص في شرح المناهج الدراسية للمكفوفين وضعاف البصر من جميع المراحل العمرية. قدّم الشرح بمستوى يناسب الطالب: للطفل استخدم تبسيطاً شديداً وأمثلة يومية، وللشاب والبالغ استخدم أسلوباً أكاديمياً مناسباً مع الحفاظ على الوضوح.", "You are a friendly teacher specialized in explaining curricula for blind and visually impaired students of all ages. Provide explanations at a level suitable for the student: use extreme simplification and daily examples for children, and an appropriate academic style for young people and adults while maintaining clarity."));
+        const responseText = await callGeminiAPI(queryText, getPrompt(getCurrentLang(), "ط£ظ†طھ ظ…ط¹ظ„ظ… ظˆط¯ظˆط¯ ظ…طھط®طµطµ ظپظٹ ط´ط±ط­ ط§ظ„ظ…ظ†ط§ظ‡ط¬ ط§ظ„ط¯ط±ط§ط³ظٹط© ظ„ظ„ظ…ظƒظپظˆظپظٹظ† ظˆط¶ط¹ط§ظپ ط§ظ„ط¨طµط± ظ…ظ† ط¬ظ…ظٹط¹ ط§ظ„ظ…ط±ط§ط­ظ„ ط§ظ„ط¹ظ…ط±ظٹط©. ظ‚ط¯ظ‘ظ… ط§ظ„ط´ط±ط­ ط¨ظ…ط³طھظˆظ‰ ظٹظ†ط§ط³ط¨ ط§ظ„ط·ط§ظ„ط¨: ظ„ظ„ط·ظپظ„ ط§ط³طھط®ط¯ظ… طھط¨ط³ظٹط·ط§ظ‹ ط´ط¯ظٹط¯ط§ظ‹ ظˆط£ظ…ط«ظ„ط© ظٹظˆظ…ظٹط©طŒ ظˆظ„ظ„ط´ط§ط¨ ظˆط§ظ„ط¨ط§ظ„ط؛ ط§ط³طھط®ط¯ظ… ط£ط³ظ„ظˆط¨ط§ظ‹ ط£ظƒط§ط¯ظٹظ…ظٹط§ظ‹ ظ…ظ†ط§ط³ط¨ط§ظ‹ ظ…ط¹ ط§ظ„ط­ظپط§ط¸ ط¹ظ„ظ‰ ط§ظ„ظˆط¶ظˆط­.", "You are a friendly teacher specialized in explaining curricula for blind and visually impaired students of all ages. Provide explanations at a level suitable for the student: use extreme simplification and daily examples for children, and an appropriate academic style for young people and adults while maintaining clarity."));
         document.getElementById('ai-tutor-response-text').textContent = responseText;
         speak(responseText);
     } catch (error) {
@@ -1317,10 +842,10 @@ async function generateAIQuiz() {
     const btn = document.getElementById('btn-ai-generate');
     btn.textContent = __('quizGenerating');
 
-    const prompt = "ولد سؤال اختبار حقيقي واحد في مادة العلوم يتكون من اختيار من متعدد مع أربعة خيارات وتحديد الخيار الصحيح. أخرج النتيجة بتنسيق JSON نظيف وبسيط يحتوي على مفاتيح: question, A, B, C, D, correct.";
+    const prompt = "ظˆظ„ط¯ ط³ط¤ط§ظ„ ط§ط®طھط¨ط§ط± ط­ظ‚ظٹظ‚ظٹ ظˆط§ط­ط¯ ظپظٹ ظ…ط§ط¯ط© ط§ظ„ط¹ظ„ظˆظ… ظٹطھظƒظˆظ† ظ…ظ† ط§ط®طھظٹط§ط± ظ…ظ† ظ…طھط¹ط¯ط¯ ظ…ط¹ ط£ط±ط¨ط¹ط© ط®ظٹط§ط±ط§طھ ظˆطھط­ط¯ظٹط¯ ط§ظ„ط®ظٹط§ط± ط§ظ„طµط­ظٹط­. ط£ط®ط±ط¬ ط§ظ„ظ†طھظٹط¬ط© ط¨طھظ†ط³ظٹظ‚ JSON ظ†ط¸ظٹظپ ظˆط¨ط³ظٹط· ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ظ…ظپط§طھظٹط­: question, A, B, C, D, correct.";
 
     try {
-        const jsonText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "أنت مصمم اختبارات أكاديمي متميز. ", "You are an excellent academic quiz designer. ") + getAgeTone());
+        const jsonText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "ط£ظ†طھ ظ…طµظ…ظ… ط§ط®طھط¨ط§ط±ط§طھ ط£ظƒط§ط¯ظٹظ…ظٹ ظ…طھظ…ظٹط². ", "You are an excellent academic quiz designer. ") + getAgeTone());
         const parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
 
         document.getElementById('teacher-quiz-title').value = __('autoGeneratedQuizTitle');
@@ -1360,92 +885,6 @@ function clearCheatDots() {
     clearDots(currentCheatDots, 'cheat-dot', 'cheat-char-preview', true);
 }
 
-function openStudentSection(section) {
-    document.getElementById('student-sub-books').classList.add('hidden');
-    document.getElementById('student-sub-assignments').classList.add('hidden');
-    document.getElementById('student-sub-image-describer').classList.add('hidden');
-    document.getElementById('student-sub-games').classList.add('hidden');
-    document.getElementById('student-sub-ai-tutor').classList.add('hidden');
-    document.getElementById('student-sub-dialogic-classroom')?.classList.add('hidden');
-    document.getElementById('student-sub-study-group')?.classList.add('hidden');
-    document.getElementById('student-sub-dashboard')?.classList.add('hidden');
-
-    const container = document.getElementById('student-section-container');
-    container.classList.remove('hidden');
-    const title = document.getElementById('student-section-title');
-
-    if (section === 'books') {
-        title.textContent = __('sectionBooks');
-        document.getElementById('student-sub-books').classList.remove('hidden');
-        renderStudentBooks();
-        speak(__('sectionOpened', __('sectionBooks')));
-    } else if (section === 'assignments') {
-        title.textContent = __('sectionAssignments');
-        document.getElementById('student-sub-assignments').classList.remove('hidden');
-        renderStudentAssignments();
-        speak(__('sectionOpened', __('sectionAssignments')));
-    } else if (section === 'image-describer') {
-        title.textContent = __('sectionVision');
-        document.getElementById('student-sub-image-describer').classList.remove('hidden');
-        speak(__('sectionOpened', __('sectionVision')));
-    } else if (section === 'games') {
-        title.textContent = __('sectionGames');
-        document.getElementById('student-sub-games').classList.remove('hidden');
-        speak(__('sectionOpened', __('sectionGames')));
-    } else if (section === 'ai-tutor') {
-        title.textContent = __('sectionTutor');
-        document.getElementById('student-sub-ai-tutor').classList.remove('hidden');
-        speak(__('sectionOpened', __('sectionTutor')));
-    } else if (section === 'dialogic-classroom') {
-        title.textContent = __('sectionDialogic');
-        document.getElementById('student-sub-dialogic-classroom')?.classList.remove('hidden');
-        speak(__('sectionOpened', __('sectionDialogic')));
-    } else if (section === 'study-group') {
-        title.textContent = __('sectionStudyGroup');
-        document.getElementById('student-sub-study-group')?.classList.remove('hidden');
-        speak(__('sectionOpened', __('sectionStudyGroup')));
-    } else if (section === 'dashboard') {
-        title.textContent = __('sectionDashboard');
-        document.getElementById('student-sub-dashboard')?.classList.remove('hidden');
-        renderStudentDashboard();
-        speak(__('sectionOpened', __('sectionDashboard')));
-    }
-
-    container.scrollIntoView({ behavior: 'smooth' });
-    // نقل التركيز إلى أول عنصر تفاعلي في القسم
-    setTimeout(() => {
-        setupAccessibleVoices();
-        var sectionEl = document.getElementById('student-sub-' + section);
-        if (sectionEl) {
-            var firstBtn = sectionEl.querySelector('button, [tabindex="0"], input, select, textarea, a');
-            if (firstBtn) {
-                firstBtn.focus();
-            } else {
-                focusElement('student-section-title');
-            }
-        } else {
-            focusElement('student-section-title');
-        }
-    }, 200);
-}
-
-function closeStudentSection() {
-    document.getElementById('student-section-container').classList.add('hidden');
-    controlAudiobook('stop');
-    // إعادة التركيز إلى زر القسم المفتوح سابقاً
-    var activeBtn = document.querySelector('[data-student-section].bg-yellow-400');
-    if (activeBtn) {
-        activeBtn.focus();
-    } else {
-        var mainContent = document.getElementById('main-content');
-        if (mainContent) {
-            mainContent.setAttribute('tabindex', '-1');
-            mainContent.focus();
-        }
-    }
-    speak(__('sectionClosed'));
-}
-
 function renderStudentBooks() {
     const grid = document.getElementById('student-books-grid');
     grid.innerHTML = '';
@@ -1457,8 +896,8 @@ function renderStudentBooks() {
             <h4 class="text-2xl font-black">${escapeHtml(b.title)}</h4>
             <p class="text-sm line-clamp-3">${escapeHtml(b.content)}</p>
             <div class="flex gap-2 w-full flex-wrap">
-                <button data-action="read-book" data-book-id="${escapeHtml(b.id)}" class="flex-1 p-3 bg-yellow-500 text-black font-bold rounded hover:bg-yellow-400 btn-interactive">📖 ${__('btnReadAI')}</button>
-                <button data-action="play-book" data-book-id="${escapeHtml(b.id)}" class="flex-1 p-3 bg-blue-600 text-white font-bold rounded hover:bg-blue-500 btn-interactive">🎧 ${__('btnListenAudio')}</button>
+                <button data-action="read-book" data-book-id="${escapeHtml(b.id)}" class="flex-1 p-3 bg-yellow-500 text-black font-bold rounded hover:bg-yellow-400 btn-interactive">ًں“– ${__('btnReadAI')}</button>
+                <button data-action="play-book" data-book-id="${escapeHtml(b.id)}" class="flex-1 p-3 bg-blue-600 text-white font-bold rounded hover:bg-blue-500 btn-interactive">ًںژ§ ${__('btnListenAudio')}</button>
             </div>
         `;
         grid.appendChild(item);
@@ -1537,7 +976,7 @@ function renderStudentAssignments() {
                 <h4 class="text-2xl font-black">${escapeHtml(a.title)}</h4>
                 <span class="text-sm px-2 py-1 bg-yellow-400 text-black rounded font-bold">${a.type === 'mcq' ? __('typeMCQ') : __('typeEssay')}</span>
             </div>
-            <button data-action="start-quiz" data-quiz-id="${escapeHtml(a.id)}" class="p-4 bg-green-600 text-white font-black text-lg rounded-xl hover:bg-green-500 large-touch-target btn-interactive">${__('btnStartQuiz')} 🏁</button>
+            <button data-action="start-quiz" data-quiz-id="${escapeHtml(a.id)}" class="p-4 bg-green-600 text-white font-black text-lg rounded-xl hover:bg-green-500 large-touch-target btn-interactive">${__('btnStartQuiz')} ًںڈپ</button>
         `;
         list.appendChild(item);
     });
@@ -1784,341 +1223,6 @@ function speakVisionResponse() {
     speak(text);
 }
 
-function initGame(gameType) {
-    activeGameType = gameType;
-    currentGameScore = 0;
-    gameTimeLeft = 30;
-
-    document.getElementById('active-game-panel').classList.remove('hidden');
-    document.getElementById('game-score').textContent = "0";
-    document.getElementById('game-timer').textContent = "30";
-
-    if (gameTimerInterval) clearInterval(gameTimerInterval);
-
-    const binaryOptions = document.getElementById('game-binary-options');
-    const storyOptions = document.getElementById('game-story-options');
-
-    if (gameType === 'seconds') {
-        document.getElementById('game-title').textContent = __('gameTrueFalse');
-        document.getElementById('game-timer-wrapper').classList.remove('hidden');
-        binaryOptions.classList.remove('hidden');
-        storyOptions.classList.add('hidden');
-        startNewGameRound();
-        speak(__('gameTrueFalseStart'));
-    } else if (gameType === 'hero') {
-        document.getElementById('game-title').textContent = __('gameSpeed');
-        document.getElementById('game-timer-wrapper').classList.add('hidden');
-        binaryOptions.classList.remove('hidden');
-        storyOptions.classList.add('hidden');
-        startNewGameRound();
-        speak(__('gameSpeedStart'));
-    } else if (gameType === 'pvp') {
-        document.getElementById('game-title').textContent = __('gamePvP');
-        document.getElementById('game-timer-wrapper').classList.remove('hidden');
-        binaryOptions.classList.remove('hidden');
-        storyOptions.classList.add('hidden');
-        startNewGameRound();
-        speak(__('gamePvPStart'));
-    } else if (gameType === 'ai-story') {
-        document.getElementById('game-title').textContent = __('gameStory');
-        document.getElementById('game-timer-wrapper').classList.add('hidden');
-        startAiStoryRound(null);
-    } else if (gameType === 'audio-memory') {
-        document.getElementById('game-title').textContent = __('gameMemory');
-        document.getElementById('game-timer-wrapper').classList.add('hidden');
-        binaryOptions.classList.add('hidden');
-        storyOptions.classList.add('hidden');
-        initAudioMemoryUI();
-        startAudioMemoryGame();
-        return;
-    }
-
-    if (gameType !== 'hero' && gameType !== 'ai-story' && gameType !== 'audio-memory') {
-        gameTimerInterval = setInterval(() => {
-            gameTimeLeft -= 1;
-            document.getElementById('game-timer').textContent = gameTimeLeft;
-            if (gameTimeLeft <= 5 && gameTimeLeft > 0) playTick3D();
-            if (gameTimeLeft <= 0) {
-                endGame();
-            }
-        }, 1000);
-    }
-
-    document.getElementById('active-game-panel').scrollIntoView({ behavior: 'smooth' });
-    setTimeout(setupAccessibleVoices, 200);
-}
-
-var questionBank = [
-    // ===== علوم - سهل =====
-    { q: "الماء يتكون من ذرتي هيدروجين وذرة أكسجين.", a: true, d: 1 },
-    { q: "الأرض هي الكوكب الثالث في المجموعة الشمسية.", a: true, d: 1 },
-    { q: "الضوء ينتقل أسرع من الصوت.", a: true, d: 1 },
-    { q: "الجهاز المسؤول عن ضخ الدم في جسم الإنسان هو الكبد.", a: false, d: 1 },
-    { q: "التمثيل الضوئي يحدث في أوراق النباتات.", a: true, d: 1 },
-    { q: "جسم الإنسان يحتوي على 206 عظمة.", a: true, d: 1 },
-    { q: "الماء يغلي عند درجة حرارة 100 سيليسيوس.", a: true, d: 1 },
-    { q: "البكتيريا كائنات حية دقيقة ترى بالعين المجردة.", a: false, d: 1 },
-    { q: "الجلد هو أكبر عضو في جسم الإنسان.", a: true, d: 1 },
-    // ===== علوم - متوسط =====
-    { q: "الأكسجين يمثل المكون الأساسي لغاز النيتروجين.", a: false, d: 2 },
-    { q: "الأوزون هو غاز يحمي الأرض من الأشعة فوق البنفسجية.", a: true, d: 2 },
-    { q: "يتكون الدماغ البشري من ثلاثة أقسام رئيسية.", a: true, d: 2 },
-    { q: "النباتات تصنع غذاءها بنفسها بعملية تسمى التنفس.", a: false, d: 2 },
-    { q: "الكواكب الداخلية في مجموعتنا الشمسية هي عطارد والزهرة والمريخ.", a: false, d: 2 },
-    // ===== علوم - صعب =====
-    { q: "العظام هي أصلب مادة في جسم الإنسان.", a: true, d: 3 },
-    { q: "الكلوروبلاست هي المسؤولة عن عملية البناء الضوئي في الخلية.", a: true, d: 3 },
-    { q: "الرقم الهيدروجيني للحمض النقي أقل من 7.", a: true, d: 3 },
-    // ===== رياضيات - سهل =====
-    { q: "العدد 9 هو مربع العدد 3.", a: true, d: 1 },
-    { q: "المجموع الكلي لزوايا المثلث يساوي 180 درجة.", a: true, d: 1 },
-    { q: "ناتج 12 ÷ 4 يساوي 3.", a: true, d: 1 },
-    { q: "الزاوية القائمة تساوي 90 درجة.", a: true, d: 1 },
-    { q: "العدد 17 هو عدد زوجي.", a: false, d: 1 },
-    { q: "الكسر ½ يساوي 0.5 في النظام العشري.", a: true, d: 1 },
-    // ===== رياضيات - متوسط =====
-    { q: "حاصل ضرب 8 × 7 يساوي 54.", a: false, d: 2 },
-    { q: "القطر هو ضعف نصف القطر.", a: true, d: 2 },
-    { q: "العدد الأولي هو عدد يقبل القسمة على 1 وعلى نفسه فقط.", a: true, d: 2 },
-    { q: "مجموع زوايا المربع يساوي 360 درجة.", a: true, d: 2 },
-    { q: "المساحة تقاس بالوحدات المربعة.", a: true, d: 2 },
-    { q: "الجذر التربيعي للعدد 64 هو 8.", a: true, d: 2 },
-    // ===== رياضيات - صعب =====
-    { q: "العدد 100 هو أصغر عدد مكون من ثلاث خانات.", a: false, d: 3 },
-    { q: "النسبة المئوية تعني جزءاً من 100.", a: true, d: 3 },
-    { q: "المتوسط الحسابي للأعداد 2، 4، 6 يساوي 4.", a: true, d: 3 },
-    { q: "العدد -3 أكبر من العدد 2.", a: false, d: 3 },
-    // ===== لغة عربية - سهل =====
-    { q: "الفعل الماضي يدل على حدث وقع في الزمن الماضي.", a: true, d: 1 },
-    { q: "الفاعل في الجملة العربية مرفوع دائماً.", a: true, d: 1 },
-    { q: "حروف العطف هي: الفاء، ثم، الواو، أو.", a: false, d: 1 },
-    { q: "المثنى يدل على اثنين بزيادة ألف ونون أو ياء ونون.", a: true, d: 1 },
-    { q: "جمع المؤنث السالم ينصب بالفتحة.", a: true, d: 1 },
-    // ===== لغة عربية - متوسط =====
-    { q: "الهمزة في كلمة (سأل) همزة قطع.", a: true, d: 2 },
-    { q: "جمع كلمة (كتاب) هو (كتبة).", a: false, d: 2 },
-    { q: "اللام في (الكتاب) شمسية.", a: false, d: 2 },
-    { q: "كلمة (مدرسة) هي اسم مكان.", a: true, d: 2 },
-    { q: "كلمة (جميل) في جملة (رأيت طالباً جميلاً) نعت.", a: true, d: 2 },
-    // ===== لغة عربية - صعب =====
-    { q: "الأفعال الخمسة ترفع بثبوت النون وتنصب وتجزم بحذفها.", a: true, d: 3 },
-    { q: "الفعل المضارع المعتل الآخر يرفع بالضمة المقدرة.", a: true, d: 3 },
-    { q: "كلمة (استغفار) مصدر خماسي.", a: true, d: 3 },
-    // ===== تاريخ - سهل =====
-    { q: "النبي محمد ﷺ ولد في عام الفيل.", a: true, d: 1 },
-    { q: "الحضارة الفرعونية نشأت في بلاد الرافدين.", a: false, d: 1 },
-    { q: "الجزائر كانت تحت الاستعمار الفرنسي.", a: true, d: 1 },
-    { q: "الحرب العالمية الثانية انتهت عام 1945.", a: true, d: 1 },
-    // ===== تاريخ - متوسط =====
-    { q: "معركة حطين قادها صلاح الدين الأيوبي.", a: true, d: 2 },
-    { q: "فتح الأندلس كان بقيادة طارق بن زياد.", a: true, d: 2 },
-    { q: "الثورة الفرنسية حدثت في القرن الثامن عشر.", a: true, d: 2 },
-    { q: "سور الصين العظيم بني لحماية الصين من الغزوات.", a: true, d: 2 },
-    // ===== تاريخ - صعب =====
-    { q: "الدولة العباسية عاصمتها دمشق.", a: false, d: 3 },
-    { q: "العلم العربي ابن الهيثم اشتهر في الطب.", a: false, d: 3 },
-    { q: "معركة اليرموك كانت بين المسلمين والفرس.", a: false, d: 3 },
-    // ===== جغرافيا - سهل =====
-    { q: "نهر النيل هو أطول نهر في العالم.", a: true, d: 1 },
-    { q: "عاصمة مصر هي الإسكندرية.", a: false, d: 1 },
-    { q: "أستراليا هي أصغر قارة في العالم.", a: true, d: 1 },
-    { q: "المحيط الهادئ هو أكبر محيط في العالم.", a: true, d: 1 },
-    // ===== جغرافيا - متوسط =====
-    { q: "القارة القطبية الجنوبية هي أبرد قارة على الأرض.", a: true, d: 2 },
-    { q: "البحر الميت هو أخفض نقطة على سطح الأرض.", a: true, d: 2 },
-    { q: "الصحراء الكبرى تقع في قارة آسيا.", a: false, d: 2 },
-    { q: "جبال الألب تقع في أوروبا.", a: true, d: 2 },
-    // ===== إسلاميات - سهل =====
-    { q: "عدد أركان الإسلام خمسة.", a: true, d: 1 },
-    { q: "الصيام في شهر رمضان هو أحد أركان الإسلام.", a: true, d: 1 },
-    { q: "المسجد الأقصى يقع في مكة المكرمة.", a: false, d: 1 },
-    { q: "الفاتحة هي أعظم سورة في القرآن.", a: true, d: 1 },
-    // ===== إسلاميات - متوسط =====
-    { q: "عدد الأنبياء والرسل المذكورين في القرآن هو 25.", a: true, d: 2 },
-    { q: "ليلة القدر في العشر الأواخر من رمضان.", a: true, d: 2 },
-    { q: "القرآن نزل على النبي محمد ﷺ في 23 سنة.", a: true, d: 2 },
-    // ===== إسلاميات - صعب =====
-    { q: "الحج واجب على كل مسلم مرة واحدة في العمر.", a: true, d: 3 },
-    { q: "سورة الإخلاص تعدل ثلث القرآن.", a: true, d: 3 },
-    // ===== عامة - سهل =====
-    { q: "الكرة الأرضية تدور حول الشمس كل 365 يوماً.", a: true, d: 1 },
-    { q: "لغة برايل هي نظام كتابة وقراءة للمكفوفين.", a: true, d: 1 },
-    { q: "الذهب معدن ثمين لا يصدأ.", a: true, d: 1 },
-    { q: "الإنترنت اخترع في القرن العشرين.", a: true, d: 1 },
-    { q: "طائر البطريق يستطيع الطيران لمسافات طويلة.", a: false, d: 1 },
-    // ===== عامة - متوسط =====
-    { q: "العين البشرية تستطيع رؤية جميع ألوان الطيف.", a: true, d: 2 },
-    { q: "ساعة العقارب تخبر الوقت عن طريق عقربي الساعة والدقيقة.", a: true, d: 2 },
-    { q: "الكهرباء هي تدفق الإلكترونات في الموصل.", a: true, d: 2 },
-    { q: "المغناطيس يجذب جميع أنواع المعادن.", a: false, d: 2 },
-];
-
-function pickQuestionByDifficulty(targetLevel) {
-    var pool = questionBank.filter(function(q) { return q.d === targetLevel; });
-    if (pool.length === 0) pool = questionBank;
-    return pool[secureRandomInt(0, pool.length)];
-}
-
-function startNewGameRound() {
-    if (activeGameType === 'audio-memory') {
-        startAudioMemoryGame();
-        return;
-    }
-    var level = 1;
-    if (activeGameType === 'hero') {
-        if (currentGameScore >= 80) level = 3;
-        else if (currentGameScore >= 40) level = 2;
-    }
-    var questionData = pickQuestionByDifficulty(level);
-
-    document.getElementById('game-question').textContent = questionData.q;
-    currentCorrectAnswer = questionData.a;
-
-    speak(questionData.q);
-
-    setTimeout(function() { listenForGameAnswer(); }, 1500);
-}
-
-function listenForGameAnswer() {
-    if (typeof listenForSpeech !== 'function') return;
-    speak(__('gameSpeakAnswer'));
-    listenForSpeech(function(text) {
-        if (!text) {
-            speak(__('gameNoAnswer'));
-            setTimeout(function() { listenForGameAnswer(); }, 1500);
-            return;
-        }
-        var t = text.trim();
-        if (t.indexOf('صح') !== -1 || t.indexOf('صحيح') !== -1 || t.indexOf('نعم') !== -1 || t.indexOf('yes') !== -1) {
-            answerGame(true);
-        } else if (t.indexOf('خطأ') !== -1 || t.indexOf('غلط') !== -1 || t.indexOf('لا') !== -1 || t.indexOf('no') !== -1) {
-            answerGame(false);
-        } else {
-            speak(__('gameUnclear'));
-            setTimeout(function() { listenForGameAnswer(); }, 1500);
-        }
-    }, 8000);
-}
-
-function answerGame(userAnswer) {
-    if (userAnswer === currentCorrectAnswer) {
-        currentGameScore += 10;
-        document.getElementById('game-score').textContent = currentGameScore;
-
-        playSuccess3D();
-        speak(__('gameCorrect'));
-
-        setTimeout(function() { startNewGameRound(); }, 1000);
-    } else {
-        playFail3D();
-        if (activeGameType === 'hero') {
-            speak(__('gameWrongScore', currentGameScore));
-            endGame();
-        } else {
-            speak(__('gameWrong'));
-            setTimeout(function() { startNewGameRound(); }, 1000);
-        }
-    }
-}
-
-// ===== لعبة الذاكرة السمعية =====
-var audioMemorySequence = [];
-var audioMemoryStep = 0;
-var audioMemoryPatterns = [
-    { name: 'قطة', freq: 800, dir: 'left' },
-    { name: 'كلب', freq: 400, dir: 'right' },
-    { name: 'ديك', freq: 1200, dir: 'front' },
-    { name: 'بقرة', freq: 150, dir: 'back' },
-    { name: 'قطار', freq: 300, dir: 'left' },
-    { name: 'جرس', freq: 1400, dir: 'right' },
-    { name: 'ماء', freq: 2000, dir: 'front' },
-    { name: 'باب', freq: 250, dir: 'back' },
-];
-
-function startAudioMemoryGame() {
-    activeGameType = 'audio-memory';
-    currentGameScore = 0;
-    audioMemorySequence = [];
-    audioMemoryStep = 0;
-
-    document.getElementById('active-game-panel').classList.remove('hidden');
-    document.getElementById('game-score').textContent = "0";
-    document.getElementById('game-title').textContent = __('gameMemory');
-    document.getElementById('game-timer-wrapper').classList.add('hidden');
-    document.getElementById('game-binary-options').classList.add('hidden');
-    document.getElementById('game-story-options').classList.add('hidden');
-    document.getElementById('game-question').textContent = __('gameMemoryListen');
-
-    speak(__('gameMemoryStart'));
-    setTimeout(function() { addAudioMemoryStep(); }, 2000);
-}
-
-function addAudioMemoryStep() {
-    var idx = secureRandomInt(0, audioMemoryPatterns.length);
-    audioMemorySequence.push(idx);
-    playAudioMemorySequence();
-}
-
-function playAudioMemorySequence() {
-    var i = 0;
-    function playNext() {
-        if (i >= audioMemorySequence.length) {
-            speak(__('gameMemoryYourTurn'));
-            return;
-        }
-        var pattern = audioMemoryPatterns[audioMemorySequence[i]];
-        var pos = { left: [-2,0,0], right: [2,0,0], front: [0,0,2], back: [0,0,-2] };
-        var p = pos[pattern.dir] || [0, 0, 0];
-        play3DTone(pattern.freq, pattern.freq * 1.5, 'sine', 0.3, p[0], p[1], p[2]);
-        speak(pattern.name);
-        i++;
-        setTimeout(playNext, 1200);
-    }
-    speak(__('gameMemoryNew'));
-    setTimeout(playNext, 500);
-}
-
-function answerAudioMemory(patternIdx) {
-    if (patternIdx === audioMemorySequence[audioMemoryStep]) {
-        playSuccess3D();
-        audioMemoryStep++;
-        if (audioMemoryStep >= audioMemorySequence.length) {
-            currentGameScore += 10;
-            document.getElementById('game-score').textContent = currentGameScore;
-            speak(__('gameMemoryComplete'));
-            audioMemoryStep = 0;
-            setTimeout(function() { addAudioMemoryStep(); }, 1500);
-        }
-    } else {
-        playFail3D();
-        speak(__('gameMemoryWrong', audioMemorySequence.map(function(i) { return audioMemoryPatterns[i].name; }).join(', ')));
-        endGame();
-    }
-}
-
-function initAudioMemoryUI() {
-    var container = document.getElementById('game-story-options');
-    container.innerHTML = '';
-    container.classList.remove('hidden');
-    audioMemoryPatterns.forEach(function(p, idx) {
-        var btn = document.createElement('button');
-        btn.className = 'p-4 bg-purple-700 text-white font-bold text-xl rounded-xl btn-interactive';
-        btn.textContent = p.name;
-        btn.addEventListener('click', function() { answerAudioMemory(idx); });
-        container.appendChild(btn);
-    });
-}
-
-function endGame() {
-    if (gameTimerInterval) clearInterval(gameTimerInterval);
-    document.getElementById('active-game-panel').classList.add('hidden');
-    speak(__('gameOver', currentGameScore));
-    if (currentGameScore >= 50) {
-        addNotification(__('notifGameAchievement'), (currentUserSession?.name || __('notifStudent')) + ' ' + __('notifGotScore') + ' ' + currentGameScore + ' ' + __('notifPointsInGame') + ' ' + (activeGameType === 'audio-memory' ? __('notifMemoryGame') : __('notifQuizGame')) + '!', 'achievement');
-    }
-}
-
-
 function startAITutorSpeech() {
     if (speechRecognizer) {
         speechRecognizer.start();
@@ -2138,10 +1242,10 @@ async function gradeSubmissionWithAI(index) {
 
     speak(__('gradingInProgress'));
 
-    const prompt = `قارن إجابة الطالب: "${sub.studentAnswer}" مع السؤال المقالي وصححه إملائياً ولغوياً وقدم تقريراً من سطرين متضمناً الدرجة المقترحة (من 100) مع الكلمات المشجعة للطالب الكفيف.`;
+    const prompt = `ظ‚ط§ط±ظ† ط¥ط¬ط§ط¨ط© ط§ظ„ط·ط§ظ„ط¨: "${sub.studentAnswer}" ظ…ط¹ ط§ظ„ط³ط¤ط§ظ„ ط§ظ„ظ…ظ‚ط§ظ„ظٹ ظˆطµط­ط­ظ‡ ط¥ظ…ظ„ط§ط¦ظٹط§ظ‹ ظˆظ„ط؛ظˆظٹط§ظ‹ ظˆظ‚ط¯ظ… طھظ‚ط±ظٹط±ط§ظ‹ ظ…ظ† ط³ط·ط±ظٹظ† ظ…طھط¶ظ…ظ†ط§ظ‹ ط§ظ„ط¯ط±ط¬ط© ط§ظ„ظ…ظ‚طھط±ط­ط© (ظ…ظ† 100) ظ…ط¹ ط§ظ„ظƒظ„ظ…ط§طھ ط§ظ„ظ…ط´ط¬ط¹ط© ظ„ظ„ط·ط§ظ„ط¨ ط§ظ„ظƒظپظٹظپ.`;
 
     try {
-        const report = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "أنت مصحح ومعلم تربوي. ", "You are a grader and educational teacher. ") + getAgeTone());
+        const report = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "ط£ظ†طھ ظ…طµط­ط­ ظˆظ…ط¹ظ„ظ… طھط±ط¨ظˆظٹ. ", "You are a grader and educational teacher. ") + getAgeTone());
         sub.initialScore = 95;
         sub.graderFeedback = report;
         saveLocalData();
@@ -2207,14 +1311,14 @@ function handleTeacherAddQuiz(e) {
     e.target.reset();
 }
 
-// ==================== لوحة قيادة المعلم ====================
+// ==================== ظ„ظˆط­ط© ظ‚ظٹط§ط¯ط© ط§ظ„ظ…ط¹ظ„ظ… ====================
 
 function renderTeacherDashboard() {
     var submissions = localData.submissions || [];
     var students = localData.students || [];
     var assignments = localData.assignments || [];
 
-    // 1. إحصائيات سريعة
+    // 1. ط¥ط­طµط§ط¦ظٹط§طھ ط³ط±ظٹط¹ط©
     var totalStudents = students.length;
     var activeStudents = new Set(submissions.map(function(s) { return s.studentName; })).size;
     var totalQuizzes = assignments.length;
@@ -2331,7 +1435,7 @@ function generateTeacherReport() {
     Object.keys(studentMap).sort().forEach(function(name) {
         var subs = studentMap[name];
         var avgS = Math.round(subs.reduce(function(a, b) { return a + b.score; }, 0) / subs.length);
-        report += '\n' + name + ' — ' + __('reportAvg') + ': ' + avgS + '%\n';
+        report += '\n' + name + ' â€” ' + __('reportAvg') + ': ' + avgS + '%\n';
         subs.forEach(function(sub) {
             report += '  - ' + sub.title + ': ' + sub.score + '%\n';
         });
@@ -2386,7 +1490,7 @@ function renderTeacherSubmissions() {
     });
 }
 
-// ==================== نظام الإشعارات ====================
+// ==================== ظ†ط¸ط§ظ… ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ====================
 
 function addNotification(title, details, type) {
     if (!localData.notifications) localData.notifications = [];
@@ -2416,52 +1520,6 @@ function updateNotifBadge() {
         btn.classList.add('hidden');
     }
 }
-
-function showNotificationsPanel() {
-    var existing = document.getElementById('notifications-panel-overlay');
-    if (existing) { existing.remove(); return; }
-    var overlay = document.createElement('div');
-    overlay.id = 'notifications-panel-overlay';
-    overlay.className = 'fixed inset-0 bg-black bg-opacity-95 z-[100] flex items-center justify-center p-4';
-    var notifs = localData.notifications || [];
-    var html = '<div class="card p-6 rounded-3xl max-w-lg border-4 border-blue-400 bg-slate-900 text-white w-full max-h-[80vh] overflow-y-auto" role="dialog" aria-label="' + __('notifPanelLabel') + '" aria-modal="true">' +
-        '<h2 class="text-3xl font-black text-blue-400 mb-4 text-center">🔔 ' + __('notifPanelTitle') + '</h2>';
-    if (notifs.length === 0) {
-        html += '<p class="text-center text-gray-400">' + __('notifEmpty') + '</p>';
-    } else {
-        html += '<div class="space-y-2">';
-        for (var i = 0; i < notifs.length; i++) {
-            var n = notifs[i];
-            var bg = n.read ? 'bg-slate-800' : 'bg-slate-700 border-r-4 border-yellow-400';
-            html += '<div class="p-3 rounded-lg ' + bg + '">' +
-                '<p class="font-bold text-sm text-yellow-300">' + escapeHtml(n.title) + '</p>' +
-                '<p class="text-gray-300 text-xs mt-1">' + escapeHtml(n.details) + '</p>' +
-                '<p class="text-gray-500 text-[10px] mt-1">' + escapeHtml(n.time) + '</p></div>';
-        }
-        html += '</div>';
-    }
-    html += '<button id="btn-close-notifs" class="w-full mt-4 p-4 bg-blue-500 text-white font-black text-xl rounded-xl btn-interactive">' + __('close') + '</button>' +
-        '<button id="btn-mark-read-notifs" class="w-full mt-2 p-2 bg-gray-700 text-white font-bold rounded-lg btn-interactive">' + __('markAllRead') + '</button></div>';
-    overlay.innerHTML = html;
-    document.body.appendChild(overlay);
-    document.getElementById('btn-close-notifs')?.addEventListener('click', function() { overlay.remove(); });
-    document.getElementById('btn-mark-read-notifs')?.addEventListener('click', function() {
-        (localData.notifications || []).forEach(function(n) { n.read = true; });
-        saveLocalData();
-        updateNotifBadge();
-        showNotificationsPanel();
-    });
-    document.getElementById('btn-close-notifs')?.focus();
-    // Mark notifications as read when panel is opened
-    if (notifs.length > 0) {
-        notifs[0].read = true;
-        saveLocalData();
-        updateNotifBadge();
-    }
-    speak(__('notifPanelOpened'));
-}
-
-// ==================== لوحة متابعة الطالب ====================
 
 function renderStudentStats() {
     var submissions = localData.submissions || [];
@@ -2497,7 +1555,7 @@ function renderStudentDashboard() {
         quizDiv.innerHTML = '<div class="space-y-2">' +
             '<p class="text-white font-bold text-lg">' + mySubs.length + ' ' + escapeHtml(__('dashboardQuizzesSolved')) + '</p>' +
             '<p class="text-yellow-400 text-2xl font-black">' + escapeHtml(__('dashboardAverage')) + ' ' + avg + '%</p>' +
-            '<p class="text-gray-300 text-sm">' + escapeHtml(__('dashboardLastQuiz')) + ' ' + escapeHtml(last.quizTitle || '') + ' — ' + (last.initialScore || 0) + '%</p>' +
+            '<p class="text-gray-300 text-sm">' + escapeHtml(__('dashboardLastQuiz')) + ' ' + escapeHtml(last.quizTitle || '') + ' â€” ' + (last.initialScore || 0) + '%</p>' +
             '</div>';
     }
 
@@ -2510,7 +1568,7 @@ function renderStudentDashboard() {
         bookDiv.innerHTML = '<div class="space-y-2">' +
             '<p class="text-white font-bold text-lg">' + books.length + ' ' + __('dashboardBooksAvailable') + '</p>' +
             '<ul class="text-sm text-gray-300 space-y-1">' +
-            books.map(function(b) { return '<li>📖 ' + escapeHtml(b.title) + '</li>'; }).join('') +
+            books.map(function(b) { return '<li>ًں“– ' + escapeHtml(b.title) + '</li>'; }).join('') +
             '</ul></div>';
     }
 
@@ -2548,7 +1606,7 @@ function renderStudentDashboard() {
     encouragement.textContent = msgs[Math.floor(Math.random() * msgs.length)];
 }
 
-// ==================== واجهة ولي الأمر ====================
+// ==================== ظˆط§ط¬ظ‡ط© ظˆظ„ظٹ ط§ظ„ط£ظ…ط± ====================
 
 function renderParentDashboard() {
     const list = document.getElementById('parent-grades-list');
@@ -2597,7 +1655,7 @@ function renderParentDashboard() {
     }
 }
 
-// ==================== واجهة الإدارة ====================
+// ==================== ظˆط§ط¬ظ‡ط© ط§ظ„ط¥ط¯ط§ط±ط© ====================
 
 function handleAdminCreateStudent(e) {
     e.preventDefault();
@@ -2637,13 +1695,13 @@ function saveQuizToFirebase(quiz) { if (serverAvailable) serverSave('assignments
 function saveSubmissionToFirebase(sub) { if (serverAvailable) serverSave('submissions', sub); }
 function saveStudentToFirebase(student) { if (serverAvailable) serverSave('students', student); }
 
-// syncFromFirebase_cb was here — removed (dead code, never called)
+// syncFromFirebase_cb was here â€” removed (dead code, never called)
 
-// ==================== [إصلاح #11] ربط الأحداث عبر addEventListener ====================
+// ==================== [ط¥طµظ„ط§ط­ #11] ط±ط¨ط· ط§ظ„ط£ط­ط¯ط§ط« ط¹ط¨ط± addEventListener ====================
 
 function updateProxyStatus() {
     checkProxyHealth().then((ok) => {
-        document.getElementById('proxy-status-icon').textContent = ok ? '🟢' : '🔴';
+        document.getElementById('proxy-status-icon').textContent = ok ? 'ًںں¢' : 'ًں”´';
         const el = document.getElementById('proxy-status');
         if (el) {
             el.textContent = ok ? __('proxyConnected') : __('proxyDisconnected');
@@ -2804,33 +1862,8 @@ function bindAllEvents() {
     document.querySelector('[data-action="speak-vision"]')?.addEventListener('click', speakVisionResponse);
 }
 
-// ====== Local Data Persistence ======
-function saveLocalData() {
-    try {
-        localStorage.setItem(STORAGE_KEYS.localData, JSON.stringify(localData));
-    } catch (e) {
-        console.warn('Failed to save local data:', e);
-    }
-}
 
-function loadLocalData() {
-    try {
-        var saved = localStorage.getItem(STORAGE_KEYS.localData);
-        if (saved) {
-            var parsed = JSON.parse(saved);
-            if (parsed.books) localData.books = parsed.books;
-            if (parsed.assignments) localData.assignments = parsed.assignments;
-            if (parsed.submissions) localData.submissions = parsed.submissions;
-            if (parsed.students) localData.students = parsed.students;
-            if (parsed.notifications) localData.notifications = parsed.notifications;
-        }
-        if (!localData.notifications) localData.notifications = [];
-    } catch (e) {
-        console.warn('Failed to load local data:', e);
-    }
-}
-
-// ====== Server Backend API (secure — replaces localStorage auth when server is running) ======
+// ====== Server Backend API (secure â€” replaces localStorage auth when server is running) ======
 const SERVER_BASE = (typeof __server_base !== 'undefined' && __server_base) || '';
 let serverAvailable = false;
 
@@ -2966,7 +1999,7 @@ function initAudioCoPilot() {
     }
 }
 
-// ==================== تهيئة التطبيق ====================
+// ==================== طھظ‡ظٹط¦ط© ط§ظ„طھط·ط¨ظٹظ‚ ====================
 
 var INIT_RAN = false;
 
@@ -2987,7 +2020,7 @@ function runInit() {
     if (INIT_RAN) return;
     INIT_RAN = true;
 
-    // كل دالة بناديها عن طريق الاسم عشان نتأكد إنها موجودة
+    // ظƒظ„ ط¯ط§ظ„ط© ط¨ظ†ط§ط¯ظٹظ‡ط§ ط¹ظ† ط·ط±ظٹظ‚ ط§ظ„ط§ط³ظ… ط¹ط´ط§ظ† ظ†طھط£ظƒط¯ ط¥ظ†ظ‡ط§ ظ…ظˆط¬ظˆط¯ط©
     var steps = [
         ['setupGlobalErrorHandler', __('initStepErrorHandler')],
         ['loadTheme', __('initStepThemes')],
@@ -3013,10 +2046,10 @@ function runInit() {
         }
     }
 
-    // تحديث شارة الإشعارات
+    // طھط­ط¯ظٹط« ط´ط§ط±ط© ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ
     updateNotifBadge();
 
-    // تحسين إمكانية الوصول — إدارة التركيز
+    // طھط­ط³ظٹظ† ط¥ظ…ظƒط§ظ†ظٹط© ط§ظ„ظˆطµظˆظ„ â€” ط¥ط¯ط§ط±ط© ط§ظ„طھط±ظƒظٹط²
     document.addEventListener('section-opened', function(e) {
         var sectionTitle = document.getElementById('student-section-title');
         if (sectionTitle) setTimeout(function() { sectionTitle.focus(); }, 100);
@@ -3028,7 +2061,7 @@ function runInit() {
         console.error('Speak error:', e);
     }
 
-    // إخفاء شاشة الترحيب
+    // ط¥ط®ظپط§ط، ط´ط§ط´ط© ط§ظ„طھط±ط­ظٹط¨
     dismissSplashScreen();
 }
 
@@ -3040,7 +2073,7 @@ function dismissSplashScreen() {
         splash.style.pointerEvents = 'none';
         setTimeout(function() {
             splash.style.display = 'none';
-            // نقل التركيز إلى بوابة تسجيل الدخول
+            // ظ†ظ‚ظ„ ط§ظ„طھط±ظƒظٹط² ط¥ظ„ظ‰ ط¨ظˆط§ط¨ط© طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„
             var authGate = document.getElementById('auth-gate');
             if (authGate) {
                 var firstInput = authGate.querySelector('input, button, [tabindex]:not([tabindex="-1"])');
@@ -3055,12 +2088,12 @@ function dismissSplashScreen() {
     setTimeout(handler, 5000);
 }
 
-// طريقة 1: window.onload
+// ط·ط±ظٹظ‚ط© 1: window.onload
 window.onload = function () {
     runInit();
 };
 
-// طريقة 2: لو load حصل قبل متعيين onload (احتمال ضعيف)
+// ط·ط±ظٹظ‚ط© 2: ظ„ظˆ load ط­طµظ„ ظ‚ط¨ظ„ ظ…طھط¹ظٹظٹظ† onload (ط§ط­طھظ…ط§ظ„ ط¶ط¹ظٹظپ)
 if (document.readyState === 'complete') {
     setTimeout(runInit, 0);
 }
@@ -3076,7 +2109,7 @@ export {
   extractText, extractAudio, callGemini, callGeminiWithMedia, speakWithGeminiTTS,
   transcribeAudio, describeImage, base64ToArrayBuffer, pcmToWav,
   STORAGE_KEYS, localData, audioCoPilotEnabled, screenReaderMode, activeRole,
-  currentBrailleDots, selectedQuizId, activeGameTimer, activeGameType,
+  currentBrailleDots, selectedQuizId, activeGameType,
   currentGameScore, gameTimeLeft, ttsEngineMode, activeAudioElement,
   currentUserSession, currentAgeLevel, currentlyPlayingBookId, selectedOption,
   quizTimerInterval, currentCorrectAnswer, gameTimerInterval, uploadedImageBase64,

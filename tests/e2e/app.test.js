@@ -1,9 +1,20 @@
 import { test, expect } from '@playwright/test';
 
+async function bypassAuth(page, role = 'student') {
+  await page.evaluate((r) => {
+    window.enterApp({
+      name: 'Test User',
+      contact: 'test@user.com',
+      role: r,
+      userId: 'mock-uid-123',
+      serverAuth: false
+    });
+  }, role);
+}
+
 test.describe('Cloud School E2E', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => { window.__DEV__ = true; });
   });
 
   test('should load and show auth gate with login form', async ({ page }) => {
@@ -39,7 +50,7 @@ test.describe('Cloud School E2E', () => {
   });
 
   test('should bypass auth and show student view', async ({ page }) => {
-    await page.locator('[data-action="bypass-demo"]').click();
+    await bypassAuth(page, 'student');
 
     // Auth gate should be hidden
     await expect(page.locator('#auth-gate')).toHaveClass(/hidden/);
@@ -53,14 +64,14 @@ test.describe('Cloud School E2E', () => {
   });
 
   test('should show student role bar after bypass', async ({ page }) => {
-    await page.locator('[data-action="bypass-demo"]').click();
+    await bypassAuth(page, 'student');
 
     const roleBar = page.locator('#dev-role-bar');
     await expect(roleBar).toBeVisible();
   });
 
   test('should switch roles via role bar buttons', async ({ page }) => {
-    await page.locator('[data-action="bypass-demo"]').click();
+    await bypassAuth(page, 'student');
 
     // Click teacher role
     await page.locator('[data-role-switch="teacher"]').click();
@@ -74,7 +85,7 @@ test.describe('Cloud School E2E', () => {
   });
 
   test('should open and close student sections', async ({ page }) => {
-    await page.locator('[data-action="bypass-demo"]').click();
+    await bypassAuth(page, 'student');
 
     // Open books section
     await page.locator('[data-student-section="books"]').click();
@@ -87,7 +98,7 @@ test.describe('Cloud School E2E', () => {
   });
 
   test('should show assignment options in student view', async ({ page }) => {
-    await page.locator('[data-action="bypass-demo"]').click();
+    await bypassAuth(page, 'student');
 
     // Open assignments section
     await page.locator('[data-student-section="assignments"]').click();

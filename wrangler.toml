@@ -1,0 +1,26 @@
+name = "cloud-school-api"
+main = "worker/index.js"
+compatibility_date = "2025-04-16"
+compatibility_flags = ["nodejs_compat"]
+
+[[kv_namespaces]]
+binding = "DATA"
+id = "e7dab1f829384c019ad6079674f58013"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "59791fab3a5f4a1e888160154d53eba3"
+
+[[kv_namespaces]]
+binding = "CONFIG"
+id = "d2ded6e401a6472ea2e0d03a24dba9fc"
+
+# WARNING: Do NOT put secrets (API keys, tokens) in this file.
+# Use `npx wrangler secret put <NAME>` for secrets like GEMINI_API_KEY and FIREBASE_API_KEY.
+[[d1_databases]]
+binding = "DB"
+database_name = "cloud-school-db"
+database_id = "edee57d4-de65-40a8-aa16-073511591186"
+
+[vars]
+CORS_ORIGIN = "https://cloud-school-6251a.web.app"
