@@ -648,13 +648,43 @@ export default {
       if (!model) return respond({ error: 'Unknown model' }, 400);
       try {
         const body = await request.json();
+        const bodyText = JSON.stringify(body);
+
+        // Compute prompt SHA-256 hash
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(bodyText);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        // Check if response is cached
+        try {
+          const cached = await env.DB.prepare('SELECT response FROM gemini_cache WHERE prompt_hash = ?')
+            .bind(hashHex)
+            .first();
+          if (cached) {
+            const cachedData = JSON.parse(cached.response);
+            return respond(cachedData);
+          }
+        } catch (dbErr) {}
+
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
         const geminiResp = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+          body: bodyText,
         });
         const data = await geminiResp.json();
+
+        // Cache the successful response
+        if (geminiResp.status === 200 && data) {
+          try {
+            await env.DB.prepare(
+              'INSERT OR REPLACE INTO gemini_cache (prompt_hash, prompt, response, created_at) VALUES (?, ?, ?, ?)'
+            ).bind(hashHex, bodyText, JSON.stringify(data), new Date().toISOString()).run();
+          } catch (dbErr) {}
+        }
+
         const resp = json(data, geminiResp.status);
         for (const [key, value] of Object.entries(cors)) {
           resp.headers.set(key, value);

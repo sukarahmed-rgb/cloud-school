@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 async function bypassAuth(page, role = 'student') {
+  await page.waitForFunction(() => typeof window.enterApp === 'function', { timeout: 5000 });
   await page.evaluate((r) => {
     window.enterApp({
       name: 'Test User',
@@ -14,6 +15,8 @@ async function bypassAuth(page, role = 'student') {
 
 test.describe('Cloud School E2E', () => {
   test.beforeEach(async ({ page }) => {
+    page.on('console', msg => console.log('BROWSER LOG:', msg.text()));
+    page.on('pageerror', err => console.log('BROWSER ERROR:', err.stack || err.message));
     await page.goto('/');
   });
 
@@ -38,6 +41,8 @@ test.describe('Cloud School E2E', () => {
   });
 
   test('should toggle between login and register forms', async ({ page }) => {
+    await page.waitForFunction(() => typeof window.enterApp === 'function', { timeout: 5000 });
+
     // Click "إنشاء حساب جديد"
     await page.locator('#btn-show-register').click();
     await expect(page.locator('#register-form-container')).toBeVisible();
