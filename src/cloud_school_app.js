@@ -9,6 +9,9 @@ import {
 } from './modules/auth.js';
 import { queueOfflineSave } from './modules/offline-sync.js';
 import {
+  configureStudentDashboard, renderStudentStats, renderStudentDashboard
+} from './modules/dashboards/student-dashboard.js';
+import {
   configureAiTutor, startAiStoryRound, analyzeImageWithGemini, askAITutor, generateAIQuiz, startAITutorSpeech, speakAITutorResponse, gradeSubmissionWithAI
 } from './modules/ai-tutor.js';
 import {
@@ -1033,92 +1036,7 @@ function updateNotifBadge() {
     }
 }
 
-function renderStudentStats() {
-    var submissions = localData.submissions || [];
-    var mySubs = submissions.filter(function(s) {
-        return s.studentName === (currentUserSession?.name || '');
-    });
-    var quizCount = mySubs.length;
-    var avgScore = quizCount > 0 ? Math.round(mySubs.reduce(function(sum, s) { return sum + (s.initialScore || 0); }, 0) / quizCount) : null;
-    var bookCount = localData.books ? localData.books.length : 0;
-    var gameCount = 0;
-
-    document.getElementById('stat-quizzes').textContent = quizCount;
-    document.getElementById('stat-avg-score').textContent = avgScore !== null ? avgScore + '%' : '--';
-    document.getElementById('stat-books').textContent = bookCount;
-    document.getElementById('stat-games').textContent = gameCount;
-}
-
-function renderStudentDashboard() {
-    renderStudentStats();
-
-    var submissions = localData.submissions || [];
-    var mySubs = submissions.filter(function(s) {
-        return s.studentName === (currentUserSession?.name || '');
-    });
-
-    // Quiz stats
-    var quizDiv = document.getElementById('dashboard-quiz-stats');
-    if (mySubs.length === 0) {
-        quizDiv.innerHTML = '<p class="text-gray-300">' + __('dashboardNoQuizzes') + '</p>';
-    } else {
-        var avg = Math.round(mySubs.reduce(function(sum, s) { return sum + (s.initialScore || 0); }, 0) / mySubs.length);
-        var last = mySubs[0];
-        quizDiv.innerHTML = '<div class="space-y-2">' +
-            '<p class="text-white font-bold text-lg">' + mySubs.length + ' ' + escapeHtml(__('dashboardQuizzesSolved')) + '</p>' +
-            '<p class="text-yellow-400 text-2xl font-black">' + escapeHtml(__('dashboardAverage')) + ' ' + avg + '%</p>' +
-            '<p class="text-gray-300 text-sm">' + escapeHtml(__('dashboardLastQuiz')) + ' ' + escapeHtml(last.quizTitle || '') + ' â€” ' + (last.initialScore || 0) + '%</p>' +
-            '</div>';
-    }
-
-    // Book stats
-    var bookDiv = document.getElementById('dashboard-book-stats');
-    var books = localData.books || [];
-    if (books.length === 0) {
-        bookDiv.innerHTML = '<p class="text-gray-300">' + __('dashboardNoBooks') + '</p>';
-    } else {
-        bookDiv.innerHTML = '<div class="space-y-2">' +
-            '<p class="text-white font-bold text-lg">' + books.length + ' ' + __('dashboardBooksAvailable') + '</p>' +
-            '<ul class="text-sm text-gray-300 space-y-1">' +
-            books.map(function(b) { return '<li>ًں“– ' + escapeHtml(b.title) + '</li>'; }).join('') +
-            '</ul></div>';
-    }
-
-    // Game stats
-    var gameDiv = document.getElementById('dashboard-game-stats');
-    gameDiv.innerHTML = '<div class="space-y-2">' +
-        '<p class="text-white font-bold text-lg">' + __('dashboardGamesTitle') + '</p>' +
-        '<p class="text-gray-300">' + __('dashboardGamesDesc') + '</p>' +
-        '<ul class="text-sm text-gray-300 space-y-1">' +
-        '<li>' + __('dashboardGameQuiz') + '</li>' +
-        '<li>' + __('dashboardGameMemory') + '</li>' +
-        '<li>' + __('dashboardGameStory') + '</li>' +
-        '</ul></div>';
-
-    // Achievements
-    var achDiv = document.getElementById('dashboard-achievements');
-    var badges = [];
-    if (mySubs.length >= 1) badges.push(__('badgeStudious'));
-    if (mySubs.length >= 5) badges.push(__('badgeStar'));
-    if ((mySubs.reduce(function(sum, s) { return sum + (s.initialScore || 0); }, 0) / Math.max(mySubs.length, 1)) >= 80) badges.push(__('badgeExcellent'));
-    if (badges.length === 0) badges.push(__('badgeStart'));
-
-    achDiv.innerHTML = '<div class="space-y-2">' +
-        badges.map(function(b) { return '<p class="text-white font-bold text-lg">' + b + '</p>'; }).join('') +
-        '</div>';
-
-    // Encouragement
-    var encouragement = document.getElementById('dashboard-encouragement');
-    var msgs = [
-        __('encourage1'),
-        __('encourage2'),
-        __('encourage3'),
-        __('encourage4')
-    ];
-    encouragement.textContent = msgs[Math.floor(Math.random() * msgs.length)];
-}
-
-// ==================== ظˆط§ط¬ظ‡ط© ظˆظ„ظٹ ط§ظ„ط£ظ…ط± ====================
+// renderStudentStats, renderStudentDashboard refactored and moved to student-dashboard.js
 
 function renderParentDashboard() {
     import('./modules/dashboards/parent-dashboard.js').then(m => m.renderParentDashboard());
@@ -1478,6 +1396,13 @@ function runInit() {
         getUploadedImageBase64: () => uploadedImageBase64,
         getUploadedImageMime: () => uploadedImageMime,
         getSpeechRecognizer: () => window.speechRecognizer
+    });
+
+    configureStudentDashboard({
+        getLocalData: () => localData,
+        getCurrentUserSession: () => currentUserSession,
+        __: __,
+        escapeHtml: escapeHtml
     });
 
     configureAuth({
