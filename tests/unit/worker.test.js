@@ -4,8 +4,13 @@
 
 // Pure functions extracted from worker/index.js
 function sanitizeString(str) {
-  if (typeof str !== 'string') return '';
-  return str.replace(/[<>&"'`]/g, '').trim().slice(0, 10000);
+  if (typeof str !== 'string') {
+    return '';
+  }
+  return str
+    .replace(/[<>&"'`]/g, '')
+    .trim()
+    .slice(0, 10000);
 }
 
 function stripMetaFields(obj) {
@@ -20,20 +25,32 @@ function stripMetaFields(obj) {
 
 function parseCookies(header) {
   const cookies = {};
-  (header || '').split(';').forEach(pair => {
+  (header || '').split(';').forEach((pair) => {
     const [key, ...val] = pair.trim().split('=');
-    if (key) cookies[key.trim()] = decodeURIComponent(val.join('='));
+    if (key) {
+      cookies[key.trim()] = decodeURIComponent(val.join('='));
+    }
   });
   return cookies;
 }
 
 function setCookie(name, value, opts = {}) {
   const parts = [`${name}=${encodeURIComponent(value)}`];
-  if (opts.httpOnly) parts.push('HttpOnly');
-  if (opts.secure) parts.push('Secure');
-  if (opts.sameSite) parts.push(`SameSite=${opts.sameSite}`);
-  if (opts.path) parts.push(`Path=${opts.path}`);
-  if (opts.maxAge) parts.push(`Max-Age=${opts.maxAge}`);
+  if (opts.httpOnly) {
+    parts.push('HttpOnly');
+  }
+  if (opts.secure) {
+    parts.push('Secure');
+  }
+  if (opts.sameSite) {
+    parts.push(`SameSite=${opts.sameSite}`);
+  }
+  if (opts.path) {
+    parts.push(`Path=${opts.path}`);
+  }
+  if (opts.maxAge) {
+    parts.push(`Max-Age=${opts.maxAge}`);
+  }
   return parts.join('; ');
 }
 
@@ -42,39 +59,55 @@ function clearCookie(name) {
 }
 
 function generateId() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = Math.random() * 16 | 0;
-    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
 }
 
 function parseRole(role, adminInviteCode, envAdminCode) {
   const allowed = ['student', 'teacher', 'parent'];
-  if (role === 'admin' && adminInviteCode && adminInviteCode === envAdminCode) return 'admin';
+  if (role === 'admin' && adminInviteCode && adminInviteCode === envAdminCode) {
+    return 'admin';
+  }
   return allowed.includes(role) ? role : 'student';
 }
 
 const ALLOWED_COLLECTIONS = new Set([
-  'curriculum_modules', 'assignments', 'submissions', 'students', 'notifications', 'exam_results'
+  'curriculum_modules',
+  'assignments',
+  'submissions',
+  'students',
+  'notifications',
+  'exam_results',
 ]);
 
 const COLLECTION_PERMISSIONS = {
-  curriculum_modules: { read: ['student','teacher','admin','parent'], write: ['teacher','admin'] },
-  assignments:        { read: ['student','teacher','admin','parent'], write: ['teacher','admin'] },
-  submissions:        { read: ['teacher','admin'], writeOwn: ['student'], write: ['teacher','admin'] },
-  students:           { read: ['teacher','admin'],                   write: ['teacher','admin'] },
-  notifications:      { read: ['student','teacher','admin','parent'], write: ['admin'] },
-  exam_results:       { read: ['teacher','admin'], writeOwn: ['student'], write: ['teacher','admin'] },
+  curriculum_modules: {
+    read: ['student', 'teacher', 'admin', 'parent'],
+    write: ['teacher', 'admin'],
+  },
+  assignments: { read: ['student', 'teacher', 'admin', 'parent'], write: ['teacher', 'admin'] },
+  submissions: { read: ['teacher', 'admin'], writeOwn: ['student'], write: ['teacher', 'admin'] },
+  students: { read: ['teacher', 'admin'], write: ['teacher', 'admin'] },
+  notifications: { read: ['student', 'teacher', 'admin', 'parent'], write: ['admin'] },
+  exam_results: { read: ['teacher', 'admin'], writeOwn: ['student'], write: ['teacher', 'admin'] },
 };
 
 function checkAccess(session, collection, method, item) {
-  if (!ALLOWED_COLLECTIONS.has(collection)) return { allowed: false, error: 'Unknown collection' };
+  if (!ALLOWED_COLLECTIONS.has(collection)) {
+    return { allowed: false, error: 'Unknown collection' };
+  }
   const perms = COLLECTION_PERMISSIONS[collection];
   const role = session.role;
 
-  function canRead() { return perms.read.includes(role); }
+  function canRead() {
+    return perms.read.includes(role);
+  }
   function canWrite(targetItem) {
-    if (perms.write.includes(role)) return true;
+    if (perms.write.includes(role)) {
+      return true;
+    }
     if (perms.writeOwn && perms.writeOwn.includes(role) && targetItem) {
       return targetItem.studentId === session.userId || targetItem._createdBy === session.userId;
     }
@@ -82,16 +115,24 @@ function checkAccess(session, collection, method, item) {
   }
 
   if (method === 'GET') {
-    if (!canRead()) return { allowed: false, error: 'Forbidden' };
+    if (!canRead()) {
+      return { allowed: false, error: 'Forbidden' };
+    }
     return { allowed: true };
   }
   if (method === 'POST') {
-    if (!canWrite(null)) return { allowed: false, error: 'Forbidden' };
+    if (!canWrite(null)) {
+      return { allowed: false, error: 'Forbidden' };
+    }
     return { allowed: true };
   }
   if (method === 'PUT' || method === 'DELETE') {
-    if (!item) return { allowed: false, error: 'Item not found' };
-    if (!canWrite(item)) return { allowed: false, error: 'Forbidden' };
+    if (!item) {
+      return { allowed: false, error: 'Item not found' };
+    }
+    if (!canWrite(item)) {
+      return { allowed: false, error: 'Forbidden' };
+    }
     return { allowed: true };
   }
   return { allowed: false, error: 'Unknown method' };
@@ -119,7 +160,12 @@ describe('sanitizeString', () => {
 
 describe('stripMetaFields', () => {
   test('removes underscore-prefixed keys', () => {
-    const result = stripMetaFields({ name: 'test', _secret: 'hidden', _createdBy: 'admin', data: 'value' });
+    const result = stripMetaFields({
+      name: 'test',
+      _secret: 'hidden',
+      _createdBy: 'admin',
+      data: 'value',
+    });
     expect(result).toEqual({ name: 'test', data: 'value' });
   });
   test('removes id field', () => {
@@ -132,8 +178,8 @@ describe('stripMetaFields', () => {
     expect(result.name.length).toBe(10000);
   });
   test('preserves non-string types', () => {
-    const result = stripMetaFields({ count: 42, active: true, tags: ['a','b'] });
-    expect(result).toEqual({ count: 42, active: true, tags: ['a','b'] });
+    const result = stripMetaFields({ count: 42, active: true, tags: ['a', 'b'] });
+    expect(result).toEqual({ count: 42, active: true, tags: ['a', 'b'] });
   });
 });
 
@@ -159,7 +205,13 @@ describe('setCookie', () => {
     expect(result).toContain('test=value');
   });
   test('with options', () => {
-    const result = setCookie('sess', 'token123', { httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 3600 });
+    const result = setCookie('sess', 'token123', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
+      path: '/',
+      maxAge: 3600,
+    });
     expect(result).toContain('HttpOnly');
     expect(result).toContain('Secure');
     expect(result).toContain('SameSite=Lax');
@@ -212,10 +264,10 @@ describe('parseRole (admin invite code)', () => {
 });
 
 describe('RBAC - checkAccess', () => {
-  const adminSession   = { userId: 'a1', role: 'admin' };
+  const adminSession = { userId: 'a1', role: 'admin' };
   const teacherSession = { userId: 't1', role: 'teacher' };
   const studentSession = { userId: 's1', role: 'student' };
-  const parentSession  = { userId: 'p1', role: 'parent' };
+  const parentSession = { userId: 'p1', role: 'parent' };
 
   describe('curriculum_modules', () => {
     test('student can read', () => {

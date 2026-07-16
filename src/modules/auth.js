@@ -9,9 +9,13 @@ export function configureAuth(context) {
 }
 
 export function checkAgeLimitations() {
-  if (!ctx) return;
+  if (!ctx) {
+    return;
+  }
   const role = document.getElementById('reg-role').value;
-  if (role !== 'student') return;
+  if (role !== 'student') {
+    return;
+  }
 
   const ageInput = document.getElementById('reg-age');
   const age = parseInt(ageInput.value, 10);
@@ -24,10 +28,12 @@ export function checkAgeLimitations() {
   warningBox.classList.add('hidden');
   parentContactInput.required = false;
 
-  if (isNaN(age)) return;
+  if (isNaN(age)) {
+    return;
+  }
 
   if (age < 12) {
-    const msg = ctx.__("ageUnder12");
+    const msg = ctx.__('ageUnder12');
     warningText.textContent = msg;
     warningBox.classList.remove('hidden');
     btnAuthSubmit.disabled = true;
@@ -44,7 +50,9 @@ export function checkAgeLimitations() {
 }
 
 export async function handleLoginSubmit(e) {
-  if (!ctx) return;
+  if (!ctx) {
+    return;
+  }
   e.preventDefault();
   const email = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value.trim();
@@ -73,7 +81,7 @@ export async function handleLoginSubmit(e) {
             contact: email,
             role: user.role || 'student',
             serverId: user.id || cred.user.uid,
-            serverAuth: true
+            serverAuth: true,
           };
           ctx.syncDataFromServer();
         } catch (err) {
@@ -83,7 +91,7 @@ export async function handleLoginSubmit(e) {
             contact: email,
             role: 'student',
             userId: cred.user.uid,
-            serverAuth: false
+            serverAuth: false,
           };
         }
       } else {
@@ -92,7 +100,7 @@ export async function handleLoginSubmit(e) {
           contact: email,
           role: 'student',
           userId: cred.user.uid,
-          serverAuth: false
+          serverAuth: false,
         };
       }
       enterApp(session);
@@ -118,19 +126,29 @@ export async function handleLoginSubmit(e) {
 }
 
 export function enterApp(session) {
-  if (!ctx) return;
+  if (!ctx) {
+    return;
+  }
   ctx.setCurrentUserSession(session);
   document.getElementById('auth-gate').classList.add('hidden');
   document.getElementById('dev-role-bar').classList.remove('hidden');
   document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
-  document.getElementById('active-user-badge').textContent = ctx.__('userBadge', session.name, ctx.getArabicRoleName(session.role));
+  document.getElementById('active-user-badge').textContent = ctx.__(
+    'userBadge',
+    session.name,
+    ctx.getArabicRoleName(session.role),
+  );
   ctx.switchRole(session.role);
   ctx.showToast(ctx.__('loginSuccess', session.name));
-  if (session.serverAuth) ctx.syncDataFromServer();
+  if (session.serverAuth) {
+    ctx.syncDataFromServer();
+  }
 }
 
 export async function handleRegistrationSubmit(e) {
-  if (!ctx) return;
+  if (!ctx) {
+    return;
+  }
   e.preventDefault();
   const name = document.getElementById('reg-name').value.trim();
   const contact = document.getElementById('reg-contact').value.trim();
@@ -145,7 +163,7 @@ export async function handleRegistrationSubmit(e) {
   let parentContact = '';
   if (role === 'student') {
     if (age < 12) {
-      const msg = ctx.__("registerAgeRestriction");
+      const msg = ctx.__('registerAgeRestriction');
       warningText.textContent = msg;
       warningBox.classList.remove('hidden');
       ctx.speak(msg);
@@ -153,7 +171,7 @@ export async function handleRegistrationSubmit(e) {
     }
     parentContact = document.getElementById('reg-parent-contact').value.trim();
     if (!parentContact) {
-      const msg = ctx.__("registerParentRequired");
+      const msg = ctx.__('registerParentRequired');
       warningText.textContent = msg;
       warningBox.classList.remove('hidden');
       ctx.speak(msg);
@@ -176,7 +194,7 @@ export async function handleRegistrationSubmit(e) {
             contact: user.email || contact,
             role: user.role || role,
             serverId: user.id || cred.user.uid,
-            serverAuth: true
+            serverAuth: true,
           });
           return;
         } catch (err) {
@@ -191,7 +209,7 @@ export async function handleRegistrationSubmit(e) {
         age: age,
         parentContact: parentContact,
         userId: cred.user.uid,
-        serverAuth: false
+        serverAuth: false,
       });
     } else {
       const msg = ctx.__('errorNetwork');
@@ -202,9 +220,13 @@ export async function handleRegistrationSubmit(e) {
   } catch (err) {
     console.error('Registration error:', err);
     let msg = ctx.__('loginFailed');
-    if (err.code === 'auth/email-already-in-use') msg = ctx.__('loginFailed');
-    else if (err.code === 'auth/weak-password') msg = ctx.__('loginFailed');
-    else if (err.code === 'auth/invalid-email') msg = ctx.__('loginFailed');
+    if (err.code === 'auth/email-already-in-use') {
+      msg = ctx.__('loginFailed');
+    } else if (err.code === 'auth/weak-password') {
+      msg = ctx.__('loginFailed');
+    } else if (err.code === 'auth/invalid-email') {
+      msg = ctx.__('loginFailed');
+    }
     warningText.textContent = msg;
     warningBox.classList.remove('hidden');
     ctx.speak(msg);
@@ -212,11 +234,20 @@ export async function handleRegistrationSubmit(e) {
 }
 
 export function logout() {
-  if (!ctx) return;
+  if (!ctx) {
+    return;
+  }
   const session = ctx.getCurrentUserSession();
-  if (session?.serverAuth) ctx.serverLogout();
+  if (session?.serverAuth) {
+    ctx.serverLogout();
+  }
   if (typeof firebase !== 'undefined' && firebase.auth) {
-    firebase.auth().signOut().catch(function(e) { console.warn('Firebase signOut error:', e); });
+    firebase
+      .auth()
+      .signOut()
+      .catch(function (e) {
+        console.warn('Firebase signOut error:', e);
+      });
   }
   ctx.setCurrentUserSession(null);
   ctx.setUserId(null);

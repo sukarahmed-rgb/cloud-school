@@ -5,7 +5,9 @@ const STORE_NAME = 'pending_saves';
 let dbInstance = null;
 
 function getDB() {
-  if (dbInstance) return Promise.resolve(dbInstance);
+  if (dbInstance) {
+    return Promise.resolve(dbInstance);
+  }
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (e) => {
@@ -84,7 +86,9 @@ export async function clearPendingSave(id) {
 // Function to process and flush all pending saves
 export async function syncOfflineData(serverSaveFn) {
   const pending = await getPendingSaves();
-  if (pending.length === 0) return;
+  if (pending.length === 0) {
+    return;
+  }
 
   console.log(`[Offline Sync] Processing ${pending.length} pending offline saves...`);
   for (const item of pending) {
@@ -93,7 +97,9 @@ export async function syncOfflineData(serverSaveFn) {
         await serverSaveFn(item.collection, item.data);
       }
       await clearPendingSave(item.id);
-      console.log(`[Offline Sync] Successfully synced offline save ID: ${item.id} for ${item.collection}`);
+      console.log(
+        `[Offline Sync] Successfully synced offline save ID: ${item.id} for ${item.collection}`,
+      );
     } catch (err) {
       console.warn(`[Offline Sync] Failed to sync offline item ${item.id}:`, err.message);
       // Stop syncing rest if server is still down

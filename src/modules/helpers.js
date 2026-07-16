@@ -1,5 +1,7 @@
 export function escapeHtml(str) {
-  if (!str && str !== 0) return '';
+  if (!str && str !== 0) {
+    return '';
+  }
   const div = document.createElement('div');
   div.textContent = String(str);
   return div.innerHTML;
@@ -8,14 +10,22 @@ export function escapeHtml(str) {
 export function base64ToArrayBuffer(base64) {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
   return bytes.buffer;
 }
 
 export function pcmToWav(pcmBuffer, sampleRate) {
   const buf = new ArrayBuffer(44 + pcmBuffer.byteLength);
   const v = new DataView(buf);
-  const w = (o, s, l) => { if (l) v.setUint32(o, s, true); else v.setUint32(o, s, false); };
+  const w = (o, s, l) => {
+    if (l) {
+      v.setUint32(o, s, true);
+    } else {
+      v.setUint32(o, s, false);
+    }
+  };
   w(0, 0x52494646, false);
   w(4, 36 + pcmBuffer.byteLength, true);
   w(8, 0x57415645, false);
@@ -30,7 +40,9 @@ export function pcmToWav(pcmBuffer, sampleRate) {
   w(36, 0x64617461, false);
   w(40, pcmBuffer.byteLength, true);
   const pcm = new Int16Array(pcmBuffer);
-  for (let i = 0; i < pcm.length; i++) v.setInt16(44 + i * 2, pcm[i], true);
+  for (let i = 0; i < pcm.length; i++) {
+    v.setInt16(44 + i * 2, pcm[i], true);
+  }
   return new Blob([buf], { type: 'audio/wav' });
 }
 

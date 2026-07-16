@@ -16,7 +16,7 @@ function secureRandomInt(min, max) {
 }
 
 function notifyListeners(level, context, error) {
-  listeners.forEach(fn => fn(level, context, error));
+  listeners.forEach((fn) => fn(level, context, error));
 }
 
 function handleError(context, error) {
@@ -30,25 +30,28 @@ function handleError(context, error) {
     try {
       window.firebase.analytics().logEvent('exception', {
         description: `[${context}] ${message}`,
-        fatal: level === ERROR_LEVELS.FATAL
+        fatal: level === ERROR_LEVELS.FATAL,
       });
     } catch (e) {}
   }
 
   const userMessages = {
     'api key': __('errorApiKey'),
-    'network': __('errorNetwork'),
-    'fetch': __('errorFetch'),
-    'timeout': __('errorTimeout'),
-    'permission': __('errorPermission'),
-    'audio': __('errorAudio'),
-    'firebase': __('errorFirebase'),
+    network: __('errorNetwork'),
+    fetch: __('errorFetch'),
+    timeout: __('errorTimeout'),
+    permission: __('errorPermission'),
+    audio: __('errorAudio'),
+    firebase: __('errorFirebase'),
   };
 
   let userMessage = __('errorDefault');
   const lowerMsg = message.toLowerCase();
   for (const [key, msg] of Object.entries(userMessages)) {
-    if (lowerMsg.includes(key)) { userMessage = msg; break; }
+    if (lowerMsg.includes(key)) {
+      userMessage = msg;
+      break;
+    }
   }
 
   showToast(userMessage);
@@ -69,7 +72,7 @@ function handleError(context, error) {
 function setupGlobalErrorHandler() {
   if (typeof window.Sentry !== 'undefined') {
     window.Sentry.init({
-      dsn: "https://7c44e976db57fcf7c7c34d3d2db73b18@o4505678229340160.ingest.us.sentry.io/4508930292725760",
+      dsn: 'https://7c44e976db57fcf7c7c34d3d2db73b18@o4505678229340160.ingest.us.sentry.io/4508930292725760',
       tracesSampleRate: 1.0,
     });
   }
@@ -88,6 +91,11 @@ function setupGlobalErrorHandler() {
 }
 
 export {
-  ERROR_LEVELS, listeners, secureRandomInt, notifyListeners,
-  speakToUser, handleError, setupGlobalErrorHandler,
+  ERROR_LEVELS,
+  listeners,
+  secureRandomInt,
+  notifyListeners,
+  speakToUser,
+  handleError,
+  setupGlobalErrorHandler,
 };

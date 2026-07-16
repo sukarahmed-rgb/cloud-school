@@ -3,7 +3,9 @@
  */
 
 function escapeHtml(str) {
-  if (!str && str !== 0) return '';
+  if (!str && str !== 0) {
+    return '';
+  }
   const div = document.createElement('div');
   div.textContent = String(str);
   return div.innerHTML;
@@ -19,9 +21,13 @@ const i18n = {};
 
 function __(key, ...args) {
   let val = i18n[key];
-  if (!val) return key;
+  if (!val) {
+    return key;
+  }
   if (args.length) {
-    args.forEach((arg, i) => { val = val.replace(`{${i}}`, arg); });
+    args.forEach((arg, i) => {
+      val = val.replace(`{${i}}`, arg);
+    });
   }
   return val;
 }

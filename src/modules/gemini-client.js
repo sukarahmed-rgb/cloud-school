@@ -2,19 +2,23 @@ import { base64ToArrayBuffer, pcmToWav } from './helpers.js';
 import { getPrompt, getCurrentLang } from './i18n.js';
 
 export function getProxyBase() {
-    if (window.serverAvailable) return '';
-    const override = localStorage.getItem('cloudSchoolProxyUrl');
-    return override || 'http://localhost:3001';
+  if (window.serverAvailable) {
+    return '';
+  }
+  const override = localStorage.getItem('cloudSchoolProxyUrl');
+  return override || 'http://localhost:3001';
 }
 
 export async function proxyFetch(endpoint, payload) {
   const url = `${getProxyBase()}/api/gemini/${endpoint}`;
   const headers = { 'Content-Type': 'application/json' };
-  
+
   if (!window.serverAvailable) {
     if (typeof window.getGeminiKey === 'function') {
       const apiKey = window.getGeminiKey();
-      if (apiKey) headers['x-api-key'] = apiKey;
+      if (apiKey) {
+        headers['x-api-key'] = apiKey;
+      }
     }
   }
   const response = await fetch(url, {
@@ -55,7 +59,9 @@ export function extractAudio(result) {
   const part = result?.candidates?.[0]?.content?.parts?.[0];
   const audioData = part?.inlineData?.data;
   const mimeType = part?.inlineData?.mimeType;
-  if (!audioData || !mimeType?.startsWith('audio/')) return null;
+  if (!audioData || !mimeType?.startsWith('audio/')) {
+    return null;
+  }
   return { audioData, mimeType };
 }
 
@@ -69,8 +75,10 @@ export async function callGemini(userQuery, systemPrompt, maxRetries = 3) {
       const result = await proxyFetch('text', payload);
       return extractText(result);
     } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, delay));
+      if (i === maxRetries - 1) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay));
       delay *= 2;
     }
   }
@@ -87,9 +95,11 @@ export async function callGeminiWithMedia(parts, systemPrompt, endpoint = 'visio
 export async function speakWithGeminiTTS(text) {
   try {
     const payload = {
-      contents: [{
-        parts: [{ text: `تحدث باللغة العربية الفصحى بصوت دافئ: ${text}` }],
-      }],
+      contents: [
+        {
+          parts: [{ text: `تحدث باللغة العربية الفصحى بصوت دافئ: ${text}` }],
+        },
+      ],
       generationConfig: {
         responseModalities: ['AUDIO'],
         speechConfig: {
@@ -102,7 +112,9 @@ export async function speakWithGeminiTTS(text) {
 
     const result = await proxyFetch('tts', payload);
     const audio = extractAudio(result);
-    if (!audio) return null;
+    if (!audio) {
+      return null;
+    }
 
     const { audioData, mimeType } = audio;
     const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)?.[1] || '24000', 10);
@@ -118,11 +130,17 @@ export async function speakWithGeminiTTS(text) {
 export async function transcribeAudio(base64Audio, mimeType) {
   const text = await callGeminiWithMedia(
     [
-      { text: getPrompt(getCurrentLang(), 'فرغ ما يقال حرفياً بالعربية بدون إضافات.', 'Transcribe the speech verbatim in English without any additions.') },
+      {
+        text: getPrompt(
+          getCurrentLang(),
+          'فرغ ما يقال حرفياً بالعربية بدون إضافات.',
+          'Transcribe the speech verbatim in English without any additions.',
+        ),
+      },
       { inlineData: { mimeType, data: base64Audio } },
     ],
     null,
-    'transcribe'
+    'transcribe',
   );
   return text;
 }
@@ -130,7 +148,13 @@ export async function transcribeAudio(base64Audio, mimeType) {
 /** تحليل الصور */
 export async function describeImage(base64Image, mimeType) {
   return callGeminiWithMedia([
-    { text: getPrompt(getCurrentLang(), 'صف هذه الصورة بالتفصيل لطالب كفيف بالعربية.', 'Describe this image in detail for a blind student in English. Describe the scene, colors, people, and details accurately.') },
+    {
+      text: getPrompt(
+        getCurrentLang(),
+        'صف هذه الصورة بالتفصيل لطالب كفيف بالعربية.',
+        'Describe this image in detail for a blind student in English. Describe the scene, colors, people, and details accurately.',
+      ),
+    },
     { inlineData: { mimeType, data: base64Image } },
   ]);
 }

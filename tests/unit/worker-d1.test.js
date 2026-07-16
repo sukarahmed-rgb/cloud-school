@@ -9,24 +9,40 @@ function snakeToCamel(str) {
 }
 
 function rowToItem(row) {
-  if (!row) return null;
-  let data = {};
-  try { data = JSON.parse(row.data || '{}'); } catch (e) { data = {}; }
+  if (!row) {
+    return null;
+  }
+  let data;
+  try {
+    data = JSON.parse(row.data || '{}');
+  } catch (e) {
+    data = {};
+  }
   const item = { ...data, id: row.id };
-  if (!item.created_by && row.created_by) item.created_by = row.created_by;
-  if (!item.created_at && row.created_at) item.created_at = row.created_at;
-  if (!item.updated_at && row.updated_at) item.updated_at = row.updated_at;
+  if (!item.created_by && row.created_by) {
+    item.created_by = row.created_by;
+  }
+  if (!item.created_at && row.created_at) {
+    item.created_at = row.created_at;
+  }
+  if (!item.updated_at && row.updated_at) {
+    item.updated_at = row.updated_at;
+  }
   for (const [key, value] of Object.entries(row)) {
-    if (key === 'id' || key === 'data') continue;
+    if (key === 'id' || key === 'data') {
+      continue;
+    }
     const camel = snakeToCamel(key);
-    if (item[camel] === undefined && value !== null) item[camel] = value;
+    if (item[camel] === undefined && value !== null) {
+      item[camel] = value;
+    }
   }
   return item;
 }
 
 const EXTRACT_COLUMNS = {
   users: ['firebase_uid', 'email', 'name', 'role', 'age_group', 'parent_contact'],
-  curriculum_modules: ['title', 'content', 'audio', 'created_by', 'created_at']
+  curriculum_modules: ['title', 'content', 'audio', 'created_by', 'created_at'],
 };
 
 function extractTypedFields(table, body) {
@@ -34,7 +50,7 @@ function extractTypedFields(table, body) {
   const cols = EXTRACT_COLUMNS[table] || [];
   for (const col of cols) {
     const camelKey = snakeToCamel(col);
-    let val = body[camelKey] !== undefined ? body[camelKey] : body[col];
+    const val = body[camelKey] !== undefined ? body[camelKey] : body[col];
     if (val !== undefined) {
       extracted[col] = typeof val === 'string' ? val.slice(0, 10000) : val;
     }
@@ -68,7 +84,7 @@ describe('Worker D1 Helpers', () => {
       id: 'user1',
       data: JSON.stringify({ name: 'Ahmad', role: 'student' }),
       firebase_uid: 'fb123',
-      created_by: 'admin1'
+      created_by: 'admin1',
     };
     const item = rowToItem(row);
     expect(item.id).toBe('user1');
@@ -83,7 +99,7 @@ describe('Worker D1 Helpers', () => {
       firebaseUid: 'fb123',
       name: 'Sarah',
       role: 'student',
-      extraField: 'shouldNotBeExtracted'
+      extraField: 'shouldNotBeExtracted',
     };
     const extracted = extractTypedFields('users', body);
     expect(extracted.firebase_uid).toBe('fb123');
@@ -97,7 +113,7 @@ describe('Worker D1 Helpers', () => {
       id: '123',
       title: 'Chemistry',
       _createdBy: 'admin',
-      _createdAt: '2026'
+      _createdAt: '2026',
     };
     const safe = stripMetaFields(obj);
     expect(safe.title).toBe('Chemistry');
