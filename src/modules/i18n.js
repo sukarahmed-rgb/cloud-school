@@ -68,7 +68,7 @@ export function applyJsTranslations() {
 }
 
 export function initTtsLang() {
-  const speechLang = currentLang === 'ar' ? 'ar-SA' : 'en-US';
+  const speechLang = currentLang === 'ar' ? 'ar-EG' : 'en-US';
   // تحديث النصوص الصوتية الثابتة (بناءً على اللغة الحالية)
   window.__speechLang = speechLang;
 }

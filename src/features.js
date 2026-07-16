@@ -20,7 +20,7 @@ function initSpeechRecognition() {
         return null;
     }
     const rec = new SR();
-    rec.lang = 'ar-SA';
+    rec.lang = 'ar-EG';
     rec.continuous = false;
     rec.interimResults = false;
     rec.maxAlternatives = 1;
