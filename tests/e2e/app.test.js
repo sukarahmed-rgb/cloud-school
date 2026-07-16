@@ -8,15 +8,15 @@ async function bypassAuth(page, role = 'student') {
       contact: 'test@user.com',
       role: r,
       userId: 'mock-uid-123',
-      serverAuth: false
+      serverAuth: false,
     });
   }, role);
 }
 
 test.describe('Cloud School E2E', () => {
   test.beforeEach(async ({ page }) => {
-    page.on('console', msg => console.log('BROWSER LOG:', msg.text()));
-    page.on('pageerror', err => console.log('BROWSER ERROR:', err.stack || err.message));
+    page.on('console', (msg) => console.log('BROWSER LOG:', msg.text()));
+    page.on('pageerror', (err) => console.log('BROWSER ERROR:', err.stack || err.message));
     await page.goto('/');
   });
 

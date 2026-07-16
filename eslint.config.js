@@ -52,6 +52,12 @@ export default [
         startQuiz: 'readonly',
         perkinsKeysPressed: 'writable',
         currentAgeLevel: 'readonly',
+        __app_id: 'readonly',
+        __firebase_config: 'readonly',
+        self: 'readonly',
+        caches: 'readonly',
+        runInit: 'readonly',
+        Response: 'readonly',
       },
     },
     rules: {

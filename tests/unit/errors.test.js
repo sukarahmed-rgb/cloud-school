@@ -3,15 +3,20 @@ describe('Error Handler Patterns', () => {
   let errors = [];
   const mockListeners = [];
 
-  function mockOnError(cb) { mockListeners.push(cb); }
+  function mockOnError(cb) {
+    mockListeners.push(cb);
+  }
   function mockHandleError(context, error) {
     const msg = error?.message || String(error);
     const level = error?.fatal ? 'fatal' : 'error';
-    mockListeners.forEach(fn => fn(level, context, error));
+    mockListeners.forEach((fn) => fn(level, context, error));
     return { level, context, message: msg };
   }
 
-  beforeEach(() => { errors = []; mockListeners.length = 0; });
+  beforeEach(() => {
+    errors = [];
+    mockListeners.length = 0;
+  });
 
   test('should return error level and context', () => {
     const result = mockHandleError('testCtx', new Error('test msg'));

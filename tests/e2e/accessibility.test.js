@@ -10,7 +10,7 @@ async function bypassAuth(page, role = 'student') {
       contact: 'test@user.com',
       role: r,
       userId: 'mock-uid-123',
-      serverAuth: false
+      serverAuth: false,
     });
   }, role);
 }
@@ -18,7 +18,7 @@ async function bypassAuth(page, role = 'student') {
 test.describe('WCAG AAA Accessibility Audit', () => {
   test('Auth Gate should have no accessibility violations', async ({ page }) => {
     await page.goto('/');
-    
+
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag2aaa'])
       .analyze();

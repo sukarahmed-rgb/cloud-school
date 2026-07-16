@@ -8,7 +8,7 @@ async function bypassAuth(page, role = 'student') {
       contact: 'test@user.com',
       role: r,
       userId: 'mock-uid-123',
-      serverAuth: false
+      serverAuth: false,
     });
   }, role);
 }
@@ -16,7 +16,7 @@ async function bypassAuth(page, role = 'student') {
 test.describe('E2E User Journey Flow', () => {
   test('should allow teacher to create a quiz and student to view it', async ({ page }) => {
     await page.goto('/');
-    
+
     // Log in as teacher
     await bypassAuth(page, 'teacher');
     await expect(page.locator('#view-teacher')).toBeVisible();
