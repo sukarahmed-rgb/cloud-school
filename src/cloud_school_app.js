@@ -5,6 +5,9 @@ import {
 } from './modules/error-handler.js';
 import { escapeHtml, base64ToArrayBuffer, pcmToWav, blobToBase64 } from './modules/helpers.js';
 import {
+  configureAuth, checkAgeLimitations, handleLoginSubmit, enterApp, handleRegistrationSubmit, logout
+} from './modules/auth.js';
+import {
   arabicBrailleMap, updateBraillePreview, toggleDot, clearDots, commitBrailleChar
 } from './modules/braille.js';
 import {
@@ -385,212 +388,13 @@ function toggleRegFields() {
     }
 }
 
-function checkAgeLimitations() {
-    const role = document.getElementById('reg-role').value;
-    if (role !== 'student') return;
+// checkAgeLimitations has been moved to modules/auth.js
 
-    const ageInput = document.getElementById('reg-age');
-    const age = parseInt(ageInput.value, 10);
-    const warningBox = document.getElementById('auth-warning-box');
-    const warningText = document.getElementById('auth-warning-text');
-    const parentContactInput = document.getElementById('reg-parent-contact');
-    const labelParentContact = document.getElementById('label-parent-contact');
-    const btnAuthSubmit = document.getElementById('btn-auth-submit');
+// handleLoginSubmit has been moved to modules/auth.js
 
-    warningBox.classList.add('hidden');
-    parentContactInput.required = false;
+// enterApp has been moved to modules/auth.js
 
-    if (isNaN(age)) return;
-
-    if (age < 12) {
-        const msg = __("ageUnder12");
-        warningText.textContent = msg;
-        warningBox.classList.remove('hidden');
-        btnAuthSubmit.disabled = true;
-        btnAuthSubmit.classList.add('opacity-50', 'cursor-not-allowed');
-        speak(msg);
-    } else {
-        btnAuthSubmit.disabled = false;
-        btnAuthSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
-        parentContactInput.required = true;
-        parentContactInput.setAttribute('required', 'required');
-
-        labelParentContact.innerHTML = __('parentContactLabel');
-
-        speak(__('ageConfirm12'));
-    }
-}
-
-async function handleLoginSubmit(e) {
-    e.preventDefault();
-    const email = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value.trim();
-
-    const warningBox = document.getElementById('auth-warning-box');
-    const warningText = document.getElementById('auth-warning-text');
-    warningBox.classList.add('hidden');
-
-    if (!email || !password) {
-        warningText.textContent = __('loginRequired');
-        warningBox.classList.remove('hidden');
-        speak(__('loginRequired'));
-        return;
-    }
-
-    try {
-        if (typeof firebase !== 'undefined' && firebase.auth) {
-            const cred = await firebase.auth().signInWithEmailAndPassword(email, password);
-            // After Firebase Auth success, get/create proxy session
-            if (serverAvailable && cred.user) {
-                try {
-                    const idToken = await cred.user.getIdToken();
-                    const user = await serverLoginFirebase(idToken);
-                    currentUserSession = {
-                        name: user.name || email,
-                        contact: email,
-                        role: user.role || 'student',
-                        serverId: user.id || cred.user.uid,
-                        serverAuth: true
-                    };
-                    syncDataFromServer();
-                } catch (e) {
-                    console.warn('Proxy session after Firebase login failed:', e.message);
-                    currentUserSession = {
-                        name: email.split('@')[0],
-                        contact: email,
-                        role: 'student',
-                        userId: cred.user.uid,
-                        serverAuth: false
-                    };
-                }
-            } else {
-                currentUserSession = {
-                    name: email.split('@')[0],
-                    contact: email,
-                    role: 'student',
-                    userId: cred.user.uid,
-                    serverAuth: false
-                };
-            }
-            enterApp(currentUserSession);
-        } else {
-            // Fallback: server unavailable â€” no localStorage auth (security)
-            warningText.textContent = __('errorNetwork');
-            warningBox.classList.remove('hidden');
-            speak(__('errorNetwork'));
-        }
-    } catch (err) {
-        console.error('Login error:', err);
-        let msg = __('loginFailed');
-        if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-            msg = __('loginFailed');
-        } else if (err.code === 'auth/invalid-email') {
-            msg = __('loginFailed');
-        } else if (err.code === 'auth/too-many-requests') {
-            msg = __('loginTooMany');
-        }
-        warningText.textContent = msg;
-        warningBox.classList.remove('hidden');
-        speak(msg);
-    }
-}
-
-function enterApp(session) {
-    currentUserSession = session;
-    document.getElementById('auth-gate').classList.add('hidden');
-    document.getElementById('dev-role-bar').classList.remove('hidden');
-    document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
-    document.getElementById('active-user-badge').textContent = __('userBadge', session.name, getArabicRoleName(session.role));
-    switchRole(session.role);
-    showToast(__('loginSuccess', session.name));
-    if (session.serverAuth) syncDataFromServer();
-}
-
-async function handleRegistrationSubmit(e) {
-    e.preventDefault();
-    const name = document.getElementById('reg-name').value.trim();
-    const contact = document.getElementById('reg-contact').value.trim();
-    const role = document.getElementById('reg-role').value;
-    const age = parseInt(document.getElementById('reg-age').value, 10);
-    const plainPassword = document.getElementById('reg-password-new').value;
-
-    const warningBox = document.getElementById('auth-warning-box');
-    const warningText = document.getElementById('auth-warning-text');
-    warningBox.classList.add('hidden');
-
-    let parentContact = '';
-    if (role === 'student') {
-        if (age < 12) {
-            const msg = __("registerAgeRestriction");
-            warningText.textContent = msg;
-            warningBox.classList.remove('hidden');
-            speak(msg);
-            return;
-        }
-        parentContact = document.getElementById('reg-parent-contact').value.trim();
-        if (!parentContact) {
-            const msg = __("registerParentRequired");
-            warningText.textContent = msg;
-            warningBox.classList.remove('hidden');
-            speak(msg);
-            document.getElementById('reg-parent-contact').focus();
-            return;
-        }
-    }
-
-    try {
-        if (typeof firebase !== 'undefined' && firebase.auth) {
-            // Firebase Auth: create user with email/password
-            const cred = await firebase.auth().createUserWithEmailAndPassword(contact, plainPassword);
-            // Update Firebase profile with display name
-            await cred.user.updateProfile({ displayName: name });
-
-            // Create user profile on proxy server
-            if (serverAvailable) {
-                try {
-                    const idToken = await cred.user.getIdToken();
-                    const user = await serverRegisterFirebase(idToken, name, role, age, parentContact);
-                    enterApp({
-                        name: user.name || name,
-                        contact: user.email || contact,
-                        role: user.role || role,
-                        serverId: user.id || cred.user.uid,
-                        serverAuth: true
-                    });
-                    return;
-                } catch (e) {
-                    console.warn('Proxy registration after Firebase failed:', e.message);
-                }
-            }
-
-            // Firebase only (no proxy)
-            enterApp({
-                name: name,
-                contact: contact,
-                role: role,
-                age: age,
-                parentContact: parentContact,
-                userId: cred.user.uid,
-                serverAuth: false
-            });
-        } else {
-            // Fallback: server unavailable â€” cannot register locally (security)
-            const msg = __('errorNetwork');
-            warningText.textContent = msg;
-            warningBox.classList.remove('hidden');
-            speak(msg);
-        }
-    } catch (err) {
-        console.error('Registration error:', err);
-        let msg = __('loginFailed');
-        if (err.code === 'auth/email-already-in-use') msg = __('loginFailed');
-        else if (err.code === 'auth/weak-password') msg = __('loginFailed');
-        else if (err.code === 'auth/invalid-email') msg = __('loginFailed');
-        warningText.textContent = msg;
-        warningBox.classList.remove('hidden');
-        speak(msg);
-    }
-}
+// handleRegistrationSubmit has been moved to modules/auth.js
 
 function clearAllTimers() {
     if (quizTimerInterval) { clearInterval(quizTimerInterval); quizTimerInterval = null; }
@@ -599,24 +403,7 @@ function clearAllTimers() {
     } catch(e) {}
 }
 
-function logout() {
-    if (currentUserSession?.serverAuth) serverLogout();
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-        firebase.auth().signOut().catch(function(e) { console.warn('Firebase signOut error:', e); });
-    }
-    currentUserSession = null;
-    userId = null;
-    isAuthReady = false;
-    clearAllTimers();
-    document.getElementById('auth-gate').classList.remove('hidden');
-    document.getElementById('dev-role-bar').classList.add('hidden');
-    document.querySelector('[data-action="logout"]')?.classList.add('hidden');
-    document.getElementById('login-form-container').classList.remove('hidden');
-    document.getElementById('register-form-container').classList.add('hidden');
-    document.getElementById('login-username').value = '';
-    document.getElementById('login-password').value = '';
-    speak(__('logoutSuccess'));
-}
+// logout has been moved to modules/auth.js
 
 async function syncDataFromServer() {
     if (!serverAvailable) return;
@@ -1789,7 +1576,28 @@ function runInit() {
     if (INIT_RAN) return;
     INIT_RAN = true;
 
-    // ظƒظ„ ط¯ط§ظ„ط© ط¨ظ†ط§ط¯ظٹظ‡ط§ ط¹ظ† ط·ط±ظٹظ‚ ط§ظ„ط§ط³ظ… ط¹ط´ط§ظ† ظ†طھط£ظƒط¯ ط¥ظ†ظ‡ط§ ظ…ظˆط¬ظˆط¯ط©
+    configureAuth({
+        speak,
+        __,
+        showToast,
+        serverAvailable: typeof serverAvailable !== 'undefined' ? serverAvailable : false,
+        serverLoginFirebase,
+        serverRegisterFirebase,
+        serverLogout,
+        syncDataFromServer,
+        getArabicRoleName,
+        switchRole,
+        saveLocalData,
+        clearAllTimers,
+        getCurrentUserSession: () => currentUserSession,
+        setCurrentUserSession: (val) => { currentUserSession = val; },
+        getUserId: () => fbUserId,
+        setUserId: () => {},
+        getIsAuthReady: () => fbIsAuthReady,
+        setIsAuthReady: () => {}
+    });
+
+    // طƒظ„ ط¯ط§ظ„ط© ط¨ظ†ط§ط¯ظٹظ‡ط§ ط¹ظ† ط·ط±ظٹظ‚ ط§ظ„ط§ط³ظ… ط¹ط´ط§ظ† ظ†طھط£ظƒط¯ ط¥ظ†ظ‡ط§ ظ…ظˆط¬ظˆط¯ط©
     var steps = [
         ['setupGlobalErrorHandler', __('initStepErrorHandler')],
         ['loadTheme', __('initStepThemes')],
