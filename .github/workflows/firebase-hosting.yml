@@ -61,7 +61,6 @@ jobs:
           name: dist
           path: dist/
       - name: Deploy Cloudflare Worker & Apply D1 Migrations
-        continue-on-error: true
         run: |
           npx wrangler d1 migrations apply cloud-school-db --remote --yes
           npx wrangler deploy
