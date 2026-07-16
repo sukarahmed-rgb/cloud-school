@@ -494,5 +494,37 @@
   "initStepShortcuts": "Shortcuts",
   "initStepAge": "Age",
   "initStepI18n": "Translation",
-  "initStepButtons": "Buttons"
+  "initStepButtons": "Buttons",
+
+  "gameMathChallenge": "🔢 Math Audio Challenge",
+  "gameMathStart": "Welcome to Math Challenge! You'll hear math problems suited to your level. Type the answer and press Submit. You have 60 seconds!",
+  "gameMathTypeAnswer": "Type your answer here:",
+  "gameMathSubmit": "Submit Answer ✅",
+  "gameMathNoAnswer": "Type your answer first, then press Submit.",
+  "gameMathWrongAnswer": "Wrong answer! The correct answer is: {0}",
+
+  "gameListeningQuiz": "🎧 Listening Comprehension Quiz",
+  "gameListeningLoading": "Preparing a learning passage with AI... Please wait.",
+  "gameListeningPassage": "Listen carefully to the following passage",
+  "gameListeningNowQuestions": "Now, answer the following questions about what you heard.",
+  "gameListeningComplete": "Well done! You've completed the listening quiz. Your score: {0} points.",
+  "gameCorrectAnswer": "The correct answer",
+
+  "gameScienceLab": "🧪 Science Lab Simulator",
+  "gameScienceLoading": "Preparing your science experiment with AI... Put on your lab goggles!",
+  "gameScienceReady": "The experiment is ready! Choose the correct action at each step.",
+  "gameScienceStep": "Step {0}",
+  "gameScienceComplete": "Congratulations! You've completed the science experiment. Your score: {0} points.",
+
+  "gameGeography": "🌍 Geography Explorer",
+  "gameGeographyLoading": "Preparing a geographic exploration with AI... Fasten your seatbelt!",
+  "gameGeographyWelcome": "Welcome to the exploration of",
+  "gameGeographyStart": "Let's start exploring! Answer the questions to learn more.",
+  "gameGeographyComplete": "Great job, explorer! You've completed the geographic journey. Your score: {0} points.",
+
+  "gameAIError": "Sorry, an error occurred generating content. Please try again.",
+  "dashboardGameMath": "Math Challenge",
+  "dashboardGameListening": "Listening Quiz",
+  "dashboardGameScience": "Science Lab",
+  "dashboardGameGeography": "Geography Explorer"
 }

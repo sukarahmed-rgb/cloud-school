@@ -33,7 +33,8 @@ import {
   pickQuestionByDifficulty, initGame, startNewGameRound,
   listenForGameAnswer, answerGame, endGame,
   startAudioMemoryGame, addAudioMemoryStep, playAudioMemorySequence,
-  answerAudioMemory, initAudioMemoryUI, clearGameTimer
+  answerAudioMemory, initAudioMemoryUI, clearGameTimer,
+  initMathChallenge, initListeningQuiz, initScienceLab, initGeographyExplorer
 } from './modules/audio-game.js';
 import {
   i18n, currentLang, getCurrentLang, setCurrentLang, __, getPrompt,
@@ -51,7 +52,7 @@ import {
 } from './modules/gemini-client.js';
 
 
-/** Firebase module - ط§ظ„ظ…طµط§ط¯ظ‚ط© ظˆط§ظ„طھط®ط²ظٹظ† ط§ظ„ط³ط­ط§ط¨ظٹ */
+/** Firebase module */
 
 Object.defineProperty(window, 'userId', {
   get() { return fbUserId; },

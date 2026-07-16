@@ -105,6 +105,450 @@ export var questionBank = [
     { q: "المغناطيس يجذب جميع أنواع المعادن.", a: false, d: 2 },
 ];
 
+export var mathQuestionBank = [
+    // Level 1: Elementary (ابتدائي)
+    { q: "كم ناتج 7 + 5؟", a: "12", d: 1 },
+    { q: "كم ناتج 15 - 8؟", a: "7", d: 1 },
+    { q: "كم ناتج 6 × 3؟", a: "18", d: 1 },
+    { q: "كم ناتج 20 ÷ 4؟", a: "5", d: 1 },
+    { q: "كم ناتج 9 + 11؟", a: "20", d: 1 },
+    { q: "كم ناتج 8 × 4؟", a: "32", d: 1 },
+    { q: "كم ناتج 100 - 37؟", a: "63", d: 1 },
+    { q: "كم ناتج 12 × 5؟", a: "60", d: 1 },
+    { q: "كم ناتج 45 + 55؟", a: "100", d: 1 },
+    { q: "كم ناتج 36 ÷ 6؟", a: "6", d: 1 },
+    // Level 2: Middle School (متوسط)
+    { q: "ما هو 25% من 80؟", a: "20", d: 2 },
+    { q: "ما هو الجذر التربيعي لـ 49؟", a: "7", d: 2 },
+    { q: "كم ناتج 3 أس 3؟", a: "27", d: 2 },
+    { q: "إذا كان x + 7 = 15، ما قيمة x؟", a: "8", d: 2 },
+    { q: "ما هو 10% من 250؟", a: "25", d: 2 },
+    { q: "كم ناتج 0.5 × 60؟", a: "30", d: 2 },
+    { q: "ما هو محيط مربع طول ضلعه 9 سنتيمتر؟", a: "36", d: 2 },
+    { q: "ما ناتج ثلاثة أرباع العدد 40؟", a: "30", d: 2 },
+    { q: "كم ناتج 2 أس 5؟", a: "32", d: 2 },
+    { q: "ما مساحة مستطيل طوله 8 وعرضه 5؟", a: "40", d: 2 },
+    // Level 3: High School (ثانوي)
+    { q: "ما الجذر التربيعي لـ 144؟", a: "12", d: 3 },
+    { q: "إذا كانت 2x - 4 = 10، ما قيمة x؟", a: "7", d: 3 },
+    { q: "ما ناتج log بالأساس 10 للعدد 1000؟", a: "3", d: 3 },
+    { q: "كم عدد أضلاع الشكل السداسي المنتظم؟", a: "6", d: 3 },
+    { q: "ما ناتج sin 90 درجة؟", a: "1", d: 3 },
+    { q: "ما مجموع زوايا المثلث بالدرجات؟", a: "180", d: 3 },
+    { q: "كم يساوي 5 مضروب (5!)؟", a: "120", d: 3 },
+    { q: "إذا كانت x تربيع = 81، ما القيمة الموجبة لـ x؟", a: "9", d: 3 },
+    // Level 4: University (جامعي)
+    { q: "ما مشتقة الدالة x تربيع + 3x؟", a: "2x + 3", d: 4 },
+    { q: "ما تكامل 2x dx؟", a: "x تربيع", d: 4 },
+    { q: "ما قيمة e أس صفر؟", a: "1", d: 4 },
+    { q: "ما محدد المصفوفة الوحدية 2 × 2؟", a: "1", d: 4 },
+    { q: "ما نهاية الدالة sin x على x عندما x تؤول إلى الصفر؟", a: "1", d: 4 },
+    { q: "ما مشتقة الدالة e أس x؟", a: "e أس x", d: 4 },
+];
+
+export var currentMathAnswer = null;
+export var currentAIGameData = null;
+
+export function getAgeLevelDifficulty() {
+    var ageLevel = window.currentAgeLevel || 'auto';
+    var age = window.currentUserSession?.age || 14;
+    switch (ageLevel) {
+        case 'child': return 1;
+        case 'teen': return 2;
+        case 'adult': return 4;
+        default:
+            if (age < 12) return 1;
+            if (age < 15) return 2;
+            if (age < 18) return 3;
+            return 4;
+    }
+}
+
+function pickMathQuestion(level) {
+    var pool = mathQuestionBank.filter(function(q) { return q.d === level; });
+    if (pool.length === 0) pool = mathQuestionBank.filter(function(q) { return q.d <= level; });
+    if (pool.length === 0) pool = mathQuestionBank;
+    return pool[window.secureRandomInt(0, pool.length)];
+}
+
+// ==================== Math Challenge ====================
+
+export function initMathChallenge() {
+    activeGameType = 'math-challenge';
+    currentGameScore = 0;
+    gameTimeLeft = 60;
+
+    document.getElementById('active-game-panel').classList.remove('hidden');
+    document.getElementById('game-score').textContent = "0";
+    document.getElementById('game-timer').textContent = "60";
+    document.getElementById('game-title').textContent = window.__('gameMathChallenge');
+    document.getElementById('game-timer-wrapper').classList.remove('hidden');
+    document.getElementById('game-binary-options').classList.add('hidden');
+    document.getElementById('game-story-options').classList.add('hidden');
+
+    var inputArea = document.getElementById('game-input-area');
+    if (!inputArea) {
+        inputArea = document.createElement('div');
+        inputArea.id = 'game-input-area';
+        inputArea.className = 'flex flex-col items-center gap-3 mt-4';
+        document.getElementById('game-arena').appendChild(inputArea);
+    }
+    inputArea.classList.remove('hidden');
+    inputArea.innerHTML = '<label for="math-answer-input" class="text-lg font-bold text-yellow-300">' + window.__('gameMathTypeAnswer') + '</label>' +
+        '<input id="math-answer-input" type="text" inputmode="text" autocomplete="off" class="p-4 text-2xl text-center rounded-xl bg-gray-800 text-white border-2 border-yellow-400 w-64 focus-ring" aria-label="' + window.__('gameMathTypeAnswer') + '">' +
+        '<button id="math-submit-btn" class="p-4 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl btn-interactive w-64">' + window.__('gameMathSubmit') + '</button>';
+
+    document.getElementById('math-submit-btn').addEventListener('click', checkMathAnswer);
+    document.getElementById('math-answer-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') checkMathAnswer();
+    });
+
+    if (gameTimerInterval) clearInterval(gameTimerInterval);
+    gameTimerInterval = setInterval(function() {
+        gameTimeLeft -= 1;
+        document.getElementById('game-timer').textContent = gameTimeLeft;
+        if (gameTimeLeft <= 5 && gameTimeLeft > 0) window.playTick3D();
+        if (gameTimeLeft <= 0) endGame();
+    }, 1000);
+
+    startMathRound();
+    window.speak(window.__('gameMathStart'));
+    document.getElementById('active-game-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function startMathRound() {
+    var level = getAgeLevelDifficulty();
+    var q = pickMathQuestion(level);
+    currentMathAnswer = q.a;
+    document.getElementById('game-question').textContent = q.q;
+    window.speak(q.q);
+    var inp = document.getElementById('math-answer-input');
+    if (inp) { inp.value = ''; inp.focus(); }
+}
+
+function checkMathAnswer() {
+    var inp = document.getElementById('math-answer-input');
+    if (!inp) return;
+    var userAns = inp.value.trim();
+    if (!userAns) {
+        window.speak(window.__('gameMathNoAnswer'));
+        return;
+    }
+    if (userAns === String(currentMathAnswer) || userAns.replace(/\s/g, '') === String(currentMathAnswer).replace(/\s/g, '')) {
+        var level = getAgeLevelDifficulty();
+        var points = level <= 1 ? 5 : level <= 2 ? 10 : 20;
+        currentGameScore += points;
+        document.getElementById('game-score').textContent = currentGameScore;
+        window.playSuccess3D();
+        window.speak(window.__('gameCorrect') + '! +' + points);
+        setTimeout(startMathRound, 800);
+    } else {
+        window.playFail3D();
+        window.speak(window.__('gameMathWrongAnswer', currentMathAnswer));
+        setTimeout(startMathRound, 1500);
+    }
+}
+
+// ==================== Listening Comprehension Quiz ====================
+
+export function initListeningQuiz() {
+    activeGameType = 'listening-quiz';
+    currentGameScore = 0;
+
+    document.getElementById('active-game-panel').classList.remove('hidden');
+    document.getElementById('game-score').textContent = "0";
+    document.getElementById('game-title').textContent = window.__('gameListeningQuiz');
+    document.getElementById('game-timer-wrapper').classList.add('hidden');
+    document.getElementById('game-binary-options').classList.add('hidden');
+    document.getElementById('game-story-options').classList.remove('hidden');
+
+    var inputArea = document.getElementById('game-input-area');
+    if (inputArea) inputArea.classList.add('hidden');
+
+    if (gameTimerInterval) clearInterval(gameTimerInterval);
+    startListeningRound();
+    document.getElementById('active-game-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function getListeningLevelText() {
+    var d = getAgeLevelDifficulty();
+    if (d <= 1) return "للأطفال في المرحلة الابتدائية. استخدم لغة بسيطة جداً وقصة قصيرة ممتعة عن الحيوانات أو الطبيعة.";
+    if (d <= 2) return "للمرحلة المتوسطة. استخدم فقرة علمية أو تاريخية متوسطة المستوى.";
+    if (d <= 3) return "للمرحلة الثانوية. استخدم مقالة أدبية أو علمية معمقة.";
+    return "للمرحلة الجامعية. استخدم نص أكاديمي متقدم في العلوم أو الفلسفة أو التكنولوجيا.";
+}
+
+async function startListeningRound() {
+    var storyOptions = document.getElementById('game-story-options');
+    storyOptions.innerHTML = '';
+    document.getElementById('game-question').textContent = window.__('gameListeningLoading');
+    window.speak(window.__('gameListeningLoading'));
+
+    var levelText = getListeningLevelText();
+    var prompt = "أنشئ فقرة تعليمية قصيرة (3-5 أسطر) مناسبة " + levelText + " ثم أنشئ 3 أسئلة اختيار من متعدد عن الفقرة، لكل سؤال 3 خيارات وخيار واحد صحيح. أخرج النتيجة بصيغة JSON فقط بدون markdown: { \"passage\": \"نص الفقرة\", \"questions\": [{ \"q\": \"السؤال\", \"options\": [\"خيار1\", \"خيار2\", \"خيار3\"], \"correct\": 0 }] }";
+
+    try {
+        var systemPrompt = window.getPrompt(window.getCurrentLang(), "أنت معلم تربوي محترف متخصص في إنشاء اختبارات الفهم السمعي للطلاب المكفوفين. أخرج JSON نظيف فقط.", "You are a professional educational teacher specializing in creating listening comprehension tests for blind students. Output clean JSON only.");
+        var jsonText = await window.callGeminiAPI(prompt, systemPrompt);
+        var parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
+
+        document.getElementById('game-question').textContent = parsed.passage;
+        window.speak(window.__('gameListeningPassage') + ': ' + parsed.passage);
+
+        currentAIGameData = { questions: parsed.questions, currentQ: 0 };
+
+        setTimeout(function() {
+            window.speak(window.__('gameListeningNowQuestions'));
+            setTimeout(function() { showListeningQuestion(); }, 1500);
+        }, 3000);
+    } catch (e) {
+        console.error("Listening quiz error:", e);
+        document.getElementById('game-question').textContent = window.__('gameAIError');
+        window.speak(window.__('gameAIError'));
+    }
+}
+
+function showListeningQuestion() {
+    if (!currentAIGameData || currentAIGameData.currentQ >= currentAIGameData.questions.length) {
+        window.speak(window.__('gameListeningComplete', currentGameScore));
+        endGame();
+        return;
+    }
+    var qData = currentAIGameData.questions[currentAIGameData.currentQ];
+    document.getElementById('game-question').textContent = qData.q;
+    window.speak(qData.q);
+
+    var storyOptions = document.getElementById('game-story-options');
+    storyOptions.innerHTML = '';
+    qData.options.forEach(function(opt, idx) {
+        var btn = document.createElement('button');
+        btn.className = "p-5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xl rounded-xl transition duration-150 text-right w-full large-touch-target border-2 border-current focus-ring btn-interactive";
+        btn.textContent = (idx + 1) + ') ' + opt;
+        btn.setAttribute('aria-label', window.__('storyOptionLabel', idx + 1, opt));
+        btn.addEventListener('click', function() { answerListeningQuestion(idx); });
+        storyOptions.appendChild(btn);
+    });
+}
+
+function answerListeningQuestion(selectedIdx) {
+    var qData = currentAIGameData.questions[currentAIGameData.currentQ];
+    if (selectedIdx === qData.correct) {
+        currentGameScore += 15;
+        document.getElementById('game-score').textContent = currentGameScore;
+        window.playSuccess3D();
+        window.speak(window.__('gameCorrect') + '! +15');
+    } else {
+        window.playFail3D();
+        window.speak(window.__('gameWrong') + '. ' + window.__('gameCorrectAnswer') + ': ' + qData.options[qData.correct]);
+    }
+    currentAIGameData.currentQ++;
+    setTimeout(showListeningQuestion, 1500);
+}
+
+// ==================== Science Lab Simulator ====================
+
+export function initScienceLab() {
+    activeGameType = 'science-lab';
+    currentGameScore = 0;
+
+    document.getElementById('active-game-panel').classList.remove('hidden');
+    document.getElementById('game-score').textContent = "0";
+    document.getElementById('game-title').textContent = window.__('gameScienceLab');
+    document.getElementById('game-timer-wrapper').classList.add('hidden');
+    document.getElementById('game-binary-options').classList.add('hidden');
+    document.getElementById('game-story-options').classList.remove('hidden');
+
+    var inputArea = document.getElementById('game-input-area');
+    if (inputArea) inputArea.classList.add('hidden');
+
+    if (gameTimerInterval) clearInterval(gameTimerInterval);
+    startScienceLabRound();
+    document.getElementById('active-game-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function getScienceLabLevelText() {
+    var d = getAgeLevelDifficulty();
+    if (d <= 1) return "للأطفال في الابتدائية. تجربة بسيطة جداً عن الماء أو الهواء أو النباتات.";
+    if (d <= 2) return "للمرحلة المتوسطة. تجربة في الكيمياء أو الفيزياء الأساسية.";
+    if (d <= 3) return "للمرحلة الثانوية. تجربة معقدة في الفيزياء أو الأحياء أو الكيمياء.";
+    return "للمرحلة الجامعية. تجربة مختبرية متقدمة في الكيمياء العضوية أو الفيزياء الحديثة.";
+}
+
+async function startScienceLabRound() {
+    var storyOptions = document.getElementById('game-story-options');
+    storyOptions.innerHTML = '';
+    document.getElementById('game-question').textContent = window.__('gameScienceLoading');
+    window.speak(window.__('gameScienceLoading'));
+
+    window.play3DTone(200, 600, 'sine', 0.2, 0, 0, 2);
+
+    var levelText = getScienceLabLevelText();
+    var prompt = "صمم تجربة علمية تفاعلية صوتية مناسبة " + levelText + " اجعل التجربة من 3 خطوات متسلسلة. في كل خطوة، اوصف ما يحدث في المختبر بشكل مشوق، ثم اعرض 3 خيارات للطالب ليختار الإجراء الصحيح. أخرج النتيجة بصيغة JSON فقط بدون markdown: { \"title\": \"اسم التجربة\", \"intro\": \"مقدمة مشوقة عن التجربة\", \"steps\": [{ \"description\": \"وصف الخطوة\", \"options\": [\"إجراء 1\", \"إجراء 2\", \"إجراء 3\"], \"correct\": 0, \"explanation\": \"شرح لماذا هذا الإجراء صحيح\" }] }";
+
+    try {
+        var systemPrompt = window.getPrompt(window.getCurrentLang(), "أنت عالم متخصص في تصميم تجارب علمية تفاعلية ومشوقة للطلاب المكفوفين. أخرج JSON نظيف فقط.", "You are a scientist specializing in designing interactive and exciting experiments for blind students. Output clean JSON only.");
+        var jsonText = await window.callGeminiAPI(prompt, systemPrompt);
+        var parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
+
+        document.getElementById('game-question').textContent = '🧪 ' + parsed.title + '\n\n' + parsed.intro;
+        window.speak(parsed.title + '. ' + parsed.intro);
+
+        currentAIGameData = { steps: parsed.steps, currentStep: 0 };
+
+        setTimeout(function() {
+            window.speak(window.__('gameScienceReady'));
+            setTimeout(showScienceStep, 1500);
+        }, 3000);
+    } catch (e) {
+        console.error("Science lab error:", e);
+        document.getElementById('game-question').textContent = window.__('gameAIError');
+        window.speak(window.__('gameAIError'));
+    }
+}
+
+function showScienceStep() {
+    if (!currentAIGameData || currentAIGameData.currentStep >= currentAIGameData.steps.length) {
+        window.speak(window.__('gameScienceComplete', currentGameScore));
+        window.play3DTone(800, 1200, 'sine', 0.3, 0, 1, 0);
+        endGame();
+        return;
+    }
+    var step = currentAIGameData.steps[currentAIGameData.currentStep];
+    var stepText = window.__('gameScienceStep', currentAIGameData.currentStep + 1) + ': ' + step.description;
+    document.getElementById('game-question').textContent = stepText;
+    window.speak(stepText);
+
+    var storyOptions = document.getElementById('game-story-options');
+    storyOptions.innerHTML = '';
+    step.options.forEach(function(opt, idx) {
+        var btn = document.createElement('button');
+        btn.className = "p-5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xl rounded-xl transition duration-150 text-right w-full large-touch-target border-2 border-current focus-ring btn-interactive";
+        btn.textContent = (idx + 1) + ') ' + opt;
+        btn.setAttribute('aria-label', window.__('storyOptionLabel', idx + 1, opt));
+        btn.addEventListener('click', function() { answerScienceStep(idx); });
+        storyOptions.appendChild(btn);
+    });
+}
+
+function answerScienceStep(selectedIdx) {
+    var step = currentAIGameData.steps[currentAIGameData.currentStep];
+    if (selectedIdx === step.correct) {
+        currentGameScore += 20;
+        document.getElementById('game-score').textContent = currentGameScore;
+        window.playSuccess3D();
+        window.play3DTone(600, 900, 'sine', 0.2, 0, 0, 1);
+        window.speak(window.__('gameCorrect') + '! ' + step.explanation);
+    } else {
+        window.playFail3D();
+        window.speak(window.__('gameWrong') + '. ' + step.explanation);
+    }
+    currentAIGameData.currentStep++;
+    setTimeout(showScienceStep, 2000);
+}
+
+// ==================== Geography Explorer ====================
+
+export function initGeographyExplorer() {
+    activeGameType = 'geography-explorer';
+    currentGameScore = 0;
+
+    document.getElementById('active-game-panel').classList.remove('hidden');
+    document.getElementById('game-score').textContent = "0";
+    document.getElementById('game-title').textContent = window.__('gameGeography');
+    document.getElementById('game-timer-wrapper').classList.add('hidden');
+    document.getElementById('game-binary-options').classList.add('hidden');
+    document.getElementById('game-story-options').classList.remove('hidden');
+
+    var inputArea = document.getElementById('game-input-area');
+    if (inputArea) inputArea.classList.add('hidden');
+
+    if (gameTimerInterval) clearInterval(gameTimerInterval);
+    startGeographyRound();
+    document.getElementById('active-game-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function getGeographyLevelText() {
+    var d = getAgeLevelDifficulty();
+    if (d <= 1) return "للأطفال في الابتدائية. اسأل عن القارات والمحيطات والعواصم الشهيرة والمعالم البسيطة.";
+    if (d <= 2) return "للمرحلة المتوسطة. اسأل عن المناخ والتضاريس والموارد الطبيعية والحدود الجغرافية.";
+    if (d <= 3) return "للمرحلة الثانوية. اسأل عن الجيوبوليتيك والتوزيع السكاني والظواهر الطبيعية المعقدة.";
+    return "للمرحلة الجامعية. اسأل عن الجغرافيا الاقتصادية والجيوستراتيجية وتحليل الخرائط الديموغرافية.";
+}
+
+async function startGeographyRound() {
+    var storyOptions = document.getElementById('game-story-options');
+    storyOptions.innerHTML = '';
+    document.getElementById('game-question').textContent = window.__('gameGeographyLoading');
+    window.speak(window.__('gameGeographyLoading'));
+
+    var levelText = getGeographyLevelText();
+    var prompt = "أنشئ رحلة استكشافية جغرافية صوتية تفاعلية مناسبة " + levelText + " صمم مغامرة يستكشف فيها الطالب منطقة من العالم. اصنع 4 أسئلة متسلسلة، كل سؤال يكشف معلومة جديدة عن المنطقة. لكل سؤال 3 خيارات وخيار واحد صحيح. أخرج النتيجة بصيغة JSON فقط بدون markdown: { \"region\": \"اسم المنطقة\", \"intro\": \"مقدمة مشوقة عن الرحلة\", \"questions\": [{ \"q\": \"السؤال\", \"info\": \"معلومة تعليمية عن المنطقة\", \"options\": [\"خيار1\", \"خيار2\", \"خيار3\"], \"correct\": 0 }] }";
+
+    try {
+        var systemPrompt = window.getPrompt(window.getCurrentLang(), "أنت مستكشف جغرافي ومعلم تربوي متخصص في تعليم الجغرافيا للمكفوفين بطريقة مشوقة وتفاعلية. أخرج JSON نظيف فقط.", "You are a geographic explorer and educator specializing in teaching geography to blind students in an engaging interactive way. Output clean JSON only.");
+        var jsonText = await window.callGeminiAPI(prompt, systemPrompt);
+        var parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
+
+        document.getElementById('game-question').textContent = '🌍 ' + parsed.region + '\n\n' + parsed.intro;
+        window.speak(window.__('gameGeographyWelcome') + ' ' + parsed.region + '! ' + parsed.intro);
+
+        currentAIGameData = { questions: parsed.questions, currentQ: 0 };
+
+        setTimeout(function() {
+            window.speak(window.__('gameGeographyStart'));
+            setTimeout(showGeographyQuestion, 1500);
+        }, 3000);
+    } catch (e) {
+        console.error("Geography explorer error:", e);
+        document.getElementById('game-question').textContent = window.__('gameAIError');
+        window.speak(window.__('gameAIError'));
+    }
+}
+
+function showGeographyQuestion() {
+    if (!currentAIGameData || currentAIGameData.currentQ >= currentAIGameData.questions.length) {
+        window.speak(window.__('gameGeographyComplete', currentGameScore));
+        endGame();
+        return;
+    }
+    var qData = currentAIGameData.questions[currentAIGameData.currentQ];
+
+    if (qData.info) {
+        window.speak(qData.info);
+    }
+
+    setTimeout(function() {
+        document.getElementById('game-question').textContent = qData.q;
+        window.speak(qData.q);
+
+        var storyOptions = document.getElementById('game-story-options');
+        storyOptions.innerHTML = '';
+        qData.options.forEach(function(opt, idx) {
+            var btn = document.createElement('button');
+            btn.className = "p-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xl rounded-xl transition duration-150 text-right w-full large-touch-target border-2 border-current focus-ring btn-interactive";
+            btn.textContent = (idx + 1) + ') ' + opt;
+            btn.setAttribute('aria-label', window.__('storyOptionLabel', idx + 1, opt));
+            btn.addEventListener('click', function() { answerGeographyQuestion(idx); });
+            storyOptions.appendChild(btn);
+        });
+    }, 2000);
+}
+
+function answerGeographyQuestion(selectedIdx) {
+    var qData = currentAIGameData.questions[currentAIGameData.currentQ];
+    if (selectedIdx === qData.correct) {
+        currentGameScore += 15;
+        document.getElementById('game-score').textContent = currentGameScore;
+        window.playSuccess3D();
+        window.speak(window.__('gameCorrect') + '! +15');
+    } else {
+        window.playFail3D();
+        window.speak(window.__('gameWrong') + '. ' + window.__('gameCorrectAnswer') + ': ' + qData.options[qData.correct]);
+    }
+    currentAIGameData.currentQ++;
+    setTimeout(showGeographyQuestion, 1500);
+}
+
 export function pickQuestionByDifficulty(targetLevel) {
     var pool = questionBank.filter(function(q) { return q.d === targetLevel; });
     if (pool.length === 0) pool = questionBank;
@@ -124,6 +568,10 @@ export function initGame(gameType) {
 
     const binaryOptions = document.getElementById('game-binary-options');
     const storyOptions = document.getElementById('game-story-options');
+
+    // Hide math input area for non-math games
+    var inputArea = document.getElementById('game-input-area');
+    if (inputArea) inputArea.classList.add('hidden');
 
     if (gameType === 'seconds') {
         document.getElementById('game-title').textContent = window.__('gameTrueFalse');
@@ -157,6 +605,18 @@ export function initGame(gameType) {
         storyOptions.classList.add('hidden');
         initAudioMemoryUI();
         startAudioMemoryGame();
+        return;
+    } else if (gameType === 'math-challenge') {
+        initMathChallenge();
+        return;
+    } else if (gameType === 'listening-quiz') {
+        initListeningQuiz();
+        return;
+    } else if (gameType === 'science-lab') {
+        initScienceLab();
+        return;
+    } else if (gameType === 'geography-explorer') {
+        initGeographyExplorer();
         return;
     }
 

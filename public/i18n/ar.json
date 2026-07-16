@@ -494,5 +494,37 @@
   "initStepShortcuts": "اختصارات",
   "initStepAge": "العمر",
   "initStepI18n": "الترجمة",
-  "initStepButtons": "الأزرار"
+  "initStepButtons": "الأزرار",
+
+  "gameMathChallenge": "🔢 تحدي الرياضيات الصوتي",
+  "gameMathStart": "مرحباً بك في تحدي الرياضيات! ستسمع مسائل رياضية تناسب مستواك. اكتب الإجابة واضغط إرسال. لديك 60 ثانية!",
+  "gameMathTypeAnswer": "اكتب إجابتك هنا:",
+  "gameMathSubmit": "إرسال الإجابة ✅",
+  "gameMathNoAnswer": "اكتب إجابتك أولاً ثم اضغط إرسال.",
+  "gameMathWrongAnswer": "إجابة خاطئة! الإجابة الصحيحة هي: {0}",
+
+  "gameListeningQuiz": "🎧 اختبار الفهم السمعي",
+  "gameListeningLoading": "جارٍ إعداد فقرة تعليمية بالذكاء الاصطناعي... انتظر قليلاً.",
+  "gameListeningPassage": "استمع جيداً للفقرة التالية",
+  "gameListeningNowQuestions": "والآن، أجب عن الأسئلة التالية حول ما سمعته.",
+  "gameListeningComplete": "أحسنت! لقد أنهيت اختبار الفهم السمعي. نتيجتك: {0} نقطة.",
+  "gameCorrectAnswer": "الإجابة الصحيحة",
+
+  "gameScienceLab": "🧪 محاكي التجارب العلمية",
+  "gameScienceLoading": "جارٍ تحضير التجربة العلمية بالذكاء الاصطناعي... ارتدِ نظارات المختبر!",
+  "gameScienceReady": "التجربة جاهزة! اختر الإجراء الصحيح في كل خطوة.",
+  "gameScienceStep": "الخطوة {0}",
+  "gameScienceComplete": "تهانينا! لقد أنهيت التجربة العلمية بنجاح. نتيجتك: {0} نقطة.",
+
+  "gameGeography": "🌍 مستكشف الجغرافيا",
+  "gameGeographyLoading": "جارٍ تحضير رحلة استكشافية جغرافية بالذكاء الاصطناعي... اربط حزام الأمان!",
+  "gameGeographyWelcome": "مرحباً بك في رحلة استكشاف",
+  "gameGeographyStart": "هيا نبدأ الاستكشاف! أجب عن الأسئلة لتتعلم المزيد.",
+  "gameGeographyComplete": "أحسنت يا مستكشف! لقد أنهيت الرحلة الجغرافية. نتيجتك: {0} نقطة.",
+
+  "gameAIError": "عذراً، حدث خطأ في توليد المحتوى. حاول مرة أخرى.",
+  "dashboardGameMath": "تحدي الرياضيات",
+  "dashboardGameListening": "الفهم السمعي",
+  "dashboardGameScience": "التجارب العلمية",
+  "dashboardGameGeography": "مستكشف الجغرافيا"
 }
