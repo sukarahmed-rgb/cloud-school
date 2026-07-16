@@ -6,33 +6,8 @@ const ERROR_LEVELS = { INFO: 'info', WARN: 'warn', ERROR: 'error', FATAL: 'fatal
 
 const listeners = [];
 
-var activeIntervals = [];
-var activeTimeouts = new Set();
-var originalSetInterval = setInterval;
-setInterval = function(cb, delay) {
-  var id = originalSetInterval(cb, delay);
-  activeIntervals.push(id);
-  return id;
-};
-var originalSetTimeout = setTimeout;
-setTimeout = function(cb, delay) {
-  var wrapped = function() {
-    activeTimeouts.delete(id);
-    return cb.apply(this, arguments);
-  };
-  var id = originalSetTimeout(wrapped, delay);
-  activeTimeouts.add(id);
-  return id;
-};
-
-function cleanupTimers() {
-  activeIntervals.forEach(function(id) { try { clearInterval(id); } catch(e) {} });
-  activeIntervals = [];
-  activeTimeouts.forEach(function(id) { try { clearTimeout(id); } catch(e) {} });
-  activeTimeouts = new Set();
-}
-
-window.addEventListener('beforeunload', cleanupTimers);
+// Global timer monkey-patching removed to restore native browser APIs.
+// Timers are now cleaned up explicitly via clearAllTimers in cloud_school_app.js.
 
 function secureRandomInt(min, max) {
   const array = new Uint32Array(1);
@@ -97,8 +72,6 @@ function setupGlobalErrorHandler() {
 }
 
 export {
-  ERROR_LEVELS, listeners, activeIntervals, activeTimeouts,
-  originalSetInterval, originalSetTimeout,
-  cleanupTimers, secureRandomInt, notifyListeners,
+  ERROR_LEVELS, listeners, secureRandomInt, notifyListeners,
   speakToUser, handleError, setupGlobalErrorHandler,
 };

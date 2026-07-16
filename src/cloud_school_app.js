@@ -1,8 +1,6 @@
 import { speakToUser } from './modules/audio-core.js';
 import {
-  ERROR_LEVELS, listeners, activeIntervals, activeTimeouts,
-  originalSetInterval, originalSetTimeout,
-  cleanupTimers, secureRandomInt, notifyListeners,
+  ERROR_LEVELS, listeners, secureRandomInt, notifyListeners,
   handleError, setupGlobalErrorHandler,
 } from './modules/error-handler.js';
 import { escapeHtml, base64ToArrayBuffer, pcmToWav, blobToBase64 } from './modules/helpers.js';
@@ -594,6 +592,11 @@ async function handleRegistrationSubmit(e) {
     }
 }
 
+function clearAllTimers() {
+    if (quizTimerInterval) { clearInterval(quizTimerInterval); quizTimerInterval = null; }
+    if (gameTimerInterval) { clearInterval(gameTimerInterval); gameTimerInterval = null; }
+}
+
 function logout() {
     if (currentUserSession?.serverAuth) serverLogout();
     if (typeof firebase !== 'undefined' && firebase.auth) {
@@ -602,7 +605,7 @@ function logout() {
     currentUserSession = null;
     userId = null;
     isAuthReady = false;
-    cleanupTimers();
+    clearAllTimers();
     document.getElementById('auth-gate').classList.remove('hidden');
     document.getElementById('dev-role-bar').classList.add('hidden');
     document.querySelector('[data-action="logout"]')?.classList.add('hidden');
@@ -1881,7 +1884,7 @@ if (document.readyState === 'complete') {
 // Vite ES module exports
 export {
   updateBraillePreview, toggleDot, clearDots, commitBrailleChar, arabicBrailleMap,
-  ERROR_LEVELS, listeners, cleanupTimers, secureRandomInt,
+  ERROR_LEVELS, listeners, secureRandomInt,
   notifyListeners, speakToUser, handleError, setupGlobalErrorHandler,
   i18n, getCurrentLang, setCurrentLang, __, getPrompt, applyTranslations, applyJsTranslations,
   initTtsLang, loadLocale, initI18n,
@@ -1929,9 +1932,8 @@ export {
   serverLogout, serverFetch, serverSave, initServerBackend,
   play3DTone, playSuccess3D, playFail3D, playTick3D, initAudioCoPilot,
   safeInit, runInit, dismissSplashScreen,
-  INIT_RAN, activeIntervals, activeTimeouts,
+  INIT_RAN,
   mediaRecorder, audioChunks, isRecording, perkinsKeyupTimer, perkinsKeyupHandler,
-  questionBank, audioMemorySequence, audioMemoryStep, audioMemoryPatterns,
-  originalSetInterval, originalSetTimeout
+  questionBank, audioMemorySequence, audioMemoryStep, audioMemoryPatterns
 };
 
