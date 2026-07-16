@@ -1,5 +1,5 @@
-import { __ } from '../cloud_school_app.js';
-import { showToast } from '../cloud_school_app.js';
+import { __ } from './i18n.js';
+import { showToast } from './ui-core.js';
 import { speakToUser } from './audio-core.js';
 
 const ERROR_LEVELS = { INFO: 'info', WARN: 'warn', ERROR: 'error', FATAL: 'fatal' };

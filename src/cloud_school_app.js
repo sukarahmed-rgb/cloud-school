@@ -1800,11 +1800,27 @@ function runInit() {
         ['bindAllEvents', __('initStepButtons')]
     ];
 
+    var appFunctions = {
+        setupGlobalErrorHandler,
+        loadTheme,
+        loadTextSize,
+        initFirebase,
+        initServerBackend,
+        setupAccessibleVoices,
+        setupPerkinsKeyboard,
+        toggleRegFields,
+        setupKeyboardShortcuts,
+        setupAgeLevel,
+        initI18n,
+        bindAllEvents
+    };
+
     for (var i = 0; i < steps.length; i++) {
         var fnName = steps[i][0];
         var label = steps[i][1];
-        if (typeof window[fnName] === 'function') {
-            safeInit(window[fnName], label);
+        var fn = appFunctions[fnName];
+        if (typeof fn === 'function') {
+            safeInit(fn, label);
         } else {
             console.warn('[CS] Skipping ' + label + ': ' + fnName + ' not found');
         }
