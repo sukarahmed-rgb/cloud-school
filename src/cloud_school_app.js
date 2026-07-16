@@ -9,6 +9,9 @@ import {
 } from './modules/auth.js';
 import { queueOfflineSave } from './modules/offline-sync.js';
 import {
+  configureAiTutor, startAiStoryRound, analyzeImageWithGemini, askAITutor, generateAIQuiz, startAITutorSpeech, speakAITutorResponse, gradeSubmissionWithAI
+} from './modules/ai-tutor.js';
+import {
   arabicBrailleMap, updateBraillePreview, toggleDot, clearDots, commitBrailleChar
 } from './modules/braille.js';
 import {
@@ -541,122 +544,7 @@ async function summarizeCurriculumBookWithAI() {
     }
 }
 
-async function startAiStoryRound(choiceIndex = null) {
-    const questionText = document.getElementById('game-question');
-    const binaryOptions = document.getElementById('game-binary-options');
-    const storyOptions = document.getElementById('game-story-options');
-
-    binaryOptions.classList.add('hidden');
-    storyOptions.classList.remove('hidden');
-    storyOptions.innerHTML = '';
-
-    showLoading('game-question', __('loadingStory'));
-    speak(__('storyGenerating'));
-
-    let prompt = "";
-    if (choiceIndex === null) {
-        prompt = "ط§طµظ†ط¹ ظ‚طµط© طھط¹ظ„ظٹظ…ظٹط© طھظپط§ط¹ظ„ظٹط© ظ‚طµظٹط±ط© ظ…ط´ظˆظ‚ط© ظˆظ…ظ„ظ‡ظ…ط© ط¨ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط© ط§ظ„ظپطµط­ظ‰ ظ„ط·ظ„ط§ط¨ ظ…ظƒظپظˆظپظٹظ† ط¹ظ† ظ…ط؛ط§ظ…ط±ط© ظپظٹ ط§ظ„ظ†ط¸ط§ظ… ط§ظ„ط´ظ…ط³ظٹ ظ„طھط¹ظ„ظ… ط§ظ„ظƒظˆط§ظƒط¨. ط£ظ†ظ‡ظگ ط§ظ„ظ…ظ‚ط·ط¹ ط§ظ„ط£ظˆظ„ ط¨ظ€ 3 ط®ظٹط§ط±ط§طھ ظ„ظ…ظˆط§طµظ„ط© ط§ظ„ظ…ط؛ط§ظ…ط±ط©. ط£ط®ط±ط¬ ط§ظ„ظ†طھظٹط¬ط© ط¨طµظٹط؛ط© JSON ظپظ‚ط· ط¨ط¯ظˆظ† ط¹ظ„ط§ظ…ط§طھ markdownطŒ ظˆطھط­طھظˆظٹ ط§ظ„ظ‡ظٹظƒظ„ ط§ظ„طھط§ظ„ظٹ: { 'story': 'ظ†طµ ط§ظ„ظ…ظ‚ط·ط¹ ط§ظ„ظ…ط«ظٹط± ظˆط§ظ„ظ…ط¨ط³ط· ظˆط¹ظ„ط§ظ‚طھظ‡ ط¨ط§ظ„ظ…ظ‚ط±ط± ط§ظ„ط¯ط±ط§ط³ظٹ', 'options': ['ط®ظٹط§ط± ط§ظ„ظ…ط؛ط§ظ…ط±ط© ط§ظ„ط£ظˆظ„ ط§ظ„ظ…ط«ظٹط± ظƒط¬ظ…ظ„ط© ظ‚طµظٹط±ط©', 'ط®ظٹط§ط± ط§ظ„ظ…ط؛ط§ظ…ط±ط© ط§ظ„ط«ط§ظ†ظٹ ط§ظ„ظ…ط«ظٹط± ظƒط¬ظ…ظ„ط© ظ‚طµظٹط±ط©', 'ط®ظٹط§ط± ط§ظ„ظ…ط؛ط§ظ…ط±ط© ط§ظ„ط«ط§ظ„ط« ط§ظ„ظ…ط«ظٹط± ظƒط¬ظ…ظ„ط© ظ‚طµظٹط±ط©'] }";
-    } else {
-        prompt = `ط§ط³طھظƒظ…ط§ظ„ط§ظ‹ ظ„ظ„ظ‚طµط© ط§ظ„ط³ط§ط¨ظ‚ط© ط§ظ„ظ…ط±ظˆظٹط©طŒ ط§ط®طھط§ط± ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ط®ظٹط§ط± ط±ظ‚ظ… ${choiceIndex + 1}. طھط§ط¨ط¹ طھظپط§طµظٹظ„ ط§ظ„ظ…ط؛ط§ظ…ط±ط© ظپظٹ ط§ظ„ظپط¶ط§ط، ظˆط¹ظ„ظ…ظ‡ظ… ظ…ط¹ظ„ظˆظ…ط§طھ ط¬ط¯ظٹط¯ط© ظˆظ…ظپظٹط¯ط©طŒ ط«ظ… ط£ظ†ظ‡ظگ ط§ظ„ظ…ظ‚ط·ط¹ ظ…ط¬ط¯ط¯ط§ظ‹ ط¨ظ€ 3 ط®ظٹط§ط±ط§طھ ط¬ط¯ظٹط¯ط© ظ„ظ…طھط§ط¨ط¹ط© ط§ظ„ظ‚طµط© ظˆظ…ظˆط§طµظ„ط© ط§ظ„طھط­ط¯ظٹ. ط£ط®ط±ط¬ ط§ظ„ظ†طھظٹط¬ط© ط¨طµظٹط؛ط© JSON ظپظ‚ط· ط¨ظ†ظپط³ ط§ظ„طھظ†ط³ظٹظ‚: { 'story': 'ظ†طµ ط§ظ„ظ…ظ‚ط·ط¹ ط§ظ„ظ…ط«ظٹط± ظˆط§ظ„ظ…ط¨ط³ط· ظˆط¹ظ„ط§ظ‚طھظ‡ ط¨ط§ظ„ظ…ظ‚ط±ط± ط§ظ„ط¯ط±ط§ط³ظٹ', 'options': ['ط®ظٹط§ط± 1', 'ط®ظٹط§ط± 2', 'ط®ظٹط§ط± 3'] }`;
-    }
-
-    try {
-        const jsonText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "ط£ظ†طھ ظ…طµظ…ظ… ظ‚طµطµ طھظپط§ط¹ظ„ظٹط© ظˆطھط¹ظ„ظٹظ…ظٹط© ظ…ظ„ظ‡ظ…ط© ظˆظ…ط®طھطµ ظپظٹ طµظٹط§ط؛ط© ظ…ظ„ظپط§طھ JSON ظ†ظ‚ظٹط© ظˆظ…ط¨ط³ط·ط©.", "You are a designer of inspiring interactive educational stories and an expert in formulating clean and simplified JSON files."));
-        const parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
-
-        questionText.textContent = parsed.story;
-        speak(parsed.story);
-
-        parsed.options.forEach((opt, idx) => {
-            const btn = document.createElement('button');
-            btn.className = "p-5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xl rounded-xl transition duration-150 text-right w-full large-touch-target border-2 border-current focus-ring btn-interactive";
-            btn.textContent = `${idx + 1}) ${opt}`;
-            btn.setAttribute('aria-label', __('storyOptionLabel', idx + 1, opt));
-            btn.addEventListener('click', () => {
-                playSuccess3D();
-                startAiStoryRound(idx);
-            });
-            storyOptions.appendChild(btn);
-        });
-
-        setTimeout(setupAccessibleVoices, 200);
-
-    } catch (error) {
-        console.error("Storyteller Error:", error);
-        questionText.textContent = __('storyError');
-        speak(__('storyError'));
-    }
-}
-
-async function analyzeImageWithGemini() {
-    if (!uploadedImageBase64) {
-        speak(__('visionSelectImage'));
-        return;
-    }
-
-    const responseBox = document.getElementById('vision-response-box');
-    responseBox.classList.remove('hidden');
-    showLoading('vision-response-text', __('loadingVision'));
-       speak(__('visionAnalyzing'));
-
-    try {
-        const description = await describeImage(uploadedImageBase64, uploadedImageMime);
-        document.getElementById('vision-response-text').textContent = description;
-        speak(description);
-    } catch (error) {
-        handleError('analyzeImage', error);
-        document.getElementById('vision-response-text').textContent = __('visionError');
-    }
-}
-
-async function askAITutor() {
-    const queryText = document.getElementById('ai-tutor-query').value.trim();
-    if (!queryText) {
-        speak(__('tutorAskFirst'));
-        return;
-    }
-
-    document.getElementById('ai-tutor-response-box').classList.remove('hidden');
-    showLoading('ai-tutor-response-text', __('loadingTutor'));
-    speak(__('tutorThinking'));
-
-    try {
-        const responseText = await callGeminiAPI(queryText, getPrompt(getCurrentLang(), "ط£ظ†طھ ظ…ط¹ظ„ظ… ظˆط¯ظˆط¯ ظ…طھط®طµطµ ظپظٹ ط´ط±ط­ ط§ظ„ظ…ظ†ط§ظ‡ط¬ ط§ظ„ط¯ط±ط§ط³ظٹط© ظ„ظ„ظ…ظƒظپظˆظپظٹظ† ظˆط¶ط¹ط§ظپ ط§ظ„ط¨طµط± ظ…ظ† ط¬ظ…ظٹط¹ ط§ظ„ظ…ط±ط§ط­ظ„ ط§ظ„ط¹ظ…ط±ظٹط©. ظ‚ط¯ظ‘ظ… ط§ظ„ط´ط±ط­ ط¨ظ…ط³طھظˆظ‰ ظٹظ†ط§ط³ط¨ ط§ظ„ط·ط§ظ„ط¨: ظ„ظ„ط·ظپظ„ ط§ط³طھط®ط¯ظ… طھط¨ط³ظٹط·ط§ظ‹ ط´ط¯ظٹط¯ط§ظ‹ ظˆط£ظ…ط«ظ„ط© ظٹظˆظ…ظٹط©طŒ ظˆظ„ظ„ط´ط§ط¨ ظˆط§ظ„ط¨ط§ظ„ط؛ ط§ط³طھط®ط¯ظ… ط£ط³ظ„ظˆط¨ط§ظ‹ ط£ظƒط§ط¯ظٹظ…ظٹط§ظ‹ ظ…ظ†ط§ط³ط¨ط§ظ‹ ظ…ط¹ ط§ظ„ط­ظپط§ط¸ ط¹ظ„ظ‰ ط§ظ„ظˆط¶ظˆط­.", "You are a friendly teacher specialized in explaining curricula for blind and visually impaired students of all ages. Provide explanations at a level suitable for the student: use extreme simplification and daily examples for children, and an appropriate academic style for young people and adults while maintaining clarity."));
-        document.getElementById('ai-tutor-response-text').textContent = responseText;
-        speak(responseText);
-    } catch (error) {
-        document.getElementById('ai-tutor-response-text').textContent = __('tutorError');
-        speak(__('tutorError'));
-    }
-}
-
-async function generateAIQuiz() {
-    speak(__('quizLoading'));
-    const btn = document.getElementById('btn-ai-generate');
-    btn.textContent = __('quizGenerating');
-
-    const prompt = "ظˆظ„ط¯ ط³ط¤ط§ظ„ ط§ط®طھط¨ط§ط± ط­ظ‚ظٹظ‚ظٹ ظˆط§ط­ط¯ ظپظٹ ظ…ط§ط¯ط© ط§ظ„ط¹ظ„ظˆظ… ظٹطھظƒظˆظ† ظ…ظ† ط§ط®طھظٹط§ط± ظ…ظ† ظ…طھط¹ط¯ط¯ ظ…ط¹ ط£ط±ط¨ط¹ط© ط®ظٹط§ط±ط§طھ ظˆطھط­ط¯ظٹط¯ ط§ظ„ط®ظٹط§ط± ط§ظ„طµط­ظٹط­. ط£ط®ط±ط¬ ط§ظ„ظ†طھظٹط¬ط© ط¨طھظ†ط³ظٹظ‚ JSON ظ†ط¸ظٹظپ ظˆط¨ط³ظٹط· ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ظ…ظپط§طھظٹط­: question, A, B, C, D, correct.";
-
-    try {
-        const jsonText = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "ط£ظ†طھ ظ…طµظ…ظ… ط§ط®طھط¨ط§ط±ط§طھ ط£ظƒط§ط¯ظٹظ…ظٹ ظ…طھظ…ظٹط². ", "You are an excellent academic quiz designer. ") + getAgeTone());
-        const parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
-
-        document.getElementById('teacher-quiz-title').value = __('autoGeneratedQuizTitle');
-        document.getElementById('teacher-quiz-q').value = parsed.question;
-        document.getElementById('teacher-quiz-oa').value = parsed.A;
-        document.getElementById('teacher-quiz-ob').value = parsed.B;
-        document.getElementById('teacher-quiz-oc').value = parsed.C;
-        document.getElementById('teacher-quiz-od').value = parsed.D;
-        document.getElementById('teacher-quiz-correct').value = parsed.correct;
-
-        speak(__('quizReady'));
-    } catch (e) {
-        handleError(e, 'quizGeneration');
-        speak(__('quizFailed'));
-    } finally {
-        btn.textContent = __('quizGenerateBtn');
-    }
-}
+// startAiStoryRound, analyzeImageWithGemini, askAITutor, generateAIQuiz refactored and moved to modules/ai-tutor.js
 
 function toggleCheatDot(dotNum) {
     toggleDot(dotNum, currentCheatDots, 'cheat-dot', 'cheat-char-preview', __('brailleIncompleteShort'));
@@ -1016,39 +904,7 @@ function speakVisionResponse() {
     speak(text);
 }
 
-function startAITutorSpeech() {
-    if (speechRecognizer) {
-        speechRecognizer.start();
-    } else {
-        speak(__('speechUnavailable'));
-    }
-}
-
-function speakAITutorResponse() {
-    const responseText = document.getElementById('ai-tutor-response-text').textContent;
-    speak(responseText);
-}
-
-async function gradeSubmissionWithAI(index) {
-    const sub = localData.submissions[index];
-    if (!sub) return;
-
-    speak(__('gradingInProgress'));
-
-    const prompt = `ظ‚ط§ط±ظ† ط¥ط¬ط§ط¨ط© ط§ظ„ط·ط§ظ„ط¨: "${sub.studentAnswer}" ظ…ط¹ ط§ظ„ط³ط¤ط§ظ„ ط§ظ„ظ…ظ‚ط§ظ„ظٹ ظˆطµط­ط­ظ‡ ط¥ظ…ظ„ط§ط¦ظٹط§ظ‹ ظˆظ„ط؛ظˆظٹط§ظ‹ ظˆظ‚ط¯ظ… طھظ‚ط±ظٹط±ط§ظ‹ ظ…ظ† س·ط±ظٹظ† ظ…طھط¶ظ…ظ†ط§ظ‹ ط§ظ„ط¯ط±ط¬ط© ط§ظ„ظ…ظ‚طھط±ط­ط© (ظ…ظ† 100) ظ…ط¹ ط§ظ„ظƒظ„ظ…ط§طھ ط§ظ„ظ…ط´ط¬ط©ظ„ط© ظ„ظ„ط·ط§ظ„ط¨ ط§ظ„ظƒظپظٹظپ.`;
-
-    try {
-        const report = await callGeminiAPI(prompt, getPrompt(getCurrentLang(), "ط£ظ†طھ ظ…طµط­ط­ ظˆظ…ط¹ظ„ظ… طھط±ط¨ظˆظٹ. ", "You are a grader and educational teacher. ") + getAgeTone());
-        sub.initialScore = 95;
-        sub.graderFeedback = report;
-        saveLocalData();
-
-        renderTeacherSubmissions();
-        speak(__('gradingDone'));
-    } catch (e) {
-        speak(__('gradingFailed'));
-    }
-}
+// startAITutorSpeech, speakAITutorResponse, gradeSubmissionWithAI refactored and moved to modules/ai-tutor.js
 
 function toggleTeacherQuizType() {
     const type = document.getElementById('teacher-quiz-type').value;
@@ -1603,6 +1459,26 @@ function safeInit(fn, name) {
 function runInit() {
     if (INIT_RAN) return;
     INIT_RAN = true;
+
+    configureAiTutor({
+        speak,
+        __,
+        getCurrentLang,
+        getPrompt,
+        callGeminiAPI,
+        describeImage,
+        handleError,
+        getAgeTone,
+        localData,
+        saveLocalData,
+        renderTeacherSubmissions,
+        playSuccess3D,
+        setupAccessibleVoices,
+        showLoading,
+        getUploadedImageBase64: () => uploadedImageBase64,
+        getUploadedImageMime: () => uploadedImageMime,
+        getSpeechRecognizer: () => window.speechRecognizer
+    });
 
     configureAuth({
         speak,

@@ -197,7 +197,8 @@ async function safeGetSession(env, token) {
 
 export default {
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
+    try {
+      const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
     const corsOrigin = env.CORS_ORIGIN || 'https://cloud-school-6251a.web.app';
@@ -696,5 +697,63 @@ export default {
     }
 
     return respond({ error: 'Not found' }, 404);
+  } catch (err) {
+    ctx.waitUntil(reportErrorToSentry(err, request, env));
+    const origin = request.headers.get('origin');
+    return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': origin || 'https://cloud-school-6251a.web.app',
+        'Access-Control-Allow-Credentials': 'true'
+      }
+    });
+  }
   },
 };
+
+
+async function reportErrorToSentry(err, request, env) {
+  const dsn = env.SENTRY_DSN || "https://7c44e976db57fcf7c7c34d3d2db73b18@o4505678229340160.ingest.us.sentry.io/4508930292725760";
+  if (!dsn) return;
+  
+  try {
+    const dsnUrl = new URL(dsn);
+    const projectId = dsnUrl.pathname.replace('/', '');
+    const sentryUrl = `${dsnUrl.protocol}//${dsnUrl.host}/api/${projectId}/store/`;
+    
+    const payload = {
+      event_id: crypto.randomUUID().replace(/-/g, ''),
+      timestamp: new Date().toISOString().split('.')[0],
+      platform: "javascript",
+      exception: {
+        values: [
+          {
+            type: err.name || "Error",
+            value: err.message || String(err),
+            stacktrace: err.stack ? {
+              frames: err.stack.split('\n').slice(1).map(line => ({ filename: line.trim() }))
+            } : undefined
+          }
+        ]
+      },
+      request: {
+        url: request.url,
+        method: request.method,
+        headers: Object.fromEntries(request.headers.entries())
+      },
+      environment: env.ENVIRONMENT || "production"
+    };
+
+    await fetch(sentryUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Sentry-Auth': `Sentry sentry_version=7,sentry_client=cloudflare-worker-custom/1.0.0,sentry_key=${dsnUrl.username}`
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (sentryErr) {
+    console.error('Failed to send error to Sentry:', sentryErr);
+  }
+}
