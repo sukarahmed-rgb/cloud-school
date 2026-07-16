@@ -2,11 +2,22 @@ import js from '@eslint/js';
 import prettier from 'eslint-config-prettier';
 
 export default [
+  {
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      '.husky/**',
+      'coverage/**',
+      'babel.config.js',
+      'jest.config.js',
+      'vite.config.js',
+      'playwright.config.js',
+    ],
+  },
   js.configs.recommended,
   prettier,
   {
     files: ['**/*.js'],
-    ignores: ['dist/**', 'node_modules/**', '.husky/**'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
