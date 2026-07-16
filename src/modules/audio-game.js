@@ -323,3 +323,10 @@ export function initAudioMemoryUI() {
         container.appendChild(btn);
     });
 }
+
+export function clearGameTimer() {
+    if (gameTimerInterval) {
+        clearInterval(gameTimerInterval);
+        gameTimerInterval = null;
+    }
+}

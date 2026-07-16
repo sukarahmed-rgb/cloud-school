@@ -17,13 +17,13 @@ import {
   openStudentSection, closeStudentSection, setupKeyboardShortcuts
 } from './modules/router.js';
 import {
-  activeGameType, currentGameScore, gameTimeLeft, gameTimerInterval,
+  activeGameType, currentGameScore, gameTimeLeft,
   currentCorrectAnswer, questionBank,
   audioMemorySequence, audioMemoryStep, audioMemoryPatterns,
   pickQuestionByDifficulty, initGame, startNewGameRound,
   listenForGameAnswer, answerGame, endGame,
   startAudioMemoryGame, addAudioMemoryStep, playAudioMemorySequence,
-  answerAudioMemory, initAudioMemoryUI
+  answerAudioMemory, initAudioMemoryUI, clearGameTimer
 } from './modules/audio-game.js';
 import {
   i18n, currentLang, getCurrentLang, setCurrentLang, __, getPrompt,
@@ -594,7 +594,9 @@ async function handleRegistrationSubmit(e) {
 
 function clearAllTimers() {
     if (quizTimerInterval) { clearInterval(quizTimerInterval); quizTimerInterval = null; }
-    if (gameTimerInterval) { clearInterval(gameTimerInterval); gameTimerInterval = null; }
+    try {
+        clearGameTimer();
+    } catch(e) {}
 }
 
 function logout() {
@@ -1895,7 +1897,7 @@ export {
   currentBrailleDots, selectedQuizId, activeGameType,
   currentGameScore, gameTimeLeft, ttsEngineMode, activeAudioElement,
   currentUserSession, currentAgeLevel, currentlyPlayingBookId, selectedOption,
-  quizTimerInterval, currentCorrectAnswer, gameTimerInterval, uploadedImageBase64,
+  quizTimerInterval, currentCorrectAnswer, uploadedImageBase64,
   uploadedImageMime, accessibleVoicesController, sharedAudioContext,
   _toastTimer, showToast, showLoading, escapeHtml, speak, stopAllAudio,
   toggleTtsEngine, setupAgeLevel, toggleAgeLevel, updateAgeLevelButton, getAgeTone,
