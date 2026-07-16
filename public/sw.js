@@ -154,3 +154,15 @@ function networkFirst(request, cacheName, ttl) {
     });
   });
 }
+
+self.addEventListener('sync', function(event) {
+  if (event.tag === 'sync-offline-data') {
+    event.waitUntil(
+      self.clients.matchAll().then(function(clients) {
+        clients.forEach(function(client) {
+          client.postMessage({ type: 'trigger-sync-offline' });
+        });
+      })
+    );
+  }
+});

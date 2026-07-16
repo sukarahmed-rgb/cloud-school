@@ -53,6 +53,10 @@ function handleError(context, error) {
 
   showToast(userMessage);
 
+  if (typeof window.Sentry !== 'undefined') {
+    window.Sentry.captureException(new Error(`[${level}] ${message}`), { extra: { context } });
+  }
+
   if (level === ERROR_LEVELS.FATAL) {
     speakToUser(__('criticalError', userMessage));
   } else {
@@ -63,10 +67,22 @@ function handleError(context, error) {
 }
 
 function setupGlobalErrorHandler() {
+  if (typeof window.Sentry !== 'undefined') {
+    window.Sentry.init({
+      dsn: "https://7c44e976db57fcf7c7c34d3d2db73b18@o4505678229340160.ingest.us.sentry.io/4508930292725760",
+      tracesSampleRate: 1.0,
+    });
+  }
   window.addEventListener('unhandledrejection', (event) => {
+    if (typeof window.Sentry !== 'undefined') {
+      window.Sentry.captureException(event.reason);
+    }
     handleError('unhandledRejection', event.reason);
   });
   window.addEventListener('error', (event) => {
+    if (typeof window.Sentry !== 'undefined') {
+      window.Sentry.captureException(event.error || event.message);
+    }
     handleError('unhandledException', event.error || event.message);
   });
 }

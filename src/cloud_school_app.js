@@ -7,6 +7,7 @@ import { escapeHtml, base64ToArrayBuffer, pcmToWav, blobToBase64 } from './modul
 import {
   configureAuth, checkAgeLimitations, handleLoginSubmit, enterApp, handleRegistrationSubmit, logout
 } from './modules/auth.js';
+import { queueOfflineSave } from './modules/offline-sync.js';
 import {
   arabicBrailleMap, updateBraillePreview, toggleDot, clearDots, commitBrailleChar
 } from './modules/braille.js';
@@ -1116,6 +1117,35 @@ function renderGradeDistribution() {}
 function renderStudentPerformanceTable() {}
 function generateTeacherReport() {}
 
+function saveBookToFirebase(book) {
+    if (serverAvailable) {
+        serverSave('curriculum_modules', book).catch(() => queueOfflineSave('curriculum_modules', book));
+    } else {
+        queueOfflineSave('curriculum_modules', book);
+    }
+}
+function saveQuizToFirebase(quiz) {
+    if (serverAvailable) {
+        serverSave('assignments', quiz).catch(() => queueOfflineSave('assignments', quiz));
+    } else {
+        queueOfflineSave('assignments', quiz);
+    }
+}
+function saveSubmissionToFirebase(sub) {
+    if (serverAvailable) {
+        serverSave('submissions', sub).catch(() => queueOfflineSave('submissions', sub));
+    } else {
+        queueOfflineSave('submissions', sub);
+    }
+}
+function saveStudentToFirebase(student) {
+    if (serverAvailable) {
+        serverSave('students', student).catch(() => queueOfflineSave('students', student));
+    } else {
+        queueOfflineSave('students', student);
+    }
+}
+
 // ==================== ظ†ط¸ط§ظ… ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ====================
 
 function addNotification(title, details, type) {
@@ -1246,10 +1276,7 @@ function renderAdminDashboard() {
     import('./modules/dashboards/admin-dashboard.js').then(m => m.renderAdminDashboard());
 }
 
-function saveBookToFirebase(book) { if (serverAvailable) serverSave('curriculum_modules', book); }
-function saveQuizToFirebase(quiz) { if (serverAvailable) serverSave('assignments', quiz); }
-function saveSubmissionToFirebase(sub) { if (serverAvailable) serverSave('submissions', sub); }
-function saveStudentToFirebase(student) { if (serverAvailable) serverSave('students', student); }
+// Save functions moved earlier to support offline sync.
 
 // syncFromFirebase_cb was here â€” removed (dead code, never called)
 
@@ -1479,6 +1506,7 @@ async function serverSave(collection, data) {
     if (!r.ok) throw new Error('Failed to save ' + collection);
     return await r.json();
 }
+window.serverSave = serverSave;
 
 async function initServerBackend() {
     await checkServerHealth();
