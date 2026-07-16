@@ -20,7 +20,7 @@ export function renderTeacherDashboard() {
 
     document.getElementById('stat-total-students').textContent = totalStudents + (activeStudents > 0 ? ' (' + activeStudents + __('activeStudentsSuffix') + ')' : '');
     document.getElementById('stat-total-quizzes').textContent = totalQuizzes;
-    document.getElementById('stat-avg-score').textContent = avgScore + '%';
+    document.getElementById('stat-avg-score-teacher').textContent = avgScore + '%';
     document.getElementById('stat-completion').textContent = Math.min(completionRate, 100) + '%';
 
     renderGradeDistribution(submissions);
