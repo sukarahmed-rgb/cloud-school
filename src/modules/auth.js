@@ -1,3 +1,4 @@
+// @ts-check
 let ctx = null;
 
 /**
@@ -12,18 +13,22 @@ export function checkAgeLimitations() {
   if (!ctx) {
     return;
   }
-  const role = document.getElementById('reg-role').value;
+  const role = /** @type {HTMLSelectElement} */ (document.getElementById('reg-role')).value;
   if (role !== 'student') {
     return;
   }
 
-  const ageInput = document.getElementById('reg-age');
+  const ageInput = /** @type {HTMLInputElement} */ (document.getElementById('reg-age'));
   const age = parseInt(ageInput.value, 10);
   const warningBox = document.getElementById('auth-warning-box');
   const warningText = document.getElementById('auth-warning-text');
-  const parentContactInput = document.getElementById('reg-parent-contact');
+  const parentContactInput = /** @type {HTMLInputElement} */ (
+    document.getElementById('reg-parent-contact')
+  );
   const labelParentContact = document.getElementById('label-parent-contact');
-  const btnAuthSubmit = document.getElementById('btn-auth-submit');
+  const btnAuthSubmit = /** @type {HTMLButtonElement} */ (
+    document.getElementById('btn-auth-submit')
+  );
 
   warningBox.classList.add('hidden');
   parentContactInput.required = false;
@@ -54,8 +59,12 @@ export async function handleLoginSubmit(e) {
     return;
   }
   e.preventDefault();
-  const email = document.getElementById('login-username').value.trim();
-  const password = document.getElementById('login-password').value.trim();
+  const email = /** @type {HTMLInputElement} */ (
+    document.getElementById('login-username')
+  ).value.trim();
+  const password = /** @type {HTMLInputElement} */ (
+    document.getElementById('login-password')
+  ).value.trim();
 
   const warningBox = document.getElementById('auth-warning-box');
   const warningText = document.getElementById('auth-warning-text');
@@ -150,11 +159,18 @@ export async function handleRegistrationSubmit(e) {
     return;
   }
   e.preventDefault();
-  const name = document.getElementById('reg-name').value.trim();
-  const contact = document.getElementById('reg-contact').value.trim();
-  const role = document.getElementById('reg-role').value;
-  const age = parseInt(document.getElementById('reg-age').value, 10);
-  const plainPassword = document.getElementById('reg-password-new').value;
+  const name = /** @type {HTMLInputElement} */ (document.getElementById('reg-name')).value.trim();
+  const contact = /** @type {HTMLInputElement} */ (
+    document.getElementById('reg-contact')
+  ).value.trim();
+  const role = /** @type {HTMLSelectElement} */ (document.getElementById('reg-role')).value;
+  const age = parseInt(
+    /** @type {HTMLInputElement} */ (document.getElementById('reg-age')).value,
+    10,
+  );
+  const plainPassword = /** @type {HTMLInputElement} */ (
+    document.getElementById('reg-password-new')
+  ).value;
 
   const warningBox = document.getElementById('auth-warning-box');
   const warningText = document.getElementById('auth-warning-text');
@@ -169,7 +185,9 @@ export async function handleRegistrationSubmit(e) {
       ctx.speak(msg);
       return;
     }
-    parentContact = document.getElementById('reg-parent-contact').value.trim();
+    parentContact = /** @type {HTMLInputElement} */ (
+      document.getElementById('reg-parent-contact')
+    ).value.trim();
     if (!parentContact) {
       const msg = ctx.__('registerParentRequired');
       warningText.textContent = msg;
@@ -258,7 +276,7 @@ export function logout() {
   document.querySelector('[data-action="logout"]')?.classList.add('hidden');
   document.getElementById('login-form-container').classList.remove('hidden');
   document.getElementById('register-form-container').classList.add('hidden');
-  document.getElementById('login-username').value = '';
-  document.getElementById('login-password').value = '';
+  /** @type {HTMLInputElement} */ (document.getElementById('login-username')).value = '';
+  /** @type {HTMLInputElement} */ (document.getElementById('login-password')).value = '';
   ctx.speak(ctx.__('logoutSuccess'));
 }

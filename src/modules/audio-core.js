@@ -1,3 +1,4 @@
+// @ts-check
 export function speakToUser(message) {
   const ariaLive = document.getElementById('aria-live');
   if (ariaLive) {

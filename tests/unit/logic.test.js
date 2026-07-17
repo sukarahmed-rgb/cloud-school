@@ -2,58 +2,14 @@
  * اختبارات للدوال الجديدة: الإشعارات، لوحة المتابعة، البيانات المحلية
  */
 
+import { addNotification, updateNotifBadge } from '../../src/modules/notifications.js';
+import { saveLocalData, loadLocalData } from '../../src/modules/ui-core.js';
+
 // ====== محاكاة المتغيرات العامة ======
 let currentUserSession = null;
-const localData = {
-  books: [
-    { id: 'b1', title: 'كيمياء', content: 'محتوى الكيمياء' },
-    { id: 'b2', title: 'تاريخ', content: 'محتوى التاريخ' },
-  ],
-  assignments: [
-    {
-      id: 'a1',
-      title: 'اختبار 1',
-      type: 'mcq',
-      question: 'س؟',
-      options: { A: 'أ', B: 'ب', C: 'ج', D: 'د' },
-      correct: 'B',
-    },
-  ],
-  submissions: [
-    { studentName: 'أحمد', quizTitle: 'اختبار 1', initialScore: 90, timestamp: '10:00' },
-    { studentName: 'أحمد', quizTitle: 'اختبار 2', initialScore: 70, timestamp: '11:00' },
-  ],
-  students: [{ name: 'أحمد خالد', grade: 'الصف العاشر', pin: '7429' }],
-  notifications: [],
-};
+let localData = {};
 
-const STORAGE_KEYS = { localData: 'cloudSchoolData' };
-
-// ====== دوال الإشعارات ======
-function addNotification(title, details, type) {
-  if (!localData.notifications) {
-    localData.notifications = [];
-  }
-  localData.notifications.unshift({
-    title: title,
-    details: details,
-    type: type || 'info',
-    time: new Date().toLocaleString('ar-EG'),
-    read: false,
-  });
-  if (localData.notifications.length > 50) {
-    localData.notifications.length = 50;
-  }
-}
-
-function updateNotifBadge() {
-  const unread = (localData.notifications || []).filter(function (n) {
-    return !n.read;
-  }).length;
-  return unread;
-}
-
-// ====== دوال لوحة المتابعة ======
+// ====== دوال لوحة المتابعة (local - real version uses ctx pattern) ======
 function renderStudentStats() {
   const submissions = localData.submissions || [];
   const mySubs = submissions.filter(function (s) {
@@ -72,47 +28,7 @@ function renderStudentStats() {
   return { quizCount: quizCount, avgScore: avgScore, bookCount: bookCount };
 }
 
-// ====== دوال البيانات المحلية ======
-function saveLocalData() {
-  try {
-    localStorage.setItem(STORAGE_KEYS.localData, JSON.stringify(localData));
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-function loadLocalData() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEYS.localData);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.books) {
-        localData.books = parsed.books;
-      }
-      if (parsed.assignments) {
-        localData.assignments = parsed.assignments;
-      }
-      if (parsed.submissions) {
-        localData.submissions = parsed.submissions;
-      }
-      if (parsed.students) {
-        localData.students = parsed.students;
-      }
-      if (parsed.notifications) {
-        localData.notifications = parsed.notifications;
-      }
-    }
-    if (!localData.notifications) {
-      localData.notifications = [];
-    }
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-// ====== دوال السمة والنص ======
+// ====== دوال السمة والنص (local - real versions use DOM/localStorage) ======
 function adjustTextSize(direction, currentOffset) {
   let offset = currentOffset + direction;
   if (offset < -2) {
@@ -138,38 +54,61 @@ function cycleTheme(currentTheme) {
 
 describe('Notifications Module', () => {
   beforeEach(() => {
-    localData.notifications = [];
+    window.localData = { notifications: [] };
+    window.saveLocalData = jest.fn();
+    window.__ = jest.fn((key) => key);
+    window.showToast = jest.fn();
+    document.body.innerHTML =
+      '<span id="notif-badge"></span><button id="btn-notifications"></button>';
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
   });
 
   test('addNotification adds a notification to the list', () => {
     addNotification('اختبار', 'تفاصيل', 'info');
-    expect(localData.notifications.length).toBe(1);
-    expect(localData.notifications[0].title).toBe('اختبار');
-    expect(localData.notifications[0].read).toBe(false);
+    expect(window.localData.notifications.length).toBe(1);
+    expect(window.localData.notifications[0].title).toBe('اختبار');
+    expect(window.localData.notifications[0].read).toBe(false);
   });
 
   test('addNotification caps at 50 notifications', () => {
     for (let i = 0; i < 60; i++) {
       addNotification(`n${i}`, '', 'info');
     }
-    expect(localData.notifications.length).toBe(50);
+    expect(window.localData.notifications.length).toBe(50);
   });
 
   test('addNotification prepends (newest first)', () => {
     addNotification('first', '', 'info');
     addNotification('second', '', 'info');
-    expect(localData.notifications[0].title).toBe('second');
+    expect(window.localData.notifications[0].title).toBe('second');
   });
 
-  test('updateNotifBadge counts unread correctly', () => {
+  test('updateNotifBadge updates DOM with unread count', () => {
     addNotification('n1', '', 'info');
     addNotification('n2', '', 'info');
-    localData.notifications[0].read = true;
-    expect(updateNotifBadge()).toBe(1);
+    window.localData.notifications[0].read = true;
+    updateNotifBadge();
+    expect(document.getElementById('notif-badge').textContent).toBe('1');
   });
 });
 
 describe('Student Dashboard Logic', () => {
+  beforeEach(() => {
+    localData = {
+      books: [
+        { id: 'b1', title: 'كيمياء', content: 'محتوى الكيمياء' },
+        { id: 'b2', title: 'تاريخ', content: 'محتوى التاريخ' },
+      ],
+      submissions: [
+        { studentName: 'أحمد', quizTitle: 'اختبار 1', initialScore: 90, timestamp: '10:00' },
+        { studentName: 'أحمد', quizTitle: 'اختبار 2', initialScore: 70, timestamp: '11:00' },
+      ],
+    };
+  });
+
   test('renderStudentStats returns correct counts', () => {
     currentUserSession = { name: 'أحمد' };
     const stats = renderStudentStats();
@@ -179,43 +118,48 @@ describe('Student Dashboard Logic', () => {
   });
 
   test('renderStudentStats handles no submissions', () => {
-    const oldSubs = localData.submissions;
     localData.submissions = [];
     currentUserSession = { name: 'لا يوجد' };
     const stats = renderStudentStats();
     expect(stats.quizCount).toBe(0);
     expect(stats.avgScore).toBeNull();
-    localData.submissions = oldSubs;
   });
 });
 
 describe('Local Data Persistence', () => {
   beforeEach(() => {
     localStorage.clear();
+    window.STORAGE_KEYS = { localData: 'cloudSchoolData' };
+    window.localData = {
+      books: [],
+      assignments: [],
+      submissions: [],
+      students: [],
+      notifications: [],
+    };
   });
 
   test('saveLocalData and loadLocalData round-trip', () => {
-    localData.books = [{ id: 'x', title: 'اختبار', content: 'محتوى' }];
-    localData.notifications = [{ title: 'n1', details: 'd', read: false }];
-    expect(saveLocalData()).toBe(true);
+    window.localData.books = [{ id: 'x', title: 'اختبار', content: 'محتوى' }];
+    window.localData.notifications = [{ title: 'n1', details: 'd', read: false }];
+    saveLocalData();
 
-    // Reset and load
-    localData.books = [];
-    localData.notifications = [];
-    expect(loadLocalData()).toBe(true);
-    expect(localData.books.length).toBe(1);
-    expect(localData.books[0].title).toBe('اختبار');
-    expect(localData.notifications.length).toBe(1);
+    window.localData.books = [];
+    window.localData.notifications = [];
+    loadLocalData();
+    expect(window.localData.books.length).toBe(1);
+    expect(window.localData.books[0].title).toBe('اختبار');
+    expect(window.localData.notifications.length).toBe(1);
   });
 
   test('loadLocalData initializes notifications if missing', () => {
     localStorage.setItem(
-      STORAGE_KEYS.localData,
+      window.STORAGE_KEYS.localData,
       JSON.stringify({ books: [], assignments: [], submissions: [], students: [] }),
     );
-    localData.notifications = null;
+    window.localData.notifications = null;
     loadLocalData();
-    expect(localData.notifications).toEqual([]);
+    expect(window.localData.notifications).toEqual([]);
   });
 });
 

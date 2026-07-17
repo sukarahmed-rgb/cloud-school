@@ -1,3 +1,4 @@
+// @ts-check
 let ctx = null;
 
 export function configureStudentDashboard(context) {
@@ -26,7 +27,7 @@ export function renderStudentStats() {
   document.getElementById('stat-quizzes').textContent = quizCount;
   document.getElementById('stat-avg-score').textContent = avgScore !== null ? `${avgScore}%` : '--';
   document.getElementById('stat-books').textContent = bookCount;
-  document.getElementById('stat-games').textContent = gameCount;
+  document.getElementById('stat-games').textContent = String(gameCount);
 }
 
 export function renderStudentDashboard() {

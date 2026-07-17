@@ -1,3 +1,4 @@
+// @ts-check
 const DB_NAME = 'cloud_school_offline';
 const DB_VERSION = 1;
 const STORE_NAME = 'pending_saves';
@@ -11,17 +12,17 @@ function getDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (e) => {
-      const db = e.target.result;
+      const db = /** @type {IDBRequest} */ (e.target).result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
       }
     };
     request.onsuccess = (e) => {
-      dbInstance = e.target.result;
+      dbInstance = /** @type {IDBRequest} */ (e.target).result;
       resolve(dbInstance);
     };
     request.onerror = (e) => {
-      reject(e.target.error);
+      reject(/** @type {IDBRequest} */ (e.target).error);
     };
   });
 }
@@ -37,7 +38,7 @@ export async function queueOfflineSave(collection, data) {
         console.log(`[Offline Sync] Queued offline save for ${collection}`);
         // Request background sync if service worker is active
         if ('serviceWorker' in navigator && 'SyncManager' in window) {
-          navigator.serviceWorker.ready.then((reg) => {
+          navigator.serviceWorker.ready.then((/** @type {any} */ reg) => {
             reg.sync.register('sync-offline-data').catch((err) => {
               console.warn('[Offline Sync] Sync registration failed:', err);
             });

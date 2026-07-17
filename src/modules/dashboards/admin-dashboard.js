@@ -1,3 +1,4 @@
+// @ts-check
 // Admin Dashboard Module - لوحة قيادة المسؤول (Lazy loaded)
 
 export function renderAdminDashboard() {
@@ -27,8 +28,10 @@ export function handleAdminCreateStudent(e) {
   const speak = window.speak;
   const __ = window.__;
 
-  const name = document.getElementById('admin-student-name').value;
-  const grade = document.getElementById('admin-student-grade').value;
+  const name = /** @type {HTMLInputElement} */ (document.getElementById('admin-student-name'))
+    .value;
+  const grade = /** @type {HTMLInputElement} */ (document.getElementById('admin-student-grade'))
+    .value;
   const pin = secureRandomInt(1000, 10000).toString();
 
   const newStudent = { name, grade, pin };

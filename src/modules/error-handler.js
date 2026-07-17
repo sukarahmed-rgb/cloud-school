@@ -1,3 +1,4 @@
+// @ts-check
 import { __ } from './i18n.js';
 import { showToast } from './ui-core.js';
 import { speakToUser } from './audio-core.js';

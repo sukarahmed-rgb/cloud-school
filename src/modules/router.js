@@ -1,3 +1,4 @@
+// @ts-check
 /** Router Module - التنقل بين أقسام التطبيق */
 
 import { escapeHtml } from './helpers.js';
@@ -63,7 +64,7 @@ export function openStudentSection(section) {
         'button, [tabindex="0"], input, select, textarea, a',
       );
       if (firstBtn) {
-        firstBtn.focus();
+        /** @type {HTMLElement} */ (firstBtn).focus();
       } else {
         focusElement('student-section-title');
       }
@@ -76,7 +77,9 @@ export function openStudentSection(section) {
 export function closeStudentSection() {
   document.getElementById('student-section-container').classList.add('hidden');
   window.controlAudiobook('stop');
-  const activeBtn = document.querySelector('[data-student-section].bg-yellow-400');
+  const activeBtn = /** @type {HTMLElement|null} */ (
+    document.querySelector('[data-student-section].bg-yellow-400')
+  );
   if (activeBtn) {
     activeBtn.focus();
   } else {

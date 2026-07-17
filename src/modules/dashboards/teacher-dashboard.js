@@ -1,3 +1,4 @@
+// @ts-check
 // Teacher Dashboard Module - لوحة قيادة المعلم (Lazy loaded)
 
 export function renderTeacherDashboard() {
@@ -30,7 +31,7 @@ export function renderTeacherDashboard() {
 
   document.getElementById('stat-total-students').textContent =
     totalStudents + (activeStudents > 0 ? ` (${activeStudents}${__('activeStudentsSuffix')})` : '');
-  document.getElementById('stat-total-quizzes').textContent = totalQuizzes;
+  document.getElementById('stat-total-quizzes').textContent = String(totalQuizzes);
   document.getElementById('stat-avg-score-teacher').textContent = `${avgScore}%`;
   document.getElementById('stat-completion').textContent = `${Math.min(completionRate, 100)}%`;
 
@@ -235,9 +236,9 @@ export function renderTeacherSubmissions() {
   });
 
   tbody.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-action="grade-ai"]');
+    const btn = /** @type {HTMLElement} */ (e.target).closest('[data-action="grade-ai"]');
     if (btn && window.gradeSubmissionWithAI) {
-      window.gradeSubmissionWithAI(parseInt(btn.dataset.index));
+      window.gradeSubmissionWithAI(/** @type {HTMLElement} */ (btn).dataset.index);
     }
   });
 }

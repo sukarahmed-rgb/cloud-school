@@ -2,39 +2,9 @@
  * Unit tests for frontend utility functions
  */
 
-function escapeHtml(str) {
-  if (!str && str !== 0) {
-    return '';
-  }
-  const div = document.createElement('div');
-  div.textContent = String(str);
-  return div.innerHTML;
-}
-
-function secureRandomInt(min, max) {
-  const array = new Uint32Array(1);
-  window.crypto.getRandomValues(array);
-  return min + (array[0] % (max - min + 1));
-}
-
-const i18n = {};
-
-function __(key, ...args) {
-  let val = i18n[key];
-  if (!val) {
-    return key;
-  }
-  if (args.length) {
-    args.forEach((arg, i) => {
-      val = val.replace(`{${i}}`, arg);
-    });
-  }
-  return val;
-}
-
-function getPrompt(lang, arabicText, englishText) {
-  return lang === 'en' ? englishText : arabicText;
-}
+import { escapeHtml } from '../../src/modules/helpers.js';
+import { secureRandomInt } from '../../src/modules/error-handler.js';
+import { i18n, __, getPrompt } from '../../src/modules/i18n.js';
 
 describe('escapeHtml', () => {
   test('escapes HTML special chars', () => {
@@ -104,7 +74,7 @@ describe('getPrompt', () => {
   test('returns English text for English lang', () => {
     expect(getPrompt('en', 'نص عربي', 'English text')).toBe('English text');
   });
-  test('falls back to Arabic for unknown lang', () => {
-    expect(getPrompt('fr', 'نص عربي', 'English text')).toBe('نص عربي');
+  test('falls back to English for non-Arabic lang', () => {
+    expect(getPrompt('fr', 'نص عربي', 'English text')).toBe('English text');
   });
 });

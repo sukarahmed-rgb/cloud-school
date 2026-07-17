@@ -1,3 +1,4 @@
+// @ts-check
 /** Braille module - لغة برايل */
 
 export const arabicBrailleMap = {
@@ -82,7 +83,9 @@ export function clearDots(dotsSet, prefix, previewId, speakOnClear) {
 export function commitBrailleChar(keyString) {
   const mappedChar = arabicBrailleMap[keyString];
   if (mappedChar) {
-    const ansTextarea = document.getElementById('assignment-student-answer');
+    const ansTextarea = /** @type {HTMLTextAreaElement} */ (
+      document.getElementById('assignment-student-answer')
+    );
     if (ansTextarea) {
       ansTextarea.value += mappedChar;
     }

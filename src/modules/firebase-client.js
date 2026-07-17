@@ -1,3 +1,4 @@
+// @ts-check
 /** Firebase module - المصادقة والتخزين السحابي */
 
 export let app = null;

@@ -1,3 +1,4 @@
+// @ts-check
 /** i18n module - الترجمة */
 
 export const i18n = {};
@@ -54,13 +55,13 @@ export function applyTranslations() {
   document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
     const key = el.getAttribute('data-i18n-placeholder');
     if (i18n[key]) {
-      el.placeholder = i18n[key];
+      /** @type {HTMLInputElement} */ (el).placeholder = i18n[key];
     }
   });
   document.querySelectorAll('[data-i18n-title]').forEach((el) => {
     const key = el.getAttribute('data-i18n-title');
     if (i18n[key]) {
-      el.title = i18n[key];
+      /** @type {HTMLElement} */ (el).title = i18n[key];
     }
   });
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => {

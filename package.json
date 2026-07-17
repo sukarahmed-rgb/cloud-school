@@ -10,6 +10,7 @@
     "start": "vite",
     "preview": "vite preview",
     "build": "vite build",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .js --ignore-pattern dist --ignore-pattern node_modules",
     "lint:fix": "eslint . --ext .js --ignore-pattern dist --ignore-pattern node_modules --fix",
     "format": "prettier --write \"**/*.js\" \"!dist/**\" \"!node_modules/**\"",
@@ -43,6 +44,7 @@
     "live-server": "^1.2.2",
     "playwright": "^1.35.0",
     "prettier": "^3.9.5",
+    "typescript": "^7.0.2",
     "vite": "^8.1.4",
     "wrangler": "^4.110.0"
   }
