@@ -278,6 +278,11 @@
     <!-- ==================== المحتوى الأساسي ==================== -->
     <main id="main-content" class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-8">
 
+        <!-- Offline indicator -->
+        <div id="offline-banner" class="hidden mb-4 p-3 bg-red-800 text-white font-bold text-center rounded-xl">
+            <span id="offline-text">${window.__ ? window.__('offlineStatus') : 'Offline — using local data'}</span>
+        </div>
+
         <!-- ==================== 1. واجهة الطالب ==================== -->
         <section id="view-student" class="space-y-8 hidden">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -678,15 +683,25 @@
                                 <p class="text-gray-300">لا توجد بيانات بعد.</p>
                             </div>
                         </div>
-                        <div class="card p-6 rounded-xl border-2 border-current bg-slate-900">
-                            <h4 class="text-xl font-bold text-yellow-400 mb-3">🏆 الإنجازات</h4>
-                            <div id="dashboard-achievements">
-                                <p class="text-gray-300">ابدأ التعلم لتحصل على شارات الإنجاز!</p>
-                            </div>
+                    <div class="card p-6 rounded-xl border-2 border-current bg-slate-900">
+                        <h4 class="text-xl font-bold text-yellow-400 mb-3">🏆 الإنجازات</h4>
+                        <div id="dashboard-achievements">
+                            <p class="text-gray-300">ابدأ التعلم لتحصل على شارات الإنجاز!</p>
                         </div>
                     </div>
+                    <div class="card p-6 rounded-xl border-2 border-current bg-slate-900 md:col-span-2">
+                        <h4 class="text-xl font-bold text-yellow-400 mb-3">📋 آخر الأنشطة</h4>
+                        <div id="dashboard-recent-activity">
+                            <p class="text-gray-300">لا توجد أنشطة بعد.</p>
+                        </div>
+                    </div>
+                </div>
 
-                    <div class="p-4 border-2 border-yellow-500 rounded-xl bg-slate-950 text-center">
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <button onclick="window.printStudentReport()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition btn-interactive">🖨️ طباعة التقرير</button>
+                </div>
+
+                <div class="p-4 border-2 border-yellow-500 rounded-xl bg-slate-950 text-center">
                         <p class="text-lg font-bold text-yellow-300" id="dashboard-encouragement">واصل التقدم يا بطل! 🚀</p>
                     </div>
                 </div>

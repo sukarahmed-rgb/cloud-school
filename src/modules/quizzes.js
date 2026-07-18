@@ -1,5 +1,4 @@
 // @ts-check
-import { speakToUser } from './audio-core.js';
 import { saveSubmissionToFirebase } from './teacher-management.js';
 
 /** @type {string|null} */
@@ -41,6 +40,7 @@ export function renderStudentAssignments() {
  */
 export function startQuiz(quizId) {
   selectedQuizId = quizId;
+  selectedOption = null;
   const quiz = window.localData.assignments.find((a) => a.id === quizId);
   if (!quiz) {
     return;

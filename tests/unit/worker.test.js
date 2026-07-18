@@ -91,7 +91,12 @@ const COLLECTION_PERMISSIONS = {
   submissions: { read: ['teacher', 'admin'], writeOwn: ['student'], write: ['teacher', 'admin'] },
   students: { read: ['teacher', 'admin'], write: ['teacher', 'admin'] },
   notifications: { read: ['student', 'teacher', 'admin', 'parent'], write: ['admin'] },
-  exam_results: { read: ['teacher', 'admin'], writeOwn: ['student'], write: ['teacher', 'admin'] },
+  exam_results: {
+    read: ['teacher', 'admin'],
+    readOwn: ['student'],
+    writeOwn: ['student'],
+    write: ['teacher', 'admin'],
+  },
 };
 
 function checkAccess(session, collection, method, item) {
@@ -102,7 +107,13 @@ function checkAccess(session, collection, method, item) {
   const role = session.role;
 
   function canRead() {
-    return perms.read.includes(role);
+    if (perms.read.includes(role)) {
+      return true;
+    }
+    if (perms.readOwn && perms.readOwn.includes(role)) {
+      return true;
+    }
+    return false;
   }
   function canWrite(targetItem) {
     if (perms.write.includes(role)) {
@@ -333,8 +344,8 @@ describe('RBAC - checkAccess', () => {
   });
 
   describe('exam_results', () => {
-    test('student cannot read exam_results list (teacher/admin only)', () => {
-      expect(checkAccess(studentSession, 'exam_results', 'GET').allowed).toBe(false);
+    test('student can read own exam_results (readOwn)', () => {
+      expect(checkAccess(studentSession, 'exam_results', 'GET').allowed).toBe(true);
     });
     test('student cannot update others exam', () => {
       const other = { studentId: 's2' };

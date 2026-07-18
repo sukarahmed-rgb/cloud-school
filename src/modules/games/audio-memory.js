@@ -1,5 +1,5 @@
 // @ts-check
-import { state, audioMemoryPatterns, clearGameTimer, endGame } from './game-state.js';
+import { state, audioMemoryPatterns, endGame } from './game-state.js';
 
 export function startAudioMemoryGame() {
   state.activeGameType = 'audio-memory';

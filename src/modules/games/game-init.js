@@ -1,22 +1,10 @@
 // @ts-check
-import {
-  state,
-  getAgeLevelDifficulty,
-  pickQuestionByDifficulty,
-  clearGameTimer,
-  endGame,
-} from './game-state.js';
+import { state, pickQuestionByDifficulty, clearGameTimer, endGame } from './game-state.js';
 import { initMathChallenge } from './math-challenge.js';
 import { initListeningQuiz } from './listening-quiz.js';
 import { initScienceLab } from './science-lab.js';
 import { initGeographyExplorer } from './geography-explorer.js';
-import {
-  startAudioMemoryGame,
-  addAudioMemoryStep,
-  playAudioMemorySequence,
-  answerAudioMemory,
-  initAudioMemoryUI,
-} from './audio-memory.js';
+import { startAudioMemoryGame, initAudioMemoryUI } from './audio-memory.js';
 
 export function startNewGameRound() {
   if (state.activeGameType === 'audio-memory') {

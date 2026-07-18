@@ -1,6 +1,4 @@
 // @ts-check
-import { callGemini } from './gemini-client.js';
-
 /** @type {string|null} */
 export let currentlyPlayingBookId = null;
 /** @type {HTMLAudioElement|null} */

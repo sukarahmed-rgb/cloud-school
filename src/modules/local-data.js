@@ -27,9 +27,15 @@ export function loadLocalData() {
       if (parsed.notifications) {
         window.localData.notifications = parsed.notifications;
       }
+      if (parsed.gameProgress) {
+        window.localData.gameProgress = parsed.gameProgress;
+      }
     }
     if (!window.localData.notifications) {
       window.localData.notifications = [];
+    }
+    if (!window.localData.gameProgress) {
+      window.localData.gameProgress = [];
     }
   } catch (e) {
     console.warn('Failed to load local data:', e);

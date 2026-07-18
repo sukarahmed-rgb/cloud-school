@@ -13,3 +13,5 @@ worker/.dev.vars
 playwright-report/
 test-results/
 coverage/
+reports/
+.lighthouseci/

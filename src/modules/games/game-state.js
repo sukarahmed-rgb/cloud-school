@@ -190,6 +190,9 @@ export function endGame() {
   clearGameTimer();
   document.getElementById('active-game-panel').classList.add('hidden');
   window.speak(window.__('gameOver', state.currentGameScore));
+  if (typeof window.recordGameScore === 'function') {
+    window.recordGameScore(state.activeGameType || 'unknown', state.currentGameScore);
+  }
   if (state.currentGameScore >= 50) {
     window.addNotification(
       window.__('notifGameAchievement'),

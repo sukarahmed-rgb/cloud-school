@@ -3,6 +3,9 @@
 export let uploadedImageBase64 = null;
 /** @type {string|null} */
 export let uploadedImageMime = null;
+// Sync to window for lazy-loaded consumers
+Object.defineProperty(window, '_visionBase64', { get: () => uploadedImageBase64 });
+Object.defineProperty(window, '_visionMime', { get: () => uploadedImageMime });
 
 /**
  * @param {Event} event

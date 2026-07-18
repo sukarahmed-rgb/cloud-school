@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const __app_id = 'cloud-school-blind-v1';
 const __firebase_config = {
   apiKey: 'AIzaSyCB-560lR7KyRyD9TYShxdJbkoP8rELBuw',

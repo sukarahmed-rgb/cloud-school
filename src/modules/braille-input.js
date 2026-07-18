@@ -62,9 +62,16 @@ export function toggleBrailleDot(dotNumber) {
   window.updateBraillePreview();
 }
 
+/** Convert a set of dots to a string key (sorted, comma-separated) */
+function dotsToKey(dots) {
+  return Array.from(dots)
+    .sort((a, b) => a - b)
+    .join(',');
+}
+
 /** Enter the current braille character into the answer field */
 export function enterBrailleChar() {
-  const char = window.arabicBrailleMap.get(currentBrailleDots);
+  const char = window.arabicBrailleMap?.[dotsToKey(currentBrailleDots)];
   if (char) {
     const answer = /** @type {HTMLTextAreaElement|null} */ (
       document.getElementById('assignment-student-answer')
@@ -143,7 +150,7 @@ export function toggleCheatDot(dotNum) {
 
 /** Pronounce the current cheat braille character */
 export function pronounceCheatBraille() {
-  const char = window.arabicBrailleMap.get(currentCheatDots);
+  const char = window.arabicBrailleMap?.[dotsToKey(currentCheatDots)];
   if (char) {
     window.speak(char);
   }

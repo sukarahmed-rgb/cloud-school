@@ -5,6 +5,7 @@ declare global {
     submissions: Submission[];
     notifications: CloudNotification[];
     students: Student[];
+    gameProgress?: { gameType: string; score: number; date: string }[];
   }
 
   interface Book {
@@ -159,6 +160,8 @@ declare global {
   var webkitSpeechRecognition: new () => SpeechRecognition;
   var _voiceExamPendingSubmit: boolean;
   var _voiceExamPendingOption: string;
+  var _visionBase64: string | null;
+  var _visionMime: string | null;
   var STORAGE_KEYS: { sizeOffset: string; theme: string; localData: string };
   var escapeHtml: (str: unknown) => string;
   var secureRandomInt: (min: number, max: number) => number;
@@ -220,6 +223,9 @@ declare global {
   var screenReaderMode: boolean;
   var speechRecognizer: unknown;
   var i18n: Record<string, string>;
+  var recordGameScore: (gameType: string, score: number) => void;
+  var printStudentReport: () => void;
+  var setupOfflineDetection: () => void;
 }
 
 export {};

@@ -1,5 +1,6 @@
 // @ts-check
 import { toggleTtsEngine, toggleAudioCoPilot, toggleScreenReaderMode } from './speech.js';
+import { toggleAudioRecording } from './recording.js';
 import { setTheme, adjustTextSize, toggleRegFields } from './accessibility.js';
 import { setCurrentLang, getCurrentLang } from './i18n.js';
 import { showKeyboardHelp, showNotificationsPanel } from './ui-core.js';
@@ -13,32 +14,11 @@ import { switchRole } from './role-switcher.js';
 import { openStudentSection, closeStudentSection } from './router.js';
 import { readActiveBookWithAi, controlAudiobook } from './books.js';
 import { selectQuizOption, submitQuizAnswer } from './quizzes.js';
-import { toggleAudioRecording } from './recording.js';
-import {
-  toggleBrailleKeyboard,
-  toggleBrailleDot,
-  enterBrailleChar,
-  clearBrailleDots,
-  addSpaceToAnswer,
-  deleteLastChar,
-  toggleCheatDot,
-  pronounceCheatBraille,
-  clearCheatDots,
-} from './braille-input.js';
-import { initGame, answerGame } from './audio-game.js';
-import {
-  startAITutorSpeech,
-  askAITutor,
-  speakAITutorResponse,
-  generateAIQuiz,
-  analyzeImageWithGemini,
-} from './ai-tutor.js';
 import {
   toggleTeacherQuizType,
   handleTeacherAddBook,
   handleTeacherAddQuiz,
 } from './teacher-management.js';
-import { previewVisionImage, speakVisionResponse } from './vision.js';
 import { updateProxyStatus } from './proxy.js';
 
 /**
@@ -136,10 +116,14 @@ export function bindAllEvents({
 
   document
     .querySelector('[data-action="toggle-screen-braille"]')
-    ?.addEventListener('click', () => toggleBrailleKeyboard('screen'));
-  document
-    .querySelector('[data-action="toggle-perkins"]')
-    ?.addEventListener('click', () => toggleBrailleKeyboard('perkins'));
+    ?.addEventListener('click', async () => {
+      const m = await import('./braille-input.js');
+      m.toggleBrailleKeyboard('screen');
+    });
+  document.querySelector('[data-action="toggle-perkins"]')?.addEventListener('click', async () => {
+    const m = await import('./braille-input.js');
+    m.toggleBrailleKeyboard('perkins');
+  });
   document
     .querySelector('[data-action="braille-evaluate"]')
     ?.addEventListener('click', translateAndEvaluateBrailleWithAI);
@@ -177,48 +161,81 @@ export function bindAllEvents({
   });
 
   for (let i = 1; i <= 6; i++) {
-    document.getElementById(`dot-${i}`)?.addEventListener('click', () => toggleBrailleDot(i));
+    document.getElementById(`dot-${i}`)?.addEventListener('click', async () => {
+      const m = await import('./braille-input.js');
+      m.toggleBrailleDot(i);
+    });
   }
-  document
-    .querySelector('[data-action="enter-braille"]')
-    ?.addEventListener('click', enterBrailleChar);
-  document
-    .querySelector('[data-action="clear-braille"]')
-    ?.addEventListener('click', clearBrailleDots);
-  document.querySelector('[data-action="add-space"]')?.addEventListener('click', addSpaceToAnswer);
-  document.querySelector('[data-action="delete-char"]')?.addEventListener('click', deleteLastChar);
+  document.querySelector('[data-action="enter-braille"]')?.addEventListener('click', async () => {
+    const m = await import('./braille-input.js');
+    m.enterBrailleChar();
+  });
+  document.querySelector('[data-action="clear-braille"]')?.addEventListener('click', async () => {
+    const m = await import('./braille-input.js');
+    m.clearBrailleDots();
+  });
+  document.querySelector('[data-action="add-space"]')?.addEventListener('click', async () => {
+    const m = await import('./braille-input.js');
+    m.addSpaceToAnswer();
+  });
+  document.querySelector('[data-action="delete-char"]')?.addEventListener('click', async () => {
+    const m = await import('./braille-input.js');
+    m.deleteLastChar();
+  });
 
   for (let i = 1; i <= 6; i++) {
-    document.getElementById(`cheat-dot-${i}`)?.addEventListener('click', () => toggleCheatDot(i));
+    document.getElementById(`cheat-dot-${i}`)?.addEventListener('click', async () => {
+      const m = await import('./braille-input.js');
+      m.toggleCheatDot(i);
+    });
   }
-  document
-    .querySelector('[data-action="pronounce-cheat"]')
-    ?.addEventListener('click', pronounceCheatBraille);
-  document.querySelector('[data-action="clear-cheat"]')?.addEventListener('click', clearCheatDots);
+  document.querySelector('[data-action="pronounce-cheat"]')?.addEventListener('click', async () => {
+    const m = await import('./braille-input.js');
+    m.pronounceCheatBraille();
+  });
+  document.querySelector('[data-action="clear-cheat"]')?.addEventListener('click', async () => {
+    const m = await import('./braille-input.js');
+    m.clearCheatDots();
+  });
 
   document.querySelectorAll('[data-game-type]').forEach((btn) => {
     const b = /** @type {HTMLElement} */ (btn);
-    b.addEventListener('click', () => initGame(b.dataset.gameType));
+    b.addEventListener('click', async () => {
+      const m = await import('./audio-game.js');
+      m.initGame(b.dataset.gameType);
+    });
+  });
+  document.querySelector('[data-action="answer-true"]')?.addEventListener('click', async () => {
+    const m = await import('./audio-game.js');
+    m.answerGame(true);
+  });
+  document.querySelector('[data-action="answer-false"]')?.addEventListener('click', async () => {
+    const m = await import('./audio-game.js');
+    m.answerGame(false);
+  });
+
+  document.querySelector('[data-action="ai-tutor-speech"]')?.addEventListener('click', async () => {
+    const m = await import('./ai-tutor.js');
+    m.startAITutorSpeech();
+  });
+  document.querySelector('[data-action="ask-ai"]')?.addEventListener('click', async () => {
+    const m = await import('./ai-tutor.js');
+    m.askAITutor();
   });
   document
-    .querySelector('[data-action="answer-true"]')
-    ?.addEventListener('click', () => answerGame(true));
-  document
-    .querySelector('[data-action="answer-false"]')
-    ?.addEventListener('click', () => answerGame(false));
-
-  document
-    .querySelector('[data-action="ai-tutor-speech"]')
-    ?.addEventListener('click', startAITutorSpeech);
-  document.querySelector('[data-action="ask-ai"]')?.addEventListener('click', askAITutor);
-  document
     .querySelector('[data-action="speak-ai-response"]')
-    ?.addEventListener('click', speakAITutorResponse);
+    ?.addEventListener('click', async () => {
+      const m = await import('./ai-tutor.js');
+      m.speakAITutorResponse();
+    });
 
   document.getElementById('teacher-quiz-type')?.addEventListener('change', toggleTeacherQuizType);
   document
     .querySelector('[data-action="generate-ai-quiz"]')
-    ?.addEventListener('click', generateAIQuiz);
+    ?.addEventListener('click', async () => {
+      const m = await import('./ai-tutor.js');
+      m.generateAIQuiz();
+    });
   document
     .querySelector('[data-action="teacher-book-form"]')
     ?.addEventListener('submit', handleTeacherAddBook);
@@ -230,11 +247,16 @@ export function bindAllEvents({
     .querySelector('[data-action="admin-student-form"]')
     ?.addEventListener('submit', handleAdminCreateStudent);
 
-  document.getElementById('vision-image-input')?.addEventListener('change', previewVisionImage);
-  document
-    .querySelector('[data-action="analyze-image"]')
-    ?.addEventListener('click', analyzeImageWithGemini);
-  document
-    .querySelector('[data-action="speak-vision"]')
-    ?.addEventListener('click', speakVisionResponse);
+  document.getElementById('vision-image-input')?.addEventListener('change', async (event) => {
+    const m = await import('./vision.js');
+    m.previewVisionImage(event);
+  });
+  document.querySelector('[data-action="analyze-image"]')?.addEventListener('click', async () => {
+    const m = await import('./ai-tutor.js');
+    m.analyzeImageWithGemini();
+  });
+  document.querySelector('[data-action="speak-vision"]')?.addEventListener('click', async () => {
+    const m = await import('./vision.js');
+    m.speakVisionResponse();
+  });
 }

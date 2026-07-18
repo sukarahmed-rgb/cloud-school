@@ -1,6 +1,6 @@
 // @ts-check
 import { clearQuizTimer } from './quizzes.js';
-import { clearGameTimer } from './audio-game.js';
+import { clearGameTimer } from './games/game-state.js';
 import { __ } from './i18n.js';
 
 /** @type {boolean} */

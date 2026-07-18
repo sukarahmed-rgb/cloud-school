@@ -6,18 +6,14 @@ const STATIC_FILES = [
   '/',
   '/index.html',
   '/offline.html',
-  '/cloud_school_app.js',
-  '/cloud_school_styles.css',
-  '/features.js',
   '/config.js',
   '/manifest.json',
   '/sw-init.js',
   '/favicon.svg',
+  '/favicon.ico',
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',
   '/icons/logo.svg',
-  '/i18n/ar.json',
-  '/i18n/en.json',
 ];
 
 const API_DOMAIN = 'cloud-school-api.cloud-school-subdomain.workers.dev';

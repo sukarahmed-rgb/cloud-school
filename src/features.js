@@ -6,25 +6,72 @@ import {
   startMicrophone,
   listenForSpeech,
 } from './modules/speech-recognition.js';
-import {
-  startDialogicClassroom,
-  stopDialogicClassroom,
-  triggerDialogicAnswer,
-} from './modules/dialogic-learning.js';
-import {
-  startStudyGroup,
-  stopStudyGroup,
-  handleStudyGroupSpeech,
-  skipStudyGroupTurn,
-} from './modules/study-groups.js';
-import {
-  toggleVoiceExamMode,
-  readCurrentQuizAloud,
-  startVoiceExamListening,
-  confirmVoiceSubmit,
-  doVoiceSubmit,
-  updateVoiceExamStatus,
-} from './modules/voice-exams.js';
+
+// ===================== Lazy-loading wrappers =====================
+async function _lazyDialogic() {
+  return import('./modules/dialogic-learning.js');
+}
+async function _lazyStudyGroups() {
+  return import('./modules/study-groups.js');
+}
+async function _lazyVoiceExams() {
+  return import('./modules/voice-exams.js');
+}
+
+export async function startDialogicClassroom() {
+  const m = await _lazyDialogic();
+  return m.startDialogicClassroom.apply(this, arguments);
+}
+export async function stopDialogicClassroom() {
+  const m = await _lazyDialogic();
+  return m.stopDialogicClassroom.apply(this, arguments);
+}
+async function triggerDialogicAnswer() {
+  const m = await _lazyDialogic();
+  return m.triggerDialogicAnswer.apply(this, arguments);
+}
+
+export async function startStudyGroup() {
+  const m = await _lazyStudyGroups();
+  return m.startStudyGroup.apply(this, arguments);
+}
+export async function stopStudyGroup() {
+  const m = await _lazyStudyGroups();
+  return m.stopStudyGroup.apply(this, arguments);
+}
+async function handleStudyGroupSpeech() {
+  const m = await _lazyStudyGroups();
+  return m.handleStudyGroupSpeech.apply(this, arguments);
+}
+async function skipStudyGroupTurn() {
+  const m = await _lazyStudyGroups();
+  return m.skipStudyGroupTurn.apply(this, arguments);
+}
+
+export async function toggleVoiceExamMode() {
+  const m = await _lazyVoiceExams();
+  return m.toggleVoiceExamMode.apply(this, arguments);
+}
+export async function readCurrentQuizAloud() {
+  const m = await _lazyVoiceExams();
+  return m.readCurrentQuizAloud.apply(this, arguments);
+}
+export async function startVoiceExamListening() {
+  const m = await _lazyVoiceExams();
+  return m.startVoiceExamListening.apply(this, arguments);
+}
+export async function confirmVoiceSubmit() {
+  const m = await _lazyVoiceExams();
+  return m.confirmVoiceSubmit.apply(this, arguments);
+}
+export async function doVoiceSubmit() {
+  const m = await _lazyVoiceExams();
+  return m.doVoiceSubmit.apply(this, arguments);
+}
+export async function updateVoiceExamStatus() {
+  const m = await _lazyVoiceExams();
+  return m.updateVoiceExamStatus.apply(this, arguments);
+}
 
 // ===================== ربط مع الميزات القديمة =====================
 window.speechRecognizer = {
@@ -62,9 +109,9 @@ document.addEventListener('DOMContentLoaded', function () {
     stopBtn.addEventListener('click', stopDialogicClassroom);
   }
   if (speakBtn) {
-    speakBtn.addEventListener('click', function () {
+    speakBtn.addEventListener('click', async function () {
       document.getElementById('dialogic-voice-status').textContent = __('dialogicSpeakNow');
-      triggerDialogicAnswer();
+      await triggerDialogicAnswer();
     });
   }
 
@@ -92,18 +139,4 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 
-export {
-  initSpeechRecognition,
-  startMicrophone,
-  listenForSpeech,
-  startDialogicClassroom,
-  stopDialogicClassroom,
-  startStudyGroup,
-  stopStudyGroup,
-  toggleVoiceExamMode,
-  readCurrentQuizAloud,
-  startVoiceExamListening,
-  confirmVoiceSubmit,
-  doVoiceSubmit,
-  updateVoiceExamStatus,
-};
+export { initSpeechRecognition, startMicrophone, listenForSpeech };

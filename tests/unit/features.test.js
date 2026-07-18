@@ -1,77 +1,82 @@
-// Unit tests for features.js logic (Dialogic Classroom and Audio Study Groups)
+jest.mock('../../src/modules/dialogic-learning.js', () => ({
+  startDialogicClassroom: jest.fn(),
+  stopDialogicClassroom: jest.fn(),
+  triggerDialogicAnswer: jest.fn(),
+}));
 
-const STUDENT_NAMES = ['يوسف', 'ليلى', 'أميرة'];
+jest.mock('../../src/modules/study-groups.js', () => ({
+  startStudyGroup: jest.fn(),
+  stopStudyGroup: jest.fn(),
+  handleStudyGroupSpeech: jest.fn(),
+  skipStudyGroupTurn: jest.fn(),
+}));
 
-function parseDialogicResponse(text) {
-  try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
-  } catch (e) {}
-  return {
-    assessment: 'جيد',
-    explanation: '',
-    question: text,
-    type: 'open',
-  };
-}
+jest.mock('../../src/modules/voice-exams.js', () => ({
+  toggleVoiceExamMode: jest.fn(),
+  readCurrentQuizAloud: jest.fn(),
+  startVoiceExamListening: jest.fn(),
+  confirmVoiceSubmit: jest.fn(),
+  doVoiceSubmit: jest.fn(),
+  updateVoiceExamStatus: jest.fn(),
+}));
 
-function parseStudyGroupResponse(text, currentStudentIndex = 0) {
-  try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
-  } catch (e) {}
-  return {
-    feedback: '',
-    nextSpeaker: STUDENT_NAMES[currentStudentIndex % 3],
-    question: text,
-    type: 'discussion',
-  };
-}
+import {
+  startDialogicClassroom,
+  stopDialogicClassroom,
+  startStudyGroup,
+  stopStudyGroup,
+  toggleVoiceExamMode,
+  readCurrentQuizAloud,
+  startVoiceExamListening,
+  confirmVoiceSubmit,
+  doVoiceSubmit,
+  updateVoiceExamStatus,
+} from '../../src/features.js';
 
-describe('features.js - Dialogic Classroom Response Parsing', () => {
-  test('parseDialogicResponse parses valid JSON response correctly', () => {
-    const rawResponse = `{
-            "assessment": "ممتاز",
-            "explanation": "أحسنت القول في هذا الموضوع",
-            "question": "ما رأيك بالخطوة التالية؟",
-            "type": "open"
-        }`;
-    const parsed = parseDialogicResponse(rawResponse);
-    expect(parsed.assessment).toBe('ممتاز');
-    expect(parsed.question).toBe('ما رأيك بالخطوة التالية؟');
-    expect(parsed.type).toBe('open');
-  });
-
-  test('parseDialogicResponse falls back to open question when JSON is invalid', () => {
-    const rawResponse = 'هذا ليس جيسون صالح، بل مجرد نص مباشر للسؤال.';
-    const parsed = parseDialogicResponse(rawResponse);
-    expect(parsed.assessment).toBe('جيد');
-    expect(parsed.question).toBe(rawResponse);
-    expect(parsed.type).toBe('open');
-  });
+beforeEach(() => {
+  window.__ = jest.fn((key) => key);
+  window.speak = jest.fn();
+  document.body.innerHTML = '';
 });
 
-describe('features.js - Audio Study Groups Response Parsing', () => {
-  test('parseStudyGroupResponse parses valid JSON correctly', () => {
-    const rawResponse = `{
-            "feedback": "تعليق جيد جداً",
-            "nextSpeaker": "ليلى",
-            "question": "ما هي الخطوة التالية؟",
-            "type": "discussion"
-        }`;
-    const parsed = parseStudyGroupResponse(rawResponse, 0);
-    expect(parsed.feedback).toBe('تعليق جيد جداً');
-    expect(parsed.nextSpeaker).toBe('ليلى');
+describe('features.js - lazy-loading wrappers', () => {
+  test('startDialogicClassroom resolves without throwing', async () => {
+    await expect(startDialogicClassroom()).resolves.toBeUndefined();
   });
 
-  test('parseStudyGroupResponse falls back when JSON is invalid', () => {
-    const rawResponse = 'نص السؤال المباشر.';
-    const parsed = parseStudyGroupResponse(rawResponse, 1);
-    expect(parsed.nextSpeaker).toBe('ليلى'); // STUDENT_NAMES[1]
-    expect(parsed.question).toBe(rawResponse);
+  test('stopDialogicClassroom resolves without throwing', async () => {
+    await expect(stopDialogicClassroom()).resolves.toBeUndefined();
+  });
+
+  test('startStudyGroup resolves without throwing', async () => {
+    await expect(startStudyGroup()).resolves.toBeUndefined();
+  });
+
+  test('stopStudyGroup resolves without throwing', async () => {
+    await expect(stopStudyGroup()).resolves.toBeUndefined();
+  });
+
+  test('toggleVoiceExamMode resolves without throwing', async () => {
+    await expect(toggleVoiceExamMode()).resolves.toBeUndefined();
+  });
+
+  test('readCurrentQuizAloud resolves without throwing', async () => {
+    await expect(readCurrentQuizAloud()).resolves.toBeUndefined();
+  });
+
+  test('startVoiceExamListening resolves without throwing', async () => {
+    await expect(startVoiceExamListening()).resolves.toBeUndefined();
+  });
+
+  test('confirmVoiceSubmit resolves without throwing', async () => {
+    await expect(confirmVoiceSubmit()).resolves.toBeUndefined();
+  });
+
+  test('doVoiceSubmit resolves without throwing', async () => {
+    await expect(doVoiceSubmit()).resolves.toBeUndefined();
+  });
+
+  test('updateVoiceExamStatus resolves without throwing', async () => {
+    await expect(updateVoiceExamStatus()).resolves.toBeUndefined();
   });
 });

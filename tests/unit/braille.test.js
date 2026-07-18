@@ -1,69 +1,133 @@
-// نسخة محلية من خريطة برايل للاختبار — بدون import (CommonJS)
-const arabicBrailleMap = {
-  1: 'ا',
-  '1,2': 'ب',
-  '2,3,4,5': 'ت',
-  '1,4,5,6': 'ث',
-  '2,4,5': 'ج',
-  '1,5,6': 'ح',
-  '1,3,4,6': 'خ',
-  '1,4,5': 'د',
-  '2,3,4,6': 'ذ',
-  '1,2,3,5': 'ر',
-  '1,3,5,6': 'ز',
-  '2,3,4': 'س',
-  '1,4,6': 'ش',
-  '1,2,3,4,6': 'ص',
-  '1,2,4,6': 'ض',
-  '2,3,4,5,6': 'ط',
-  '1,2,3,4,5,6': 'ظ',
-  '1,2,3,5,6': 'ع',
-  '1,2,6': 'غ',
-  '1,2,4': 'ف',
-  '1,2,3,4,5': 'ق',
-  '1,3': 'ك',
-  '1,2,3': 'ل',
-  '1,3,4': 'م',
-  '1,3,4,5': 'ن',
-  '1,2,5': 'هـ',
-  '2,4,5,6': 'و',
-  '2,4': 'ي',
-  '2,3,5': '!',
-  '2,5,6': '؟',
-};
+import {
+  updateBraillePreview,
+  toggleDot,
+  clearDots,
+  commitBrailleChar,
+  arabicBrailleMap,
+} from '../../src/modules/braille.js';
 
-function getBrailleChar(dotsSet) {
-  const sorted = Array.from(dotsSet).sort((a, b) => a - b);
-  return arabicBrailleMap[sorted.join(',')] || null;
-}
+beforeEach(() => {
+  document.body.innerHTML = '';
+  window.__ = jest.fn((key, ...args) => args[0] || key);
+  window.speak = jest.fn();
+});
 
-function getBraillePreview(dotsSet) {
-  const sorted = Array.from(dotsSet).sort((a, b) => a - b);
-  const keyString = sorted.join(',');
-  const mapped = arabicBrailleMap[keyString] || (dotsSet.size > 0 ? 'غير مكتمل' : 'لا يوجد');
-  return { keyString, mapped };
-}
-
-describe('Braille Module', () => {
-  test('getBrailleChar returns correct Arabic char for dot pattern', () => {
-    const dots = new Set([1]);
-    expect(getBrailleChar(dots)).toBe('ا');
+describe('braille.js - arabicBrailleMap', () => {
+  test('maps dot pattern 1 to ا', () => {
+    expect(arabicBrailleMap['1']).toBe('ا');
   });
-
-  test('getBrailleChar returns known char for pattern', () => {
-    const dots = new Set([1, 2, 3, 4, 5, 6]);
-    expect(getBrailleChar(dots)).toBe('ظ');
+  test('maps dot pattern 1,2 to ب', () => {
+    expect(arabicBrailleMap['1,2']).toBe('ب');
   });
+  test('returns undefined for unknown pattern', () => {
+    expect(arabicBrailleMap['1,6']).toBeUndefined();
+  });
+});
 
-  test('getBraillePreview returns correct preview text', () => {
+describe('braille.js - updateBraillePreview', () => {
+  test('updates preview element with mapped char', () => {
+    const preview = document.createElement('div');
+    preview.id = 'braille-preview';
+    document.body.appendChild(preview);
     const dots = new Set([1, 2]);
-    const result = getBraillePreview(dots);
-    expect(result.mapped).toBe('ب');
-    expect(result.keyString).toBe('1,2');
+    updateBraillePreview(dots, 'braille-preview', '?');
+    expect(window.__).toHaveBeenCalledWith('brailleCurrentChar', 'ب', '1,2');
   });
 
-  test('getBrailleChar returns null for incomplete pattern', () => {
+  test('uses fallback when no mapping found', () => {
+    const preview = document.createElement('div');
+    preview.id = 'braille-preview';
+    document.body.appendChild(preview);
     const dots = new Set([1, 6]);
-    expect(getBrailleChar(dots)).toBeNull();
+    updateBraillePreview(dots, 'braille-preview', '?');
+    expect(window.__).toHaveBeenCalledWith('brailleCurrentChar', '?', '1,6');
+  });
+
+  test('does nothing when preview element missing', () => {
+    const dots = new Set([1]);
+    expect(() => updateBraillePreview(dots, 'nonexistent', '?')).not.toThrow();
+  });
+});
+
+describe('braille.js - toggleDot', () => {
+  test('adds dot to set and activates button', () => {
+    const btn = document.createElement('button');
+    btn.id = 'braille-1';
+    document.body.appendChild(btn);
+    const preview = document.createElement('div');
+    preview.id = 'braille-preview';
+    document.body.appendChild(preview);
+    const dots = new Set();
+    toggleDot(1, dots, 'braille', 'braille-preview', '?');
+    expect(dots.has(1)).toBe(true);
+    expect(btn.classList.contains('active')).toBe(true);
+  });
+
+  test('removes dot from set and deactivates button', () => {
+    const btn = document.createElement('button');
+    btn.id = 'braille-1';
+    btn.classList.add('active');
+    document.body.appendChild(btn);
+    const preview = document.createElement('div');
+    preview.id = 'braille-preview';
+    document.body.appendChild(preview);
+    const dots = new Set([1]);
+    toggleDot(1, dots, 'braille', 'braille-preview', '?');
+    expect(dots.has(1)).toBe(false);
+    expect(btn.classList.contains('active')).toBe(false);
+  });
+});
+
+describe('braille.js - clearDots', () => {
+  test('clears all dots and deactivates buttons', () => {
+    for (let i = 1; i <= 6; i++) {
+      const btn = document.createElement('button');
+      btn.id = `braille-${i}`;
+      btn.classList.add('active');
+      document.body.appendChild(btn);
+    }
+    const preview = document.createElement('div');
+    preview.id = 'braille-preview';
+    document.body.appendChild(preview);
+    const dots = new Set([1, 2, 3]);
+    clearDots(dots, 'braille', 'braille-preview', true);
+    expect(dots.size).toBe(0);
+    for (let i = 1; i <= 6; i++) {
+      expect(document.getElementById(`braille-${i}`).classList.contains('active')).toBe(false);
+    }
+    expect(window.speak).toHaveBeenCalled();
+  });
+
+  test('does not speak when speakOnClear is false', () => {
+    const preview = document.createElement('div');
+    preview.id = 'braille-preview';
+    document.body.appendChild(preview);
+    clearDots(new Set([1]), 'braille', 'braille-preview', false);
+    expect(window.speak).not.toHaveBeenCalled();
+  });
+});
+
+describe('braille.js - commitBrailleChar', () => {
+  test('appends mapped char to answer textarea and speaks', () => {
+    const textarea = document.createElement('textarea');
+    textarea.id = 'assignment-student-answer';
+    document.body.appendChild(textarea);
+    const result = commitBrailleChar('1,2');
+    expect(result).toBe(true);
+    expect(textarea.value).toBe('ب');
+    expect(window.speak).toHaveBeenCalledWith('ب');
+  });
+
+  test('returns false for unknown pattern', () => {
+    const textarea = document.createElement('textarea');
+    textarea.id = 'assignment-student-answer';
+    document.body.appendChild(textarea);
+    const result = commitBrailleChar('1,6');
+    expect(result).toBe(false);
+    expect(textarea.value).toBe('');
+  });
+
+  test('does not throw when textarea is missing', () => {
+    expect(() => commitBrailleChar('1,2')).not.toThrow();
   });
 });

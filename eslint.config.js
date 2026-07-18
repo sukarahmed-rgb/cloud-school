@@ -109,6 +109,22 @@ export default [
         atob: 'readonly',
       },
     },
+    rules: {
+      'no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^(MAX_BODY_SIZE|camelToSnake)$',
+          caughtErrors: 'none',
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/cloud_school_app.js'],
+    rules: {
+      'no-unused-vars': 'off',
+    },
   },
   {
     files: ['tests/**/*.js'],
@@ -123,6 +139,15 @@ export default [
         beforeAll: 'readonly',
         afterAll: 'readonly',
         jest: 'readonly',
+        Element: 'readonly',
+        global: 'readonly',
+        Event: 'readonly',
+        KeyboardEvent: 'readonly',
+        File: 'readonly',
+        Storage: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        require: 'readonly',
       },
     },
     rules: {

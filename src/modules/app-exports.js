@@ -87,19 +87,7 @@ export {
   updateProxyStatus,
 } from './proxy.js';
 export { addNotification, updateNotifBadge } from './notifications.js';
-export {
-  mediaRecorder,
-  audioChunks,
-  isRecording,
-  stopAudioTracks,
-  toggleAudioRecording,
-} from './recording.js';
-export {
-  uploadedImageBase64,
-  uploadedImageMime,
-  previewVisionImage,
-  speakVisionResponse,
-} from './vision.js';
+
 export {
   serverAvailable,
   checkServerHealth,
@@ -126,39 +114,13 @@ export {
   renderStudentStats,
   renderStudentDashboard,
 } from './dashboards/student-dashboard.js';
-export {
-  configureAiTutor,
-  startAiStoryRound,
-  analyzeImageWithGemini,
-  askAITutor,
-  generateAIQuiz,
-  startAITutorSpeech,
-  speakAITutorResponse,
-  gradeSubmissionWithAI,
-} from './ai-tutor.js';
+
 export {
   callGeminiAPI,
   summarizeCurriculumBookWithAI,
   translateAndEvaluateBrailleWithAI,
 } from './ai-utils.js';
 export { openStudentSection, closeStudentSection, setupKeyboardShortcuts } from './router.js';
-export {
-  perkinsKeysPressed,
-  perkinsKeyupTimer,
-  currentBrailleDots,
-  currentCheatDots,
-  setupPerkinsKeyboard,
-  processPerkinsChord,
-  toggleBrailleDot,
-  enterBrailleChar,
-  clearBrailleDots,
-  addSpaceToAnswer,
-  deleteLastChar,
-  toggleBrailleKeyboard,
-  toggleCheatDot,
-  pronounceCheatBraille,
-  clearCheatDots,
-} from './braille-input.js';
 export {
   selectedQuizId,
   selectedOption,
@@ -190,27 +152,6 @@ export {
   saveSubmissionToFirebase,
   saveStudentToFirebase,
 } from './teacher-management.js';
-export {
-  state,
-  questionBank,
-  audioMemoryPatterns,
-  pickQuestionByDifficulty,
-  initGame,
-  startNewGameRound,
-  listenForGameAnswer,
-  answerGame,
-  endGame,
-  startAudioMemoryGame,
-  addAudioMemoryStep,
-  playAudioMemorySequence,
-  answerAudioMemory,
-  initAudioMemoryUI,
-  clearGameTimer,
-  initMathChallenge,
-  initListeningQuiz,
-  initScienceLab,
-  initGeographyExplorer,
-} from './audio-game.js';
 export { play3DTone, playSuccess3D, playFail3D, playTick3D } from './spatial-audio.js';
 export {
   _toastTimer,
@@ -234,3 +175,11 @@ export {
   isInitRan,
   markInitRan,
 } from './app-init.js';
+export {
+  STORAGE_KEYS,
+  localData,
+  currentUserSession,
+  initialAuthToken,
+  setCurrentUserSession,
+  getCurrentUserSession,
+} from './app-state.js';

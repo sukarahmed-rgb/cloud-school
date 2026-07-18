@@ -86,7 +86,7 @@ function renderGradeDistribution(submissions) {
   }
 }
 
-function renderStudentPerformanceTable(submissions, assignments) {
+function renderStudentPerformanceTable(submissions, _assignments) {
   const __ = window.__;
   const escapeHtml = window.escapeHtml;
   const tbody = document.getElementById('teacher-performance-tbody');

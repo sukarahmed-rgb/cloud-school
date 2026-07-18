@@ -1,7 +1,6 @@
 // @ts-check
 /** Router Module - التنقل بين أقسام التطبيق */
 
-import { escapeHtml } from './helpers.js';
 import { showKeyboardHelp, focusElement } from './ui-core.js';
 
 export function openStudentSection(section) {
