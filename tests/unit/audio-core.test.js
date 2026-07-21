@@ -6,6 +6,7 @@ describe('audio-core.js', () => {
     window.__speechLang = 'ar-EG';
     window.speechSynthesis = { speak: jest.fn() };
     window.SpeechSynthesisUtterance = jest.fn(() => ({}));
+    document.dispatchEvent(new Event('click', { bubbles: true }));
   });
 
   test('speakToUser sets aria-live text content', () => {

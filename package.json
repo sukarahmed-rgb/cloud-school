@@ -19,7 +19,7 @@
     "prepare": "husky",
     "deploy:hosting": "npx firebase deploy --only hosting",
     "deploy": "npx firebase deploy",
-    "lighthouse": "lhci autorun",
+    "lighthouse": "lhci autorun --collect.noCleanup=true",
     "bundle:analyze": "vite-bundle-visualizer -o reports/bundle-stats.html"
   },
   "lint-staged": {
