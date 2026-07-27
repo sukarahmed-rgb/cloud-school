@@ -114,8 +114,12 @@ jobs:
         with:
           name: dist
           path: dist/
+      - name: Write service account
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > service-account.json
       - id: deploy-preview
-        run: echo "PREVIEW_URL=$(npx firebase-tools hosting:channel:deploy preview-${{ github.event.pull_request.number }} --project cloud-school-6251a --token '${{ secrets.FIREBASE_TOKEN }}' | grep -oP 'Channel URL \(preview-\d+\):\s*\K\S+')" >> $GITHUB_ENV
+        run: echo "PREVIEW_URL=$(npx firebase-tools hosting:channel:deploy preview-${{ github.event.pull_request.number }} --project cloud-school-6251a | grep -oP 'Channel URL \(preview-\d+\):\s*\K\S+')" >> $GITHUB_ENV
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: service-account.json
       - uses: actions/github-script@v7
         if: always()
         with:
@@ -170,4 +174,8 @@ jobs:
         with:
           name: dist
           path: dist
-      - run: npx -y firebase-tools@latest deploy --only hosting --token "${{ secrets.FIREBASE_TOKEN }}"
+      - name: Write service account
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > service-account.json
+      - run: npx -y firebase-tools@latest deploy --only hosting
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: service-account.json
