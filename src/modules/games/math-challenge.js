@@ -84,10 +84,11 @@ export function initMathChallenge() {
     document.getElementById('game-arena').appendChild(inputArea);
   }
   inputArea.classList.remove('hidden');
+  const label = window.escapeHtml(window.__('gameMathTypeAnswer'));
   inputArea.innerHTML =
-    `<label for="math-answer-input" class="text-lg font-bold text-yellow-300">${window.__('gameMathTypeAnswer')}</label>` +
-    `<input id="math-answer-input" type="text" inputmode="text" autocomplete="off" class="p-4 text-2xl text-center rounded-xl bg-gray-800 text-white border-2 border-yellow-400 w-64 focus-ring" aria-label="${window.__('gameMathTypeAnswer')}">` +
-    `<button id="math-submit-btn" class="p-4 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl btn-interactive w-64">${window.__('gameMathSubmit')}</button>`;
+    `<label for="math-answer-input" class="text-lg font-bold text-yellow-300">${label}</label>` +
+    `<input id="math-answer-input" type="text" inputmode="text" autocomplete="off" class="p-4 text-2xl text-center rounded-xl bg-gray-800 text-white border-2 border-yellow-400 w-64 focus-ring" aria-label="${label}">` +
+    `<button id="math-submit-btn" class="p-4 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl btn-interactive w-64">${window.escapeHtml(window.__('gameMathSubmit'))}</button>`;
 
   document.getElementById('math-submit-btn').addEventListener('click', checkMathAnswer);
   document.getElementById('math-answer-input').addEventListener('keydown', function (e) {

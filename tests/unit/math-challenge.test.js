@@ -27,6 +27,7 @@ describe('math-challenge.js', () => {
     `;
     window.__ = jest.fn((k) => k);
     window.speak = jest.fn();
+    window.escapeHtml = jest.fn((s) => String(s === null || s === undefined ? '' : s));
     window.playSuccess3D = jest.fn();
     window.playFail3D = jest.fn();
     window.playTick3D = jest.fn();

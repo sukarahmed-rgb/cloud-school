@@ -144,6 +144,35 @@ function generateId() {
   return crypto.randomUUID();
 }
 
+async function constantTimeCompare(a, b) {
+  const bufA = new TextEncoder().encode(a || '');
+  const bufB = new TextEncoder().encode(b || '');
+  if (bufA.length !== bufB.length) {
+    await crypto.subtle.digest('SHA-256', bufA);
+    return false;
+  }
+  const hashA = new Uint8Array(await crypto.subtle.digest('SHA-256', bufA));
+  const hashB = new Uint8Array(await crypto.subtle.digest('SHA-256', bufB));
+  let diff = 0;
+  for (let i = 0; i < hashA.length; i++) {
+    diff |= hashA[i] ^ hashB[i];
+  }
+  return diff === 0;
+}
+
+async function checkAuthRateLimit(env, ip, max, windowSec) {
+  const now = Math.floor(Date.now() / 1000);
+  const windowKey = Math.floor(now / windowSec);
+  const rateKey = `authip:${ip}:${windowKey}`;
+  const current = await env.DATA.get(rateKey);
+  const count = current ? Number(current) : 0;
+  if (count >= max) {
+    return false;
+  }
+  await env.DATA.put(rateKey, String(count + 1), { expirationTtl: windowSec * 2 });
+  return true;
+}
+
 function stripMetaFields(obj) {
   const safe = {};
   for (const [key, value] of Object.entries(obj)) {
@@ -359,6 +388,11 @@ export default {
 
       if (path === '/api/auth/firebase-login' && method === 'POST') {
         try {
+          const loginIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+          if (!(await checkAuthRateLimit(env, `login:${loginIp}`, 10, 3600))) {
+            return respond({ error: 'Login rate limit exceeded. Try again later.' }, 429);
+          }
+
           let body;
           try {
             body = await request.json();
@@ -443,6 +477,11 @@ export default {
 
       if (path === '/api/auth/firebase-register' && method === 'POST') {
         try {
+          const regIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+          if (!(await checkAuthRateLimit(env, `reg:${regIp}`, 5, 3600))) {
+            return respond({ error: 'Registration rate limit exceeded. Try again later.' }, 429);
+          }
+
           let body;
           try {
             body = await request.json();
@@ -459,10 +498,13 @@ export default {
           const displayName = sanitizeString(
             name || fbUser.displayName || email.split('@')[0] || 'User',
           );
-          const userRole = (() => {
+          const userRole = await (async () => {
             const allowed = ['student', 'teacher', 'parent'];
-            if (role === 'admin' && adminInviteCode && adminInviteCode === env.ADMIN_INVITE_CODE) {
-              return 'admin';
+            if (role === 'admin' && adminInviteCode) {
+              const match = await constantTimeCompare(adminInviteCode, env.ADMIN_INVITE_CODE || '');
+              if (match) {
+                return 'admin';
+              }
             }
             return allowed.includes(role) ? role : 'student';
           })();
@@ -1026,9 +1068,7 @@ export default {
 };
 
 async function reportErrorToSentry(err, request, env) {
-  const dsn =
-    env.SENTRY_DSN ||
-    'https://7c44e976db57fcf7c7c34d3d2db73b18@o4505678229340160.ingest.us.sentry.io/4508930292725760';
+  const dsn = env.SENTRY_DSN || '';
   if (!dsn) {
     return;
   }

@@ -89,6 +89,7 @@ declare global {
   var __firebase_config: Record<string, unknown>;
   var __initial_auth_token: string | null;
   var __server_base: string;
+  var __SENTRY_DSN: string;
 
   // Firebase
   var firebase: {

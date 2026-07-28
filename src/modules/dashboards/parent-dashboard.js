@@ -45,7 +45,7 @@ export function renderParentDashboard() {
     return n.type === 'submission' || n.type === 'achievement';
   });
   if (myNotifs.length === 0) {
-    notifList.innerHTML = `<p class="text-gray-400">${__('notifEmpty')}</p>`;
+    notifList.innerHTML = `<p class="text-gray-400">${escapeHtml(__('notifEmpty'))}</p>`;
   } else {
     notifList.innerHTML = myNotifs
       .slice(0, 20)

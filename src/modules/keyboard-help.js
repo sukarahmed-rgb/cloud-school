@@ -1,8 +1,9 @@
 // @ts-check
 import { trapFocus } from './dom-utils.js';
+import { escapeHtml } from './helpers.js';
 
 export function shortcutRow(key, desc) {
-  return `<div class="grid grid-cols-2 gap-2 py-1"><span class="font-mono bg-gray-800 px-2 py-1 rounded text-yellow-300 text-center dir-ltr text-sm">${key}</span><span class="text-gray-200">${desc}</span></div>`;
+  return `<div class="grid grid-cols-2 gap-2 py-1"><span class="font-mono bg-gray-800 px-2 py-1 rounded text-yellow-300 text-center dir-ltr text-sm">${escapeHtml(key)}</span><span class="text-gray-200">${escapeHtml(desc)}</span></div>`;
 }
 
 export function showKeyboardHelp() {

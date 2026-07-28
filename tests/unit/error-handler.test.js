@@ -5,6 +5,8 @@ import {
   notifyListeners,
   listeners,
   setupGlobalErrorHandler,
+  getErrorLog,
+  clearErrorLog,
 } from '../../src/modules/error-handler.js';
 import { showToast } from '../../src/modules/ui-core.js';
 import { speakToUser } from '../../src/modules/audio-core.js';
@@ -219,5 +221,40 @@ describe('error-handler.js - setupGlobalErrorHandler', () => {
   test('does not init Sentry when unavailable', () => {
     setupGlobalErrorHandler();
     expect(window.Sentry).toBeUndefined();
+  });
+});
+
+describe('error-handler.js - getErrorLog / clearErrorLog', () => {
+  beforeEach(() => {
+    clearErrorLog();
+  });
+
+  test('getErrorLog returns empty array initially', () => {
+    expect(getErrorLog()).toEqual([]);
+  });
+
+  test('handleError adds entry to error log', () => {
+    handleError('test', new Error('boom'));
+    const log = getErrorLog();
+    expect(log.length).toBe(1);
+    expect(log[0].level).toBe('error');
+    expect(log[0].context).toBe('test');
+    expect(log[0].message).toBe('boom');
+    expect(log[0].timestamp).toBeGreaterThan(0);
+  });
+
+  test('clearErrorLog empties the log', () => {
+    handleError('test', new Error('boom'));
+    clearErrorLog();
+    expect(getErrorLog()).toEqual([]);
+  });
+
+  test('error log caps at 100 entries', () => {
+    for (let i = 0; i < 110; i++) {
+      handleError('test', new Error(`err${i}`));
+    }
+    const log = getErrorLog();
+    expect(log.length).toBe(100);
+    expect(log[0].message).toBe('err10');
   });
 });

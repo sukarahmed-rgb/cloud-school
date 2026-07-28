@@ -47,6 +47,7 @@ export function renderTeacherDashboard() {
 
 function renderGradeDistribution(submissions) {
   const __ = window.__;
+  const escapeHtml = window.escapeHtml;
   const container = document.getElementById('grade-distribution');
   const ranges = [
     { label: __('gradePoor'), min: 0, max: 49, color: 'bg-red-500' },
@@ -78,7 +79,7 @@ function renderGradeDistribution(submissions) {
       '</div>';
   }
   if (submissions.length === 0) {
-    container.innerHTML = `<p class="text-gray-400">${__('noGradesForDistribution')}</p>`;
+    container.innerHTML = `<p class="text-gray-400">${escapeHtml(__('noGradesForDistribution'))}</p>`;
   } else {
     container.innerHTML =
       `<div class="space-y-3">${html}</div>` +
@@ -92,7 +93,7 @@ function renderStudentPerformanceTable(submissions, _assignments) {
   const tbody = document.getElementById('teacher-performance-tbody');
   tbody.innerHTML = '';
   if (submissions.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400">${__('noAnswersYet')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400">${escapeHtml(__('noAnswersYet'))}</td></tr>`;
     return;
   }
   const studentMap = {};
@@ -214,7 +215,7 @@ export function renderTeacherSubmissions() {
   tbody.innerHTML = '';
 
   if (localData.submissions.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">${__('teacherNoData')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">${escapeHtml(__('teacherNoData'))}</td></tr>`;
     return;
   }
 

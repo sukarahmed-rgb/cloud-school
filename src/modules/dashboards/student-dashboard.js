@@ -1,4 +1,5 @@
 import { getStudentStats } from '../analytics.js';
+import { escapeHtml } from '../helpers.js';
 
 let ctx = null;
 
@@ -52,7 +53,7 @@ export function renderStudentDashboard() {
   // Quiz stats
   const quizDiv = document.getElementById('dashboard-quiz-stats');
   if (submissions.length === 0) {
-    quizDiv.innerHTML = `<p class="text-gray-300">${ctx.__('dashboardNoQuizzes')}</p>`;
+    quizDiv.innerHTML = `<p class="text-gray-300">${escapeHtml(ctx.__('dashboardNoQuizzes'))}</p>`;
   } else {
     const avg = stats.quizAvg;
     const last = submissions[0];
@@ -69,7 +70,7 @@ export function renderStudentDashboard() {
   const bookDiv = document.getElementById('dashboard-book-stats');
   const books = localData.books || [];
   if (books.length === 0) {
-    bookDiv.innerHTML = `<p class="text-gray-300">${ctx.__('dashboardNoBooks')}</p>`;
+    bookDiv.innerHTML = `<p class="text-gray-300">${escapeHtml(ctx.__('dashboardNoBooks'))}</p>`;
   } else {
     bookDiv.innerHTML =
       '<div class="space-y-2">' +
@@ -85,8 +86,8 @@ export function renderStudentDashboard() {
   if (myGames.length === 0) {
     gameDiv.innerHTML =
       '<div class="space-y-2">' +
-      `<p class="text-white font-bold text-lg">${ctx.__('dashboardGamesTitle')}</p>` +
-      `<p class="text-gray-300">${ctx.__('dashboardGamesDesc')}</p>` +
+      `<p class="text-white font-bold text-lg">${escapeHtml(ctx.__('dashboardGamesTitle'))}</p>` +
+      `<p class="text-gray-300">${escapeHtml(ctx.__('dashboardGamesDesc'))}</p>` +
       '</div>';
   } else {
     const gameAvg = stats.gameAvg;
@@ -125,13 +126,13 @@ export function renderStudentDashboard() {
     badges.push(ctx.__('badgeStart'));
   }
 
-  achDiv.innerHTML = `<div class="space-y-2">${badges.map((b) => `<p class="text-white font-bold text-lg">${b}</p>`).join('')}</div>`;
+  achDiv.innerHTML = `<div class="space-y-2">${badges.map((b) => `<p class="text-white font-bold text-lg">${escapeHtml(b)}</p>`).join('')}</div>`;
 
   // Recent activity
   const recentDiv = document.getElementById('dashboard-recent-activity');
   if (recentDiv) {
     if (stats.recentActivity.length === 0) {
-      recentDiv.innerHTML = `<p class="text-gray-300">${ctx.__('dashboardNoActivity')}</p>`;
+      recentDiv.innerHTML = `<p class="text-gray-300">${escapeHtml(ctx.__('dashboardNoActivity'))}</p>`;
     } else {
       recentDiv.innerHTML = `<div class="space-y-1 text-sm">${stats.recentActivity
         .map(

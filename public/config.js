@@ -1,6 +1,8 @@
 /* eslint-disable no-unused-vars */
 const __app_id = 'cloud-school-blind-v1';
 const __firebase_config = {
+  // SECURITY: Restrict this API key in Firebase Console → Project Settings → API Key → Application restrictions
+  // Set HTTP referrer restrictions to: cloud-school-6251a.web.app, cloud-school-6251a.firebaseapp.com, localhost
   apiKey: 'AIzaSyCB-560lR7KyRyD9TYShxdJbkoP8rELBuw',
   authDomain: 'cloud-school-6251a.firebaseapp.com',
   projectId: 'cloud-school-6251a',

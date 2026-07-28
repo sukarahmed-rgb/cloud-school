@@ -6,9 +6,8 @@ import { speakToUser } from './audio-core.js';
 const ERROR_LEVELS = { INFO: 'info', WARN: 'warn', ERROR: 'error', FATAL: 'fatal' };
 
 const listeners = [];
-
-// Global timer monkey-patching removed to restore native browser APIs.
-// Timers are now cleaned up explicitly via clearAllTimers in cloud_school_app.js.
+const MAX_ERROR_LOG = 100;
+const errorLog = [];
 
 function secureRandomInt(min, max) {
   const array = new Uint32Array(1);
@@ -26,6 +25,11 @@ function handleError(context, error) {
 
   console.error(`[${context}] ${message}`, error);
   notifyListeners(level, context, error);
+
+  if (errorLog.length >= MAX_ERROR_LOG) {
+    errorLog.shift();
+  }
+  errorLog.push({ level, context, message, timestamp: Date.now() });
 
   if (typeof window.firebase !== 'undefined' && typeof window.firebase.analytics === 'function') {
     try {
@@ -71,11 +75,13 @@ function handleError(context, error) {
 }
 
 function setupGlobalErrorHandler() {
-  if (typeof window.Sentry !== 'undefined') {
-    window.Sentry.init({
-      dsn: 'https://7c44e976db57fcf7c7c34d3d2db73b18@o4505678229340160.ingest.us.sentry.io/4508930292725760',
-      tracesSampleRate: 1.0,
-    });
+  if (typeof window.Sentry !== 'undefined' && window.Sentry.init) {
+    try {
+      window.Sentry.init({
+        dsn: window.__SENTRY_DSN || '',
+        tracesSampleRate: 0.2,
+      });
+    } catch (e) {}
   }
   window.addEventListener('unhandledrejection', (event) => {
     if (typeof window.Sentry !== 'undefined') {
@@ -91,6 +97,14 @@ function setupGlobalErrorHandler() {
   });
 }
 
+function getErrorLog() {
+  return [...errorLog];
+}
+
+function clearErrorLog() {
+  errorLog.length = 0;
+}
+
 export {
   ERROR_LEVELS,
   listeners,
@@ -99,4 +113,6 @@ export {
   speakToUser,
   handleError,
   setupGlobalErrorHandler,
+  getErrorLog,
+  clearErrorLog,
 };
