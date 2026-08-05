@@ -13,6 +13,10 @@ const __firebase_config = {
 };
 const __initial_auth_token = null;
 const __server_base = 'https://cloud-school-api.cloud-school-subdomain.workers.dev';
+// Sentry DSN for client-side error monitoring (public by design — safe to ship in the bundle).
+// Leave empty to disable client Sentry. Worker-side Sentry is configured separately via the
+// SENTRY_DSN Cloudflare secret (npx wrangler secret put SENTRY_DSN).
+const __SENTRY_DSN = '';
 
 let _speechQueue = [];
 let _userInteracted = false;

@@ -1,0 +1,51 @@
+name: D1 Backup
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Export remote D1 database
+        run: |
+          mkdir -p .backups
+          npx wrangler d1 export cloud-school-db --remote --output=".backups/cloud-school-db-$(date +%Y%m%d-%H%M%S).sql"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: d1-backup-${{ github.run_id }}
+          path: .backups/
+          retention-days: 90
+          if-no-files-found: error
+
+  restore-guide:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print restore instructions
+        run: |
+          echo "=== D1 RESTORE INSTRUCTIONS ==="
+          echo "1. Download the latest 'd1-backup-<run_id>' artifact from GitHub Actions."
+          echo "2. Local apply:  npx wrangler d1 execute cloud-school-db --local --file=backup.sql"
+          echo "3. Remote apply: npx wrangler d1 execute cloud-school-db --remote --file=backup.sql"
+          echo ""
+          echo "NOTE: Cloudflare D1 also keeps built-in Time Travel snapshots"
+          echo "(point-in-time recovery within the last ~30 days)."
+          echo "GUI: Cloudflare Dashboard -> D1 -> cloud-school-db -> Backups."

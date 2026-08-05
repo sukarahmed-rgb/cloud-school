@@ -6,6 +6,7 @@
   "main": "cloud_school_app.js",
   "scripts": {
     "test": "jest",
+    "test:integration": "node --test \"tests/integration/*.test.mjs\"",
     "test:ui": "playwright test",
     "dev": "vite",
     "start": "vite",

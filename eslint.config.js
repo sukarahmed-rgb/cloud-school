@@ -127,7 +127,7 @@ export default [
     },
   },
   {
-    files: ['tests/**/*.js'],
+    files: ['tests/**/*.js', 'tests/**/*.mjs'],
     languageOptions: {
       globals: {
         describe: 'readonly',
@@ -148,6 +148,9 @@ export default [
         Request: 'readonly',
         Response: 'readonly',
         require: 'readonly',
+        process: 'readonly',
+        fetch: 'readonly',
+        node: 'readonly',
       },
     },
     rules: {

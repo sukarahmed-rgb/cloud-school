@@ -16,3 +16,5 @@ coverage/
 reports/
 .lighthouseci/
 service-account.json
+.backups/
+.opencode/

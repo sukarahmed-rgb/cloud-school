@@ -1,0 +1,101 @@
+name: Uptime Monitor
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check Worker API health
+        id: worker
+        run: |
+          code=$(curl -s -o /tmp/worker-health.json -w "%{http_code}" \
+            https://cloud-school-api.cloud-school-subdomain.workers.dev/api/health)
+          echo "status=$code" >> "$GITHUB_OUTPUT"
+          cat /tmp/worker-health.json
+          if [ "$code" != "200" ]; then
+            echo "Worker API returned HTTP $code"
+            exit 1
+          fi
+
+      - name: Check Hosting (web.app)
+        id: hosting
+        run: |
+          code=$(curl -s -o /tmp/hosting-index.html -w "%{http_code}" \
+            https://cloud-school-6251a.web.app/)
+          echo "status=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" != "200" ]; then
+            echo "Hosting returned HTTP $code"
+            exit 1
+          fi
+
+      - name: Open alert issue if down
+        if: failure()
+        uses: actions/github-script@v7
+        env:
+          WORKER_STATUS: ${{ steps.worker.outputs.status }}
+          HOSTING_STATUS: ${{ steps.hosting.outputs.status }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            const [openIssues] = await Promise.all([
+              github.rest.issues.listForRepo({
+                owner, repo,
+                state: 'open',
+                labels: ['uptime'],
+                per_page: 100,
+              }),
+            ]);
+            const existing = openIssues.data.find(
+              (i) => i.title === '⛔ Cloud School is DOWN'
+            );
+            if (existing) {
+              console.log(`Alert issue already open: #${existing.number}`);
+              return;
+            }
+            await github.rest.issues.create({
+              owner, repo,
+              title: '⛔ Cloud School is DOWN',
+              body:
+                `One or more uptime checks failed.\n\n` +
+                `- Worker API health: ${process.env.WORKER_STATUS || 'unknown'}\n` +
+                `- Hosting: ${process.env.HOSTING_STATUS || 'unknown'}\n\n` +
+                `See [workflow run](${runUrl}) for details.\n\n` +
+                `This issue is auto-opened by the [Uptime Monitor](../blob/main/.github/workflows/uptime-monitor.yml) workflow. ` +
+                `Close it manually once the service is verified back online.`,
+              labels: ['uptime', 'bug'],
+            });
+
+      - name: Auto-close alert issue when healthy
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner, repo,
+              state: 'open',
+              labels: ['uptime'],
+              per_page: 100,
+            });
+            for (const issue of issues) {
+              if (issue.title === '⛔ Cloud School is DOWN') {
+                await github.rest.issues.update({
+                  owner, repo,
+                  issue_number: issue.number,
+                  state: 'closed',
+                });
+                console.log(`Closed alert issue #${issue.number}`);
+              }
+            }
