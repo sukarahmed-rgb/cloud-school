@@ -19,7 +19,7 @@ import {
   handleTeacherAddBook,
   handleTeacherAddQuiz,
 } from './teacher-management.js';
-import { updateProxyStatus } from './proxy.js';
+import { updateProxyStatus, setupGeminiKeyControls } from './proxy.js';
 
 /**
  * @param {Object} deps
@@ -148,6 +148,7 @@ export function bindAllEvents({
     if (val) {
       localStorage.setItem('cloudSchoolProxyUrl', val);
       updateProxyStatus();
+      setupGeminiKeyControls();
       window.speak(window.__('proxyUrlSaved'));
     }
   });

@@ -8,33 +8,69 @@ export const currentBrailleDots = new Set();
 /** @type {Set<number>} */
 export const currentCheatDots = new Set();
 
+/** Physical Perkins layout: left hand F/D/S = dots 1/2/3, right hand J/K/L = dots 4/5/6 */
+const PERKINS_KEY_MAP = { f: 1, d: 2, s: 3, j: 4, k: 5, l: 6 };
+
+function isPerkinsOpen() {
+  const kb = document.getElementById('perkins-braille-keyboard');
+  return !!kb && !kb.classList.contains('hidden');
+}
+
+function isTypingTarget(e) {
+  const tag = ((e.target && e.target.tagName) || '').toUpperCase();
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
 /** @returns {Function} */
 export function setupPerkinsKeyboard() {
-  const perkinsKeyupHandler = function (e) {
+  const perkinsKeydownHandler = function (e) {
+    if (!isPerkinsOpen() || isTypingTarget(e)) {
+      return;
+    }
     const key = e.key.toLowerCase();
-    if (perkinsKeysPressed[key]) {
-      clearTimeout(perkinsKeyupTimer);
-      perkinsKeyupTimer = setTimeout(() => {
-        processPerkinsChord();
-        perkinsKeysPressed = {};
-      }, 150);
+    if (key === ' ') {
+      e.preventDefault();
+      addSpaceToAnswer();
+      return;
+    }
+    if (key === 'Backspace') {
+      e.preventDefault();
+      deleteLastChar();
+      return;
+    }
+    if (!PERKINS_KEY_MAP[key]) {
+      return;
+    }
+    e.preventDefault();
+    if (!e.repeat) {
+      perkinsKeysPressed[key] = true;
     }
   };
+  const perkinsKeyupHandler = function (e) {
+    if (!isPerkinsOpen() || isTypingTarget(e)) {
+      return;
+    }
+    const key = e.key.toLowerCase();
+    if (!PERKINS_KEY_MAP[key] || !perkinsKeysPressed[key]) {
+      return;
+    }
+    clearTimeout(perkinsKeyupTimer);
+    perkinsKeyupTimer = setTimeout(() => {
+      processPerkinsChord();
+      perkinsKeysPressed = {};
+    }, 120);
+  };
+  window.addEventListener('keydown', perkinsKeydownHandler);
   window.addEventListener('keyup', perkinsKeyupHandler);
   return perkinsKeyupHandler;
 }
 
 /** Process the current Perkins keyboard chord */
 export function processPerkinsChord() {
-  const dots = [1, 2, 3, 4, 5, 6];
-  const keyMap = { 7: 1, 8: 2, 9: 3, u: 4, i: 5, o: 6 };
-  const chord = [];
-  for (const d of dots) {
-    const k = Object.keys(keyMap).find((key) => keyMap[key] === d);
-    if (k && perkinsKeysPressed[k]) {
-      chord.push(d);
-    }
-  }
+  const chord = Object.keys(PERKINS_KEY_MAP)
+    .filter((key) => perkinsKeysPressed[key])
+    .map((key) => PERKINS_KEY_MAP[key])
+    .sort((a, b) => a - b);
   if (chord.length > 0) {
     window.toggleBrailleDot(chord);
   }
@@ -59,7 +95,18 @@ export function toggleBrailleDot(dotNumber) {
       currentBrailleDots.add(dotNumber);
     }
   }
+  syncScreenDotsPressed();
   window.updateBraillePreview();
+}
+
+/** Reflect the active dots on the screen keyboard buttons */
+function syncScreenDotsPressed() {
+  [1, 2, 3, 4, 5, 6].forEach((d) => {
+    const btn = document.getElementById(`dot-${d}`);
+    if (btn) {
+      btn.setAttribute('aria-pressed', currentBrailleDots.has(d) ? 'true' : 'false');
+    }
+  });
 }
 
 /** Convert a set of dots to a string key (sorted, comma-separated) */
@@ -87,6 +134,7 @@ export function enterBrailleChar() {
 /** Clear all active braille dots */
 export function clearBrailleDots() {
   currentBrailleDots.clear();
+  syncScreenDotsPressed();
   window.updateBraillePreview();
 }
 
@@ -130,7 +178,7 @@ export function toggleBrailleKeyboard(type) {
       const hidden = perkinsKb.classList.toggle('hidden');
       window.speak(hidden ? window.__('brailleKbClosed') : window.__('perkinsBrailleKbOpened'));
       if (!hidden) {
-        document.getElementById('perkins-key-7')?.focus();
+        perkinsKb.focus();
       }
     }
   }
@@ -145,7 +193,18 @@ export function toggleCheatDot(dotNum) {
   } else {
     currentCheatDots.add(dotNum);
   }
+  syncCheatDotsPressed();
   window.updateCheatPreview();
+}
+
+/** Reflect the active cheat dots on their buttons */
+function syncCheatDotsPressed() {
+  [1, 2, 3, 4, 5, 6].forEach((d) => {
+    const btn = document.getElementById(`cheat-dot-${d}`);
+    if (btn) {
+      btn.setAttribute('aria-pressed', currentCheatDots.has(d) ? 'true' : 'false');
+    }
+  });
 }
 
 /** Pronounce the current cheat braille character */
@@ -159,5 +218,6 @@ export function pronounceCheatBraille() {
 /** Clear all cheat braille dots */
 export function clearCheatDots() {
   currentCheatDots.clear();
+  syncCheatDotsPressed();
   window.updateCheatPreview();
 }

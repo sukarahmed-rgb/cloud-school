@@ -256,6 +256,8 @@
   "geminiKeyInputLabel": "مفتاح Gemini API:",
   "geminiKeySave": "حفظ المفتاح 🔑",
   "geminiKeyPlaceholder": "AIza...",
+  "geminiKeySaved": "تم حفظ مفتاح Gemini API",
+  "geminiKeyCleared": "تم مسح مفتاح Gemini API",
 
   "sectionOpened": "فتحت قسم {0}",
   "sectionClosed": "تم العودة إلى الشاشة الرئيسية للطالب.",

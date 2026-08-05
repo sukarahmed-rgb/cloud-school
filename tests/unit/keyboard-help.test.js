@@ -2,6 +2,7 @@ import { shortcutRow, showKeyboardHelp } from '../../src/modules/ui-core.js';
 
 jest.mock('../../src/modules/dom-utils.js', () => ({
   trapFocus: jest.fn(),
+  initDialog: jest.fn((overlay) => () => overlay.remove()),
 }));
 
 describe('keyboard-help.js', () => {

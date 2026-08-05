@@ -1,5 +1,6 @@
 // @ts-check
 // Teacher Dashboard Module - لوحة قيادة المعلم (Lazy loaded)
+import { initDialog } from '../dom-utils.js';
 
 export function renderTeacherDashboard() {
   const localData = window.localData;
@@ -201,10 +202,13 @@ function generateTeacherReport() {
     `<pre class="text-sm text-gray-200 whitespace-pre-wrap font-sans leading-relaxed">${escapeHtml(report)}</pre>` +
     `<button id="btn-close-report" class="w-full mt-4 p-4 bg-yellow-500 text-black font-black text-xl rounded-xl btn-interactive">${__('close')}</button></div>`;
   document.body.appendChild(overlay);
-  document.getElementById('btn-close-report').addEventListener('click', function () {
-    overlay.remove();
+  const closeReport = initDialog(overlay);
+  document.getElementById('btn-close-report').addEventListener('click', closeReport);
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) {
+      closeReport();
+    }
   });
-  document.getElementById('btn-close-report').focus();
 }
 
 export function renderTeacherSubmissions() {

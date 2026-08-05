@@ -1,5 +1,5 @@
 // @ts-check
-import { trapFocus } from './dom-utils.js';
+import { initDialog } from './dom-utils.js';
 import { escapeHtml } from './helpers.js';
 
 export function shortcutRow(key, desc) {
@@ -53,10 +53,12 @@ export function showKeyboardHelp() {
     )}</div>` +
     `<button id="btn-close-help" class="w-full mt-4 p-4 bg-yellow-400 text-black font-black text-xl rounded-xl btn-interactive">${window.__('keyboardClose')}</button></div>`;
   document.body.appendChild(overlay);
-  document.getElementById('btn-close-help')?.addEventListener('click', function () {
-    overlay.remove();
+  const closeHelp = initDialog(overlay);
+  document.getElementById('btn-close-help')?.addEventListener('click', closeHelp);
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) {
+      closeHelp();
+    }
   });
-  document.getElementById('btn-close-help')?.focus();
-  trapFocus(overlay);
   window.speak(window.__('keyboardHelpOpened'));
 }

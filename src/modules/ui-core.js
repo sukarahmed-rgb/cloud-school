@@ -4,6 +4,7 @@ export {
   showToast,
   showLoading,
   trapFocus,
+  initDialog,
   focusElement,
   announceToScreenReader,
 } from './dom-utils.js';

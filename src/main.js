@@ -47,6 +47,8 @@ const globals = [
   'printStudentReport',
   'setupOfflineDetection',
   'recordGameScore',
+  'showNotificationsPanel',
+  'showKeyboardHelp',
 ];
 
 globals.forEach((key) => {

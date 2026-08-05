@@ -82,3 +82,40 @@ export function announceToScreenReader(text) {
     ariaLive.textContent = text;
   });
 }
+
+/**
+ * Initialize a modal dialog overlay: traps focus, closes on Escape,
+ * focuses the first focusable element, and restores focus on close.
+ * @param {HTMLElement} overlay
+ * @returns {() => void} the close function
+ */
+export function initDialog(overlay) {
+  const previouslyFocused =
+    document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  let closed = false;
+  const closeDialog = () => {
+    if (closed) {
+      return;
+    }
+    closed = true;
+    overlay.remove();
+    if (previouslyFocused && document.body.contains(previouslyFocused)) {
+      previouslyFocused.focus();
+    }
+  };
+  overlay.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      closeDialog();
+    }
+  });
+  trapFocus(overlay);
+  const first = overlay.querySelector(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+  );
+  if (first instanceof HTMLElement) {
+    first.focus();
+  }
+  return closeDialog;
+}

@@ -279,7 +279,7 @@
     <main id="main-content" class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-8">
 
         <!-- Offline indicator -->
-        <div id="offline-banner" class="hidden mb-4 p-3 bg-red-800 text-white font-bold text-center rounded-xl">
+        <div id="offline-banner" class="hidden mb-4 p-3 bg-red-800 text-white font-bold text-center rounded-xl" role="status" aria-live="polite" aria-atomic="true">
             <span id="offline-text">${window.__ ? window.__('offlineStatus') : 'Offline — using local data'}</span>
         </div>
 
@@ -287,7 +287,7 @@
         <section id="view-student" class="space-y-8 hidden">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 class="text-4xl font-extrabold tracking-tight" id="student-welcome-msg">مرحباً بك يا بطل في كلاود سكول</h2>
+                    <h1 class="text-4xl font-extrabold tracking-tight" id="student-welcome-msg" tabindex="-1">مرحباً بك يا بطل في كلاود سكول</h1>
                     <p class="mt-2 text-lg">استخدم لوحة المفاتيح أو اللمس للتنقل. المساعد الصوتي يقرأ لك كل شيء بالذكاء الاصطناعي فائق الوضوح.</p>
                 </div>
                 <div class="p-3 border-2 border-current rounded-xl font-bold flex flex-col gap-1 text-center">
@@ -403,7 +403,7 @@
                             <h4 class="text-2xl font-black" id="active-quiz-title">اختبار العلوم الأول</h4>
                             <div class="flex items-center gap-2">
                                 <span class="text-xl">⏱️ العداد الصوتي:</span>
-                                <span id="active-quiz-timer" class="text-2xl font-bold" aria-live="polite" aria-atomic="true">10:00</span>
+                                <span id="active-quiz-timer" class="text-2xl font-bold">10:00</span>
                             </div>
                         </div>
 
@@ -453,14 +453,14 @@
                                 <p class="text-center font-bold text-white">اضغط على النقاط لتشكيل الحرف العربي، ثم انقر على (أدخل الحرف)</p>
                                 <div class="grid grid-cols-2 gap-4 max-w-xs mx-auto">
                                     <div class="flex flex-col gap-4">
-                                        <button id="dot-1" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">1</button>
-                                        <button id="dot-2" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">2</button>
-                                        <button id="dot-3" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">3</button>
+                                        <button id="dot-1" aria-pressed="false" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">1</button>
+                                        <button id="dot-2" aria-pressed="false" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">2</button>
+                                        <button id="dot-3" aria-pressed="false" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">3</button>
                                     </div>
                                     <div class="flex flex-col gap-4">
-                                        <button id="dot-4" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">4</button>
-                                        <button id="dot-5" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">5</button>
-                                        <button id="dot-6" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">6</button>
+                                        <button id="dot-4" aria-pressed="false" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">4</button>
+                                        <button id="dot-5" aria-pressed="false" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">5</button>
+                                        <button id="dot-6" aria-pressed="false" class="braille-dot-btn w-16 h-16 bg-gray-600 text-white font-bold text-2xl btn-interactive">6</button>
                                     </div>
                                 </div>
                                 <div class="flex justify-center gap-2 mt-4 flex-wrap">
@@ -473,7 +473,7 @@
                             </div>
 
                             <!-- محاكي Perkins -->
-                            <div id="perkins-braille-keyboard" class="hidden p-4 border-2 border-dashed border-teal-500 rounded-xl space-y-2 bg-slate-900 text-white">
+                            <div id="perkins-braille-keyboard" class="hidden p-4 border-2 border-dashed border-teal-500 rounded-xl space-y-2 bg-slate-900 text-white" tabindex="-1" aria-label="لوحة بيركنز للكتابة بطريقة برايل">
                                 <p class="font-bold text-yellow-300">🎮 وضع Perkins مفعل الآن!</p>
                                 <p class="text-sm">ضع أصابع يدك اليسرى على <kbd class="px-2 py-1 bg-gray-700 rounded text-red-400">F, D, S</kbd> (تمثل النقاط 1، 2، 3) وأصابع يدك اليمنى على <kbd class="px-2 py-1 bg-gray-700 rounded text-red-400">J, K, L</kbd> (تمثل النقاط 4, 5, 6).</p>
                                 <p class="text-sm">اضغط على المفاتيح معاً في نفس الوقت لتوليد الأحرف باللغة العربية! واضغط <kbd class="px-2 py-1 bg-gray-700 rounded">Space</kbd> للمسافة و <kbd class="px-2 py-1 bg-gray-700 rounded">Backspace</kbd> للحذف.</p>
@@ -522,14 +522,14 @@
                         <p class="text-sm">انقر على النقاط الستة بالأسفل لتشكيل الحرف العربي وسماع نطق الحرف فوراً بالذكاء الاصطناعي لتدريب أصابعك!</p>
                         <div class="grid grid-cols-2 gap-3 max-w-xs mx-auto">
                             <div class="flex flex-col gap-3">
-                                <button id="cheat-dot-1" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">1</button>
-                                <button id="cheat-dot-2" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">2</button>
-                                <button id="cheat-dot-3" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">3</button>
+                                <button id="cheat-dot-1" aria-pressed="false" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">1</button>
+                                <button id="cheat-dot-2" aria-pressed="false" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">2</button>
+                                <button id="cheat-dot-3" aria-pressed="false" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">3</button>
                             </div>
                             <div class="flex flex-col gap-3">
-                                <button id="cheat-dot-4" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">4</button>
-                                <button id="cheat-dot-5" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">5</button>
-                                <button id="cheat-dot-6" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">6</button>
+                                <button id="cheat-dot-4" aria-pressed="false" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">4</button>
+                                <button id="cheat-dot-5" aria-pressed="false" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">5</button>
+                                <button id="cheat-dot-6" aria-pressed="false" class="braille-dot-btn w-12 h-12 bg-gray-700 text-white font-bold text-lg btn-interactive">6</button>
                             </div>
                         </div>
                         <div class="flex justify-center gap-2">
@@ -746,7 +746,7 @@
 
         <!-- ==================== 2. واجهة المعلم ==================== -->
         <section id="view-teacher" class="space-y-8 hidden">
-            <h2 class="text-3xl font-bold" tabindex="-1">🏫 لوحة قيادة المعلم</h2>
+            <h1 class="text-3xl font-bold" tabindex="-1" id="teacher-dashboard-heading">🏫 لوحة قيادة المعلم</h1>
 
             <!-- إحصائيات سريعة -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="teacher-stats-cards" role="region" aria-label="إحصائيات سريعة">
@@ -897,7 +897,7 @@
 
         <!-- ==================== 3. بوابة ولي الأمر ==================== -->
         <section id="view-parent" class="space-y-8 hidden">
-            <h2 class="text-3xl font-bold">👪 بوابة ولي الأمر لمتابعة الطالب</h2>
+            <h1 class="text-3xl font-bold" tabindex="-1" id="parent-dashboard-heading">👪 بوابة ولي الأمر لمتابعة الطالب</h1>
             <p class="text-lg">مرحباً بك في لوحة تحكم ولي الأمر لمدرسة سكول. يمكنك هنا الاطلاع على أداء الابن ودرجاته، وتلقي التوجيهات المخصصة لصعوبات التعلم.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="card p-6 rounded-2xl border-2 border-current space-y-4">
@@ -930,7 +930,7 @@
 
         <!-- ==================== 4. لوحة تحكم الإدارة ==================== -->
         <section id="view-admin" class="space-y-8 hidden">
-            <h2 class="text-3xl font-bold">⚙️ لوحة تحكم إدارة مدرسة سكول</h2>
+            <h1 class="text-3xl font-bold" tabindex="-1" id="admin-dashboard-heading">⚙️ لوحة تحكم إدارة مدرسة سكول</h1>
             <p class="text-lg">توليد وإدارة حسابات الطلاب وتوزيعهم، مع توليد فوري لرموز الدخول السريعة (PIN 4 أرقام) لتمكين الطالب الكفيف من تسجيل الدخول بلمسة واحدة.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="card p-6 rounded-2xl border-2 border-current space-y-4">

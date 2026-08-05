@@ -48,6 +48,7 @@ export default [
         URL: 'readonly',
         Image: 'readonly',
         globalThis: 'readonly',
+        HTMLElement: 'readonly',
         firebase: 'readonly',
         indexedDB: 'readonly',
         MediaRecorder: 'readonly',

@@ -202,8 +202,8 @@ describe('braille-input.js', () => {
     });
 
     test('calls toggleBrailleDot with chorded dots', () => {
-      perkinsKeysPressed['7'] = true;
-      perkinsKeysPressed['8'] = true;
+      perkinsKeysPressed['f'] = true;
+      perkinsKeysPressed['d'] = true;
       processPerkinsChord();
       expect(window.toggleBrailleDot).toHaveBeenCalledWith([1, 2]);
     });

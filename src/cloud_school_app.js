@@ -38,6 +38,7 @@ import {
   showToast,
   showLoading,
   trapFocus,
+  initDialog,
   focusElement,
   announceToScreenReader,
   shortcutRow,
@@ -489,15 +490,14 @@ function showReportOnPlatform() {
     </div>`;
   document.body.appendChild(overlay);
 
-  document.getElementById('btn-close-report-overlay').addEventListener('click', function () {
-    overlay.remove();
-  });
+  const closeReport = initDialog(overlay);
+  document.getElementById('btn-close-report-overlay').addEventListener('click', closeReport);
   document.getElementById('btn-print-report-overlay').addEventListener('click', function () {
     exportReportAsPdf();
   });
   overlay.addEventListener('click', function (e) {
     if (e.target === overlay) {
-      overlay.remove();
+      closeReport();
     }
   });
 }
@@ -558,20 +558,19 @@ function printStudentReport() {
     </div>`;
   document.body.appendChild(overlay);
 
+  const closeReportChoice = initDialog(overlay);
   document.getElementById('report-choice-pdf').addEventListener('click', function () {
-    overlay.remove();
+    closeReportChoice();
     exportReportAsPdf();
   });
   document.getElementById('report-choice-platform').addEventListener('click', function () {
-    overlay.remove();
+    closeReportChoice();
     showReportOnPlatform();
   });
-  document.getElementById('btn-close-report-choice').addEventListener('click', function () {
-    overlay.remove();
-  });
+  document.getElementById('btn-close-report-choice').addEventListener('click', closeReportChoice);
   overlay.addEventListener('click', function (e) {
     if (e.target === overlay) {
-      overlay.remove();
+      closeReportChoice();
     }
   });
 }

@@ -34,8 +34,15 @@ describe('notifications.js', () => {
     expect(document.getElementById('btn-notifications').classList.contains('hidden')).toBe(false);
   });
 
-  test('updateNotifBadge hides button when no unread', () => {
+  test('updateNotifBadge keeps button visible with read notifications', () => {
     window.localData.notifications = [{ read: true }, { read: true }];
+    updateNotifBadge();
+    expect(document.getElementById('notif-badge').textContent).toBe('0');
+    expect(document.getElementById('btn-notifications').classList.contains('hidden')).toBe(false);
+  });
+
+  test('updateNotifBadge hides button when there are no notifications', () => {
+    window.localData.notifications = [];
     updateNotifBadge();
     expect(document.getElementById('notif-badge').textContent).toBe('0');
     expect(document.getElementById('btn-notifications').classList.contains('hidden')).toBe(true);

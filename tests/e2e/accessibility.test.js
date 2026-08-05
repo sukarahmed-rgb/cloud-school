@@ -47,4 +47,39 @@ test.describe('WCAG AAA Accessibility Audit', () => {
 
     expect(results.violations).toEqual([]);
   });
+
+  test('Focus moves to the role heading after entering the app', async ({ page }) => {
+    await page.goto('/');
+    await bypassAuth(page, 'teacher');
+
+    await expect(page.locator('#teacher-dashboard-heading')).toBeFocused({ timeout: 5000 });
+  });
+
+  test('Escape closes the notifications panel and restores focus', async ({ page }) => {
+    await page.goto('/');
+    await bypassAuth(page, 'student');
+    await page.evaluate(() => window.addNotification('Test', 'Details'));
+
+    await page.locator('#btn-notifications').click();
+    await expect(page.locator('#notifications-panel-overlay')).toBeVisible();
+    await expect(page.locator('#btn-close-notifs')).toBeFocused();
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#notifications-panel-overlay')).toBeHidden();
+    await expect(page.locator('#btn-notifications')).toBeFocused();
+  });
+
+  test('Escape closes the keyboard help overlay and restores focus', async ({ page }) => {
+    await page.goto('/');
+    await bypassAuth(page, 'student');
+    await page.evaluate(() => document.getElementById('btn-help-shortcuts').focus());
+
+    await page.evaluate(() => window.showKeyboardHelp());
+    await expect(page.locator('#shortcuts-help-overlay')).toBeVisible();
+    await expect(page.locator('#btn-close-help')).toBeFocused();
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#shortcuts-help-overlay')).toBeHidden();
+    await expect(page.locator('#btn-help-shortcuts')).toBeFocused();
+  });
 });

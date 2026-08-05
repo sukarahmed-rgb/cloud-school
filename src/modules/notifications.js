@@ -34,7 +34,8 @@ export function updateNotifBadge() {
     return !n.read;
   }).length;
   badge.textContent = String(unread);
-  if (unread > 0) {
+  const hasAny = (window.localData.notifications || []).length > 0;
+  if (hasAny) {
     btn.classList.remove('hidden');
   } else {
     btn.classList.add('hidden');

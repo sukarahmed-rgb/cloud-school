@@ -79,8 +79,6 @@ export function startQuiz(quizId) {
   let lastSpokenMinute = 10;
   const timerDisplay = document.getElementById('active-quiz-timer');
   timerDisplay.textContent = '10:00';
-  timerDisplay.setAttribute('aria-live', 'polite');
-  timerDisplay.setAttribute('aria-atomic', 'true');
 
   if (quizTimerInterval) {
     clearInterval(quizTimerInterval);

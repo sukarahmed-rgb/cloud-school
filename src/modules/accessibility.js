@@ -133,6 +133,10 @@ export function loadTextSize() {
 export function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('cloudSchoolTheme', theme);
+  document.querySelectorAll('button[data-theme]').forEach((btn) => {
+    const themeBtn = /** @type {HTMLElement} */ (btn);
+    themeBtn.setAttribute('aria-pressed', themeBtn.dataset.theme === theme ? 'true' : 'false');
+  });
   window.speak(window.__('themeSet', theme));
 }
 

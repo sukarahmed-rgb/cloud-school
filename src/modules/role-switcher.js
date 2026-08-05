@@ -48,14 +48,14 @@ export function switchRole(role) {
     window.setupAccessibleVoices();
     const viewMap = {
       student: 'student-welcome-msg',
-      teacher: 'view-teacher',
-      parent: 'view-parent',
-      admin: 'view-admin',
+      teacher: 'teacher-dashboard-heading',
+      parent: 'parent-dashboard-heading',
+      admin: 'admin-dashboard-heading',
     };
     const targetId = viewMap[role];
     if (targetId) {
       const el = document.getElementById(targetId);
-      if (el && el.tagName === 'H2') {
+      if (el && typeof el.focus === 'function') {
         el.focus();
       }
     }

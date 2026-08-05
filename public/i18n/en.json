@@ -256,6 +256,8 @@
   "geminiKeyInputLabel": "Gemini API Key:",
   "geminiKeySave": "Save Key 🔑",
   "geminiKeyPlaceholder": "AIza...",
+  "geminiKeySaved": "Gemini API key saved.",
+  "geminiKeyCleared": "Gemini API key cleared.",
 
   "sectionOpened": "Opened {0} section",
   "sectionClosed": "Returned to student main screen.",
