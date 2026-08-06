@@ -56,9 +56,13 @@ export function trapFocus(container) {
   }
   container.addEventListener('keydown', handleKeyDown);
   const observer = new MutationObserver(function () {
-    if (!document.body.contains(container)) {
+    try {
+      if (!document.body || !document.body.contains(container)) {
+        observer.disconnect();
+        container.removeEventListener('keydown', handleKeyDown);
+      }
+    } catch (e) {
       observer.disconnect();
-      container.removeEventListener('keydown', handleKeyDown);
     }
   });
   observer.observe(document.body, { childList: true, subtree: true });
