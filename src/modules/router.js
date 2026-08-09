@@ -57,6 +57,13 @@ export function openStudentSection(section) {
   container.scrollIntoView({ behavior: 'smooth' });
   setTimeout(() => {
     window.setupAccessibleVoices();
+    const activeEl = document.activeElement;
+    const inDialog =
+      activeEl instanceof HTMLElement &&
+      Boolean(activeEl.closest('[role="dialog"], [aria-modal="true"]'));
+    if (inDialog) {
+      return;
+    }
     const sectionEl = document.getElementById(`student-sub-${section}`);
     if (sectionEl) {
       const firstBtn = sectionEl.querySelector(

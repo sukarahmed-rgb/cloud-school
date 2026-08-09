@@ -46,6 +46,13 @@ export function switchRole(role) {
 
   setTimeout(() => {
     window.setupAccessibleVoices();
+    const activeEl = document.activeElement;
+    const inDialog =
+      activeEl instanceof HTMLElement &&
+      Boolean(activeEl.closest('[role="dialog"], [aria-modal="true"]'));
+    if (inDialog) {
+      return;
+    }
     const viewMap = {
       student: 'student-welcome-msg',
       teacher: 'teacher-dashboard-heading',
