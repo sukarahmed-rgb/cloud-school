@@ -39,7 +39,7 @@ jobs:
 
       - name: Open alert issue if down
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           WORKER_STATUS: ${{ steps.worker.outputs.status }}
           HOSTING_STATUS: ${{ steps.hosting.outputs.status }}
@@ -78,7 +78,7 @@ jobs:
 
       - name: Auto-close alert issue when healthy
         if: success()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const owner = context.repo.owner;
