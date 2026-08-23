@@ -20,6 +20,7 @@ import {
   handleTeacherAddQuiz,
 } from './teacher-management.js';
 import { updateProxyStatus, setupGeminiKeyControls } from './proxy.js';
+import { DEFAULT_PROXY_BASE } from './gemini-client.js';
 
 /**
  * @param {Object} deps
@@ -137,7 +138,7 @@ export function bindAllEvents({
     document.getElementById('proxy-url-input')
   );
   if (proxyUrlInput) {
-    proxyUrlInput.value = savedProxyUrl || 'http://localhost:3001';
+    proxyUrlInput.value = savedProxyUrl || DEFAULT_PROXY_BASE;
   }
   updateProxyStatus();
 
@@ -155,7 +156,7 @@ export function bindAllEvents({
   document.getElementById('btn-reset-proxy-url')?.addEventListener('click', () => {
     localStorage.removeItem('cloudSchoolProxyUrl');
     if (proxyUrlInput) {
-      proxyUrlInput.value = 'http://localhost:3001';
+      proxyUrlInput.value = DEFAULT_PROXY_BASE;
     }
     updateProxyStatus();
     window.speak(window.__('proxyUrlReset'));

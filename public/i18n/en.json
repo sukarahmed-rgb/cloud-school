@@ -230,7 +230,7 @@
   "proxyStatus": "Proxy Server",
   "proxyConnected": "Connected 🟢",
   "proxyDisconnected": "Disconnected 🔴",
-  "proxyUrlPlaceholder": "http://localhost:3001",
+  "proxyUrlPlaceholder": "https://cloud-school-api.cloud-school-subdomain.workers.dev",
   "proxyUrlLabel": "Proxy Server URL:",
   "proxyUrlSave": "Save",
   "proxyUrlReset": "Reset",

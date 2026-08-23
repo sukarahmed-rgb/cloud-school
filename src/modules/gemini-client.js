@@ -1,12 +1,15 @@
 import { base64ToArrayBuffer, pcmToWav } from './helpers.js';
 import { getPrompt, getCurrentLang } from './i18n.js';
 
+const SERVER_BASE = (typeof __server_base !== 'undefined' && __server_base) || '';
+export const DEFAULT_PROXY_BASE = SERVER_BASE || 'http://localhost:3001';
+
 export function getProxyBase() {
   if (window.serverAvailable) {
-    return '';
+    return SERVER_BASE;
   }
   const override = localStorage.getItem('cloudSchoolProxyUrl');
-  return override || 'http://localhost:3001';
+  return override || SERVER_BASE || 'http://localhost:3001';
 }
 
 export async function proxyFetch(endpoint, payload) {

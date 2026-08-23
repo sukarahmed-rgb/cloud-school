@@ -230,7 +230,7 @@
   "proxyStatus": "الخادم الوسيط",
   "proxyConnected": "متصل 🟢",
   "proxyDisconnected": "غير متصل 🔴",
-  "proxyUrlPlaceholder": "http://localhost:3001",
+  "proxyUrlPlaceholder": "https://cloud-school-api.cloud-school-subdomain.workers.dev",
   "proxyUrlLabel": "رابط الخادم الوسيط:",
   "proxyUrlSave": "حفظ",
   "proxyUrlReset": "إعادة تعيين",
