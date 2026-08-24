@@ -1,9 +1,10 @@
 import { speakToUser } from '../../src/modules/audio-core.js';
 
+jest.mock('../../src/modules/i18n.js', () => ({ getSpeechLang: jest.fn(() => 'ar-EG') }));
+
 describe('audio-core.js', () => {
   beforeEach(() => {
     document.body.innerHTML = '<div id="aria-live"></div>';
-    window.__speechLang = 'ar-EG';
     window.speechSynthesis = { speak: jest.fn() };
     window.SpeechSynthesisUtterance = jest.fn(() => ({}));
     document.dispatchEvent(new Event('click', { bubbles: true }));

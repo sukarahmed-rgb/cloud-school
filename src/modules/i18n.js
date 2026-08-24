@@ -87,10 +87,14 @@ export function applyJsTranslations() {
   }
 }
 
+let speechLang = 'ar-EG';
+
+export function getSpeechLang() {
+  return speechLang;
+}
+
 export function initTtsLang() {
-  const speechLang = currentLang === 'ar' ? 'ar-EG' : 'en-US';
-  // تحديث النصوص الصوتية الثابتة (بناءً على اللغة الحالية)
-  window.__speechLang = speechLang;
+  speechLang = currentLang === 'ar' ? 'ar-EG' : 'en-US';
 }
 
 export function loadLocale(lang) {

@@ -11,6 +11,16 @@ import {
   updateVoiceExamStatus,
 } from './voice-exam-state.js';
 
+/** @type {boolean} */
+let _voiceExamPendingSubmit = false;
+/** @type {string|null} */
+let _voiceExamPendingOption = null;
+
+export function _resetVoiceExamPendingState() {
+  _voiceExamPendingSubmit = false;
+  _voiceExamPendingOption = null;
+}
+
 export function readCurrentQuizAloud() {
   if (!voiceExamActive) {
     return;
@@ -151,14 +161,14 @@ export function startVoiceExamListening() {
     }
 
     if (normalized === __('voiceExamCommandYes') || normalized === 'yes' || normalized === 'نعم') {
-      if (window._voiceExamPendingSubmit) {
-        window._voiceExamPendingSubmit = false;
+      if (_voiceExamPendingSubmit) {
+        _voiceExamPendingSubmit = false;
         doVoiceSubmit();
         return;
       }
-      if (window._voiceExamPendingOption) {
-        const opt = window._voiceExamPendingOption;
-        window._voiceExamPendingOption = null;
+      if (_voiceExamPendingOption) {
+        const opt = _voiceExamPendingOption;
+        _voiceExamPendingOption = null;
         selectQuizOption(opt);
         speak(__('voiceExamConfirmed'));
         setTimeout(function () {
@@ -173,8 +183,8 @@ export function startVoiceExamListening() {
     }
 
     if (normalized === __('voiceExamCommandNo') || normalized === 'no' || normalized === 'لا') {
-      window._voiceExamPendingSubmit = false;
-      window._voiceExamPendingOption = null;
+      _voiceExamPendingSubmit = false;
+      _voiceExamPendingOption = null;
       speak(__('voiceExamCancelled'));
       setTimeout(function () {
         startVoiceExamListening();
@@ -210,7 +220,7 @@ export function startVoiceExamListening() {
       const firstWord = normalized.split(' ')[0];
       const matched = optionMap[firstWord] || optionMap[normalized];
       if (matched) {
-        window._voiceExamPendingOption = matched;
+        _voiceExamPendingOption = matched;
         speak(__('voiceExamConfirm', __(`opt${matched}`)));
         updateVoiceExamStatus(__('voiceExamConfirm', __(`opt${matched}`)));
         setVoiceExamListening(true);
@@ -227,7 +237,7 @@ export function startVoiceExamListening() {
               startVoiceExamListening();
             }, 1000);
           } else {
-            window._voiceExamPendingOption = null;
+            _voiceExamPendingOption = null;
             speak(__('voiceExamCancelled'));
             setTimeout(function () {
               startVoiceExamListening();
@@ -252,7 +262,7 @@ export function startVoiceExamListening() {
 }
 
 export function confirmVoiceSubmit() {
-  window._voiceExamPendingSubmit = true;
+  _voiceExamPendingSubmit = true;
   speak(__('voiceExamSubmitConfirm'));
   updateVoiceExamStatus(__('voiceExamSubmitConfirm'));
   setVoiceExamListening(true);
@@ -263,10 +273,10 @@ export function confirmVoiceSubmit() {
     }
     const ct = text ? text.trim().toLowerCase() : '';
     if (ct === __('voiceExamCommandYes') || ct === 'yes' || ct === 'نعم') {
-      window._voiceExamPendingSubmit = false;
+      _voiceExamPendingSubmit = false;
       doVoiceSubmit();
     } else {
-      window._voiceExamPendingSubmit = false;
+      _voiceExamPendingSubmit = false;
       speak(__('voiceExamCancelled'));
       setTimeout(function () {
         startVoiceExamListening();

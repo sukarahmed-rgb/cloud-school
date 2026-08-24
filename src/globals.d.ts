@@ -112,7 +112,6 @@ declare global {
   var __: (key: string, ...args: (string | number)[]) => string;
   var speak: (text: string) => void;
   var localData: LocalData;
-  var __speechLang: string;
   var Sentry: { captureException: (err: unknown, hint?: unknown) => void; init: (config: Record<string, unknown>) => void } | undefined;
   var ageLevelLabels: Record<string, string>;
   var currentAgeLevel: string;
@@ -159,10 +158,6 @@ declare global {
   }
   var SpeechRecognition: new () => SpeechRecognition;
   var webkitSpeechRecognition: new () => SpeechRecognition;
-  var _voiceExamPendingSubmit: boolean;
-  var _voiceExamPendingOption: string;
-  var _visionBase64: string | null;
-  var _visionMime: string | null;
   var STORAGE_KEYS: { sizeOffset: string; theme: string; localData: string };
   var escapeHtml: (str: unknown) => string;
   var secureRandomInt: (min: number, max: number) => number;
@@ -170,9 +165,6 @@ declare global {
   var loadLocalData: () => boolean;
   var showToast: (msg: string) => void;
   var currentUserSession: UserSession | null;
-  var serverAvailable: boolean;
-  var serverSave: (collection: string, data: unknown) => Promise<unknown>;
-  var getGeminiKey: () => string;
   var updateNotifBadge: () => void;
   var addNotification: (title: string, message: string, type: string) => void;
   var announceToScreenReader: (msg: string) => void;

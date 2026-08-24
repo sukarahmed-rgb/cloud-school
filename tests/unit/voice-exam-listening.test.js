@@ -3,6 +3,7 @@ import {
   startVoiceExamListening,
   confirmVoiceSubmit,
   doVoiceSubmit,
+  _resetVoiceExamPendingState,
 } from '../../src/modules/voice-exam-listening.js';
 import {
   voiceExamActive,
@@ -77,8 +78,7 @@ describe('voice-exam-listening.js', () => {
     mockSelectQuizOption.mockClear();
     mockSubmitQuizAnswer.mockClear();
     jest.useFakeTimers();
-    window._voiceExamPendingSubmit = false;
-    window._voiceExamPendingOption = null;
+    _resetVoiceExamPendingState();
     setVoiceExamActive(true);
     setVoiceExamListening(false);
   });

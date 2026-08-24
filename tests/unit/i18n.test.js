@@ -8,6 +8,7 @@ import {
   applyTranslations,
   applyJsTranslations,
   initTtsLang,
+  getSpeechLang,
   loadLocale,
   initI18n,
 } from '../../src/modules/i18n.js';
@@ -94,9 +95,15 @@ describe('i18n.js', () => {
     expect(document.querySelector('[data-i18n-aria]').getAttribute('aria-label')).toBe('إغلاق');
   });
 
-  test('initTtsLang sets window.__speechLang', () => {
+  test('initTtsLang sets speech language', () => {
     initTtsLang();
-    expect(window.__speechLang).toBeTruthy();
+    expect(getSpeechLang()).toBe('ar-EG');
+  });
+
+  test('initTtsLang switches to English locale', () => {
+    localStorage.setItem('cloudSchoolLang', 'en');
+    setCurrentLang('en');
+    expect(getSpeechLang()).toBe('en-US');
   });
 
   test('loadLocale fetches and applies locale data', async () => {

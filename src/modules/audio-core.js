@@ -1,4 +1,6 @@
 // @ts-check
+import { getSpeechLang } from './i18n.js';
+
 let _userInteracted = false;
 const _speechQueue = [];
 
@@ -17,7 +19,7 @@ function _flushSpeechQueue() {
 function _speakNow(message) {
   try {
     const utterance = new SpeechSynthesisUtterance(message);
-    utterance.lang = window.__speechLang || 'ar-EG';
+    utterance.lang = getSpeechLang() || 'ar-EG';
     window.speechSynthesis.speak(utterance);
   } catch {}
 }
