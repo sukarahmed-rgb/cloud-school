@@ -2,12 +2,29 @@ import {
   toggleTeacherQuizType,
   handleTeacherAddBook,
   handleTeacherAddQuiz,
+  saveBookToFirebase,
+} from '../../src/modules/teacher-management.js';
+import {
   setServerAvailable,
   serverAvailable,
-} from '../../src/modules/teacher-management.js';
+  serverSave,
+} from '../../src/modules/server-backend.js';
+import { queueOfflineSave } from '../../src/modules/offline-sync.js';
 
 jest.mock('../../src/modules/offline-sync.js', () => ({
   queueOfflineSave: jest.fn(),
+}));
+
+let mockServerAvailable = false;
+
+jest.mock('../../src/modules/server-backend.js', () => ({
+  get serverAvailable() {
+    return mockServerAvailable;
+  },
+  setServerAvailable: (val) => {
+    mockServerAvailable = val;
+  },
+  serverSave: jest.fn(() => Promise.resolve()),
 }));
 
 describe('teacher-management.js', () => {
@@ -36,7 +53,9 @@ describe('teacher-management.js', () => {
     window.saveLocalData = jest.fn();
     window.speak = jest.fn();
     window.__ = jest.fn((k) => k);
-    window.serverSave = jest.fn();
+    mockServerAvailable = false;
+    serverSave.mockClear();
+    queueOfflineSave.mockClear();
   });
 
   test('toggleTeacherQuizType shows MCQ fields', () => {
@@ -77,9 +96,25 @@ describe('teacher-management.js', () => {
     expect(window.localData.assignments[0].type).toBe('text');
   });
 
-  test('setServerAvailable updates serverAvailable', () => {
+  test('setServerAvailable flips the live binding', () => {
     expect(serverAvailable).toBe(false);
     setServerAvailable(true);
     expect(serverAvailable).toBe(true);
+  });
+
+  test('saveBookToFirebase posts to server when available', async () => {
+    setServerAvailable(true);
+    const book = { id: 'b1', title: 'T', content: 'C', audio: '' };
+    await saveBookToFirebase(book);
+    expect(serverSave).toHaveBeenCalledWith('curriculum_modules', book);
+    expect(queueOfflineSave).not.toHaveBeenCalled();
+  });
+
+  test('saveBookToFirebase queues offline when server unavailable', () => {
+    setServerAvailable(false);
+    const book = { id: 'b2', title: 'T2', content: 'C2', audio: '' };
+    saveBookToFirebase(book);
+    expect(queueOfflineSave).toHaveBeenCalledWith('curriculum_modules', book);
+    expect(serverSave).not.toHaveBeenCalled();
   });
 });

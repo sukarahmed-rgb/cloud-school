@@ -72,6 +72,7 @@
  * @property {Submission[]} submissions
  * @property {Notification[]} notifications
  * @property {Student[]} students
+ * @property {{ gameType: string, score: number, date: string }[]} [gameProgress]
  */
 
 export {};

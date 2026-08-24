@@ -90,6 +90,7 @@ export { addNotification, updateNotifBadge } from './notifications.js';
 
 export {
   serverAvailable,
+  setServerAvailable,
   checkServerHealth,
   checkServerSession,
   serverLoginFirebase,
@@ -146,7 +147,6 @@ export {
   handleTeacherAddQuiz,
   renderTeacherDashboard,
   renderTeacherSubmissions,
-  setServerAvailable,
   saveBookToFirebase,
   saveQuizToFirebase,
   saveSubmissionToFirebase,

@@ -1,4 +1,6 @@
 // @ts-check
+import { serverSave } from './server-backend.js';
+
 const DB_NAME = 'cloud_school_offline';
 const DB_VERSION = 1;
 const STORE_NAME = 'pending_saves';
@@ -112,18 +114,14 @@ export async function syncOfflineData(serverSaveFn) {
 // Auto-trigger sync when returning online
 window.addEventListener('online', () => {
   console.log('[Offline Sync] Browser returned online. Triggering sync...');
-  if (window.serverSave) {
-    syncOfflineData(window.serverSave).catch(console.error);
-  }
+  syncOfflineData(serverSave).catch(console.error);
 });
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'trigger-sync-offline') {
       console.log('[Offline Sync] Service worker triggered background sync...');
-      if (window.serverSave) {
-        syncOfflineData(window.serverSave).catch(console.error);
-      }
+      syncOfflineData(serverSave).catch(console.error);
     }
   });
 }

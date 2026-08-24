@@ -1,11 +1,13 @@
 import { base64ToArrayBuffer, pcmToWav } from './helpers.js';
 import { getPrompt, getCurrentLang } from './i18n.js';
+import { getGeminiKey } from './proxy.js';
+import { serverAvailable } from './server-backend.js';
 
 const SERVER_BASE = (typeof __server_base !== 'undefined' && __server_base) || '';
 export const DEFAULT_PROXY_BASE = SERVER_BASE || 'http://localhost:3001';
 
 export function getProxyBase() {
-  if (window.serverAvailable) {
+  if (serverAvailable) {
     return SERVER_BASE;
   }
   const override = localStorage.getItem('cloudSchoolProxyUrl');
@@ -16,12 +18,10 @@ export async function proxyFetch(endpoint, payload) {
   const url = `${getProxyBase()}/api/gemini/${endpoint}`;
   const headers = { 'Content-Type': 'application/json' };
 
-  if (!window.serverAvailable) {
-    if (typeof window.getGeminiKey === 'function') {
-      const apiKey = window.getGeminiKey();
-      if (apiKey) {
-        headers['x-api-key'] = apiKey;
-      }
+  if (!serverAvailable) {
+    const apiKey = getGeminiKey();
+    if (apiKey) {
+      headers['x-api-key'] = apiKey;
     }
   }
   const response = await fetch(url, {

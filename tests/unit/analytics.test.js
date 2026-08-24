@@ -2,10 +2,19 @@
  * @jest-environment jsdom
  */
 import { recordGameScore, getStudentStats } from '../../src/modules/analytics.js';
+import { localData } from '../../src/modules/app-state.js';
+import { saveLocalData } from '../../src/modules/local-data.js';
+
+jest.mock('../../src/modules/app-state.js', () => ({
+  localData: { submissions: [], gameProgress: [], books: [] },
+}));
+jest.mock('../../src/modules/local-data.js', () => ({ saveLocalData: jest.fn() }));
 
 beforeEach(() => {
-  window.saveLocalData = jest.fn();
-  window.localData = { submissions: [], gameProgress: [], books: [] };
+  localData.submissions = [];
+  localData.gameProgress = [];
+  localData.books = [];
+  saveLocalData.mockClear();
 });
 
 afterEach(() => {
@@ -14,29 +23,31 @@ afterEach(() => {
 
 describe('recordGameScore', () => {
   it('appends score to gameProgress', () => {
-    const dateSpy = jest.spyOn(Date.prototype, 'toISOString').mockReturnValue('2026-07-18T12:00:00.000Z');
+    const dateSpy = jest
+      .spyOn(Date.prototype, 'toISOString')
+      .mockReturnValue('2026-07-18T12:00:00.000Z');
     recordGameScore('geography', 85);
-    expect(window.localData.gameProgress).toHaveLength(1);
-    expect(window.localData.gameProgress[0]).toEqual({
+    expect(localData.gameProgress).toHaveLength(1);
+    expect(localData.gameProgress[0]).toEqual({
       gameType: 'geography',
       score: 85,
       date: '2026-07-18T12:00:00.000Z',
     });
-    expect(window.saveLocalData).toHaveBeenCalled();
+    expect(saveLocalData).toHaveBeenCalled();
     dateSpy.mockRestore();
   });
 
   it('appends to existing gameProgress', () => {
-    window.localData.gameProgress = [{ gameType: 'math', score: 90, date: '2026-07-17T10:00:00.000Z' }];
+    localData.gameProgress = [{ gameType: 'math', score: 90, date: '2026-07-17T10:00:00.000Z' }];
     recordGameScore('science', 75);
-    expect(window.localData.gameProgress).toHaveLength(2);
+    expect(localData.gameProgress).toHaveLength(2);
   });
 
   it('handles missing gameProgress gracefully', () => {
-    delete window.localData.gameProgress;
+    delete localData.gameProgress;
     recordGameScore('listening', 60);
-    expect(window.localData.gameProgress).toHaveLength(1);
-    expect(window.localData.gameProgress[0].gameType).toBe('listening');
+    expect(localData.gameProgress).toHaveLength(1);
+    expect(localData.gameProgress[0].gameType).toBe('listening');
   });
 });
 
@@ -44,9 +55,24 @@ describe('getStudentStats', () => {
   it('computes quiz count and average', () => {
     const stats = getStudentStats('Ahmed', {
       submissions: [
-        { studentName: 'Ahmed', initialScore: 80, timestamp: '2026-07-18T10:00:00.000Z', quizTitle: 'Quiz 1' },
-        { studentName: 'Ahmed', initialScore: 90, timestamp: '2026-07-17T10:00:00.000Z', quizTitle: 'Quiz 2' },
-        { studentName: 'Sara', initialScore: 100, timestamp: '2026-07-16T10:00:00.000Z', quizTitle: 'Quiz 3' },
+        {
+          studentName: 'Ahmed',
+          initialScore: 80,
+          timestamp: '2026-07-18T10:00:00.000Z',
+          quizTitle: 'Quiz 1',
+        },
+        {
+          studentName: 'Ahmed',
+          initialScore: 90,
+          timestamp: '2026-07-17T10:00:00.000Z',
+          quizTitle: 'Quiz 2',
+        },
+        {
+          studentName: 'Sara',
+          initialScore: 100,
+          timestamp: '2026-07-16T10:00:00.000Z',
+          quizTitle: 'Quiz 3',
+        },
       ],
       gameProgress: [],
       books: [],
@@ -78,7 +104,10 @@ describe('getStudentStats', () => {
     const stats = getStudentStats('Ahmed', {
       submissions: [],
       gameProgress: [],
-      books: [{ id: '1', title: 'B1' }, { id: '2', title: 'B2' }],
+      books: [
+        { id: '1', title: 'B1' },
+        { id: '2', title: 'B2' },
+      ],
     });
     expect(stats.bookCount).toBe(2);
   });
@@ -86,10 +115,10 @@ describe('getStudentStats', () => {
   it('gradeDistribution categorizes scores', () => {
     const stats = getStudentStats('Ahmed', {
       submissions: [
-        { studentName: 'Ahmed', initialScore: 30 },  // poor
-        { studentName: 'Ahmed', initialScore: 55 },  // pass
-        { studentName: 'Ahmed', initialScore: 75 },  // good
-        { studentName: 'Ahmed', initialScore: 95 },  // excellent
+        { studentName: 'Ahmed', initialScore: 30 }, // poor
+        { studentName: 'Ahmed', initialScore: 55 }, // pass
+        { studentName: 'Ahmed', initialScore: 75 }, // good
+        { studentName: 'Ahmed', initialScore: 95 }, // excellent
         { studentName: 'Ahmed', initialScore: 100 }, // excellent
       ],
       gameProgress: [],
@@ -142,12 +171,20 @@ describe('getStudentStats', () => {
   it('recentActivity returns last 5 entries sorted by date desc', () => {
     const stats = getStudentStats('Ahmed', {
       submissions: [
-        { studentName: 'Ahmed', initialScore: 80, timestamp: '2026-07-18T10:00:00.000Z', quizTitle: 'Q1' },
-        { studentName: 'Ahmed', initialScore: 70, timestamp: '2026-07-17T10:00:00.000Z', quizTitle: 'Q2' },
+        {
+          studentName: 'Ahmed',
+          initialScore: 80,
+          timestamp: '2026-07-18T10:00:00.000Z',
+          quizTitle: 'Q1',
+        },
+        {
+          studentName: 'Ahmed',
+          initialScore: 70,
+          timestamp: '2026-07-17T10:00:00.000Z',
+          quizTitle: 'Q2',
+        },
       ],
-      gameProgress: [
-        { gameType: 'geo', score: 90, date: '2026-07-19T10:00:00.000Z' },
-      ],
+      gameProgress: [{ gameType: 'geo', score: 90, date: '2026-07-19T10:00:00.000Z' }],
       books: [],
     });
     expect(stats.recentActivity).toHaveLength(3);

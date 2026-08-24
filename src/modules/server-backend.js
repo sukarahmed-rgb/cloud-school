@@ -3,6 +3,13 @@ const SERVER_BASE = (typeof __server_base !== 'undefined' && __server_base) || '
 /** @type {boolean} */
 export let serverAvailable = false;
 
+/**
+ * @param {boolean} val
+ */
+export function setServerAvailable(val) {
+  serverAvailable = val;
+}
+
 /** Check if the backend server is reachable */
 export async function checkServerHealth() {
   try {

@@ -1,15 +1,6 @@
 // @ts-check
 import { queueOfflineSave } from './offline-sync.js';
-
-/** @type {boolean} */
-export let serverAvailable = false;
-
-/**
- * @param {boolean} val
- */
-export function setServerAvailable(val) {
-  serverAvailable = val;
-}
+import { serverAvailable, serverSave } from './server-backend.js';
 
 /** Toggle between MCQ and text quiz fields */
 export function toggleTeacherQuizType() {
@@ -115,9 +106,9 @@ export function generateTeacherReport() {}
  */
 export function saveBookToFirebase(book) {
   if (serverAvailable) {
-    window
-      .serverSave('curriculum_modules', book)
-      .catch(() => queueOfflineSave('curriculum_modules', book));
+    serverSave('curriculum_modules', book).catch(() =>
+      queueOfflineSave('curriculum_modules', book),
+    );
   } else {
     queueOfflineSave('curriculum_modules', book);
   }
@@ -128,7 +119,7 @@ export function saveBookToFirebase(book) {
  */
 export function saveQuizToFirebase(quiz) {
   if (serverAvailable) {
-    window.serverSave('assignments', quiz).catch(() => queueOfflineSave('assignments', quiz));
+    serverSave('assignments', quiz).catch(() => queueOfflineSave('assignments', quiz));
   } else {
     queueOfflineSave('assignments', quiz);
   }
@@ -139,7 +130,7 @@ export function saveQuizToFirebase(quiz) {
  */
 export function saveSubmissionToFirebase(sub) {
   if (serverAvailable) {
-    window.serverSave('submissions', sub).catch(() => queueOfflineSave('submissions', sub));
+    serverSave('submissions', sub).catch(() => queueOfflineSave('submissions', sub));
   } else {
     queueOfflineSave('submissions', sub);
   }
@@ -150,7 +141,7 @@ export function saveSubmissionToFirebase(sub) {
  */
 export function saveStudentToFirebase(student) {
   if (serverAvailable) {
-    window.serverSave('students', student).catch(() => queueOfflineSave('students', student));
+    serverSave('students', student).catch(() => queueOfflineSave('students', student));
   } else {
     queueOfflineSave('students', student);
   }

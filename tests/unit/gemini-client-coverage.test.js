@@ -22,19 +22,32 @@ jest.mock('../../src/modules/i18n.js', () => ({
   getCurrentLang: jest.fn(() => 'ar'),
 }));
 
+const mockGetGeminiKey = jest.fn(() => 'test-key');
+let mockServerAvailable = false;
+
+jest.mock('../../src/modules/proxy.js', () => ({
+  getGeminiKey: (...args) => mockGetGeminiKey(...args),
+}));
+
+jest.mock('../../src/modules/server-backend.js', () => ({
+  get serverAvailable() {
+    return mockServerAvailable;
+  },
+}));
+
 beforeEach(() => {
   jest.clearAllMocks();
-  window.serverAvailable = false;
+  mockServerAvailable = false;
+  mockGetGeminiKey.mockReset().mockReturnValue('test-key');
   localStorage.clear();
   global.fetch = jest.fn();
   URL.createObjectURL = jest.fn(() => 'blob:mock');
   URL.revokeObjectURL = jest.fn();
-  window.getGeminiKey = jest.fn(() => 'test-key');
 });
 
 describe('getProxyBase', () => {
   it('returns empty string when serverAvailable is true', () => {
-    window.serverAvailable = true;
+    mockServerAvailable = true;
     expect(getProxyBase()).toBe('');
   });
 
@@ -141,7 +154,7 @@ describe('extractAudio', () => {
 
 describe('proxyFetch', () => {
   it('makes fetch with correct URL and headers when server is available', async () => {
-    window.serverAvailable = true;
+    mockServerAvailable = true;
     const mockJson = { ok: true };
     global.fetch.mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue(mockJson) });
 
@@ -158,7 +171,7 @@ describe('proxyFetch', () => {
   });
 
   it('includes x-api-key header when server not available', async () => {
-    window.serverAvailable = false;
+    mockServerAvailable = false;
     global.fetch.mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({}) });
 
     await proxyFetch('text', {});
@@ -168,19 +181,8 @@ describe('proxyFetch', () => {
   });
 
   it('does not include x-api-key when getGeminiKey returns empty', async () => {
-    window.serverAvailable = false;
-    window.getGeminiKey = jest.fn(() => '');
-    global.fetch.mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({}) });
-
-    await proxyFetch('text', {});
-
-    const callHeaders = global.fetch.mock.calls[0][1].headers;
-    expect(callHeaders['x-api-key']).toBeUndefined();
-  });
-
-  it('does not include x-api-key when getGeminiKey is not a function', async () => {
-    window.serverAvailable = false;
-    window.getGeminiKey = undefined;
+    mockServerAvailable = false;
+    mockGetGeminiKey.mockReturnValue('');
     global.fetch.mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({}) });
 
     await proxyFetch('text', {});

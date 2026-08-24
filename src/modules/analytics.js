@@ -1,12 +1,15 @@
+import { localData } from './app-state.js';
+import { saveLocalData } from './local-data.js';
+
 export function recordGameScore(gameType, score) {
-  const progress = window.localData.gameProgress || [];
+  const progress = localData.gameProgress || [];
   progress.push({
     gameType,
     score,
     date: new Date().toISOString(),
   });
-  window.localData.gameProgress = progress;
-  window.saveLocalData();
+  localData.gameProgress = progress;
+  saveLocalData();
 }
 
 export function getStudentStats(studentName, localData) {

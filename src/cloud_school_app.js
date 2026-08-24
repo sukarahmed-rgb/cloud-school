@@ -87,6 +87,7 @@ import {
   transcribeAudio,
   describeImage,
 } from './modules/gemini-client.js';
+import { uploadedImageBase64, uploadedImageMime } from './modules/vision.js';
 import { play3DTone, playSuccess3D, playFail3D, playTick3D } from './modules/spatial-audio.js';
 import {
   audioCoPilotEnabled,
@@ -125,6 +126,7 @@ import { addNotification, updateNotifBadge } from './modules/notifications.js';
 import { toggleAudioRecording } from './modules/recording.js';
 import {
   serverAvailable,
+  setServerAvailable,
   checkServerHealth,
   checkServerSession,
   serverLoginFirebase,
@@ -183,7 +185,6 @@ import {
   handleTeacherAddQuiz,
   renderTeacherDashboard,
   renderTeacherSubmissions,
-  setServerAvailable,
   saveBookToFirebase,
   saveQuizToFirebase,
   saveSubmissionToFirebase,
@@ -299,8 +300,8 @@ function runInit() {
     playSuccess3D,
     setupAccessibleVoices,
     showLoading,
-    getUploadedImageBase64: () => window._visionBase64,
-    getUploadedImageMime: () => window._visionMime,
+    getUploadedImageBase64: () => uploadedImageBase64,
+    getUploadedImageMime: () => uploadedImageMime,
     getSpeechRecognizer: () => window.speechRecognizer,
   });
 
@@ -315,7 +316,9 @@ function runInit() {
     speak,
     __,
     showToast,
-    serverAvailable: typeof serverAvailable !== 'undefined' ? serverAvailable : false,
+    get serverAvailable() {
+      return serverAvailable;
+    },
     serverLoginFirebase,
     serverRegisterFirebase,
     serverLogout,

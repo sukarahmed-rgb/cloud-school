@@ -2,6 +2,11 @@
  * @jest-environment jsdom
  */
 
+jest.mock('../../src/modules/server-backend.js', () => ({
+  serverSave: jest.fn(() => Promise.resolve()),
+  serverAvailable: false,
+}));
+
 let mod;
 let mockDbStore;
 
@@ -50,7 +55,6 @@ function createMockIndexedDB() {
 
 beforeEach(() => {
   jest.resetModules();
-
   global.indexedDB = createMockIndexedDB();
 
   global.navigator.serviceWorker = {
@@ -59,13 +63,10 @@ beforeEach(() => {
     }),
     addEventListener: jest.fn(),
   };
-
-  global.window.serverSave = undefined;
 });
 
 afterEach(() => {
   delete global.indexedDB;
-  delete global.window.serverSave;
   delete global.window.SyncManager;
 });
 
@@ -195,28 +196,32 @@ describe('offline-sync.js', () => {
     expect(remaining[0].data.answer).toBe('ok2');
   });
 
-  test('online event triggers sync when window.serverSave is set', async () => {
-    const serverSaveFn = jest.fn(() => Promise.resolve());
-    global.window.serverSave = serverSaveFn;
+  test('online event triggers sync through backend serverSave', async () => {
+    const backend = await import('../../src/modules/server-backend.js');
     mod = await import('../../src/modules/offline-sync.js');
     await mod.queueOfflineSave('submissions', { answer: 'sync-me' });
     window.dispatchEvent(new Event('online'));
     await new Promise((r) => setTimeout(r, 50));
-    expect(serverSaveFn).toHaveBeenCalledWith('submissions', { answer: 'sync-me' });
+    expect(backend.serverSave).toHaveBeenCalledWith('submissions', { answer: 'sync-me' });
   });
 
-  test('online event does nothing when window.serverSave is missing', async () => {
+  test('online event swallows backend save failures', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const backend = await import('../../src/modules/server-backend.js');
+    backend.serverSave.mockRejectedValueOnce(new Error('down'));
     mod = await import('../../src/modules/offline-sync.js');
-    const spy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    await mod.queueOfflineSave('submissions', { answer: 'x' });
     window.dispatchEvent(new Event('online'));
-    await new Promise((r) => setTimeout(r, 10));
-    expect(spy).toHaveBeenCalledWith('[Offline Sync] Browser returned online. Triggering sync...');
-    spy.mockRestore();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(backend.serverSave).toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+    logSpy.mockRestore();
   });
 
   test('service worker message triggers sync', async () => {
-    const serverSaveFn = jest.fn(() => Promise.resolve());
-    global.window.serverSave = serverSaveFn;
+    const backend = await import('../../src/modules/server-backend.js');
     mod = await import('../../src/modules/offline-sync.js');
     await mod.queueOfflineSave('submissions', { answer: 'sw-sync' });
     const handler = global.navigator.serviceWorker.addEventListener.mock.calls.find(
@@ -224,6 +229,6 @@ describe('offline-sync.js', () => {
     )[1];
     handler({ data: { type: 'trigger-sync-offline' } });
     await new Promise((r) => setTimeout(r, 50));
-    expect(serverSaveFn).toHaveBeenCalledWith('submissions', { answer: 'sw-sync' });
+    expect(backend.serverSave).toHaveBeenCalledWith('submissions', { answer: 'sw-sync' });
   });
 });
