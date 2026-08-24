@@ -17,7 +17,7 @@ export function speak(text) {
   if (ariaLive) {
     ariaLive.textContent = text;
   }
-  if (window.screenReaderMode) {
+  if (screenReaderMode) {
     return;
   }
   speakToUser(text);

@@ -21,7 +21,6 @@ beforeEach(() => {
   localStorage.clear();
   window.speechSynthesis = { cancel: jest.fn() };
   window.__ = jest.fn((k) => k);
-  window.screenReaderMode = undefined;
   Element.prototype.scrollIntoView = jest.fn();
 });
 
@@ -57,8 +56,8 @@ describe('speech module', () => {
     expect(speakToUser).toHaveBeenCalledWith('hi there');
   });
 
-  test('speak — returns early when window.screenReaderMode is true', () => {
-    window.screenReaderMode = true;
+  test('speak — returns early when screenReaderMode is true', () => {
+    mod.toggleScreenReaderMode();
     mod.speak('test');
     expect(document.getElementById('aria-live').textContent).toBe('test');
     expect(speakToUser).not.toHaveBeenCalled();

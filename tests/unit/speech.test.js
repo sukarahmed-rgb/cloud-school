@@ -29,7 +29,6 @@ describe('speech.js', () => {
     window.__ = jest.fn((k) => k);
     window.speechSynthesis = { cancel: jest.fn(), speak: jest.fn() };
     window.SpeechSynthesisUtterance = jest.fn(() => ({}));
-    window.screenReaderMode = false;
   });
 
   test('speak sets aria-live text content', () => {

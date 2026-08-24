@@ -91,7 +91,6 @@ beforeEach(() => {
   window.saveLocalData = jest.fn();
   window.addNotification = jest.fn();
   window.announceToScreenReader = jest.fn();
-  window.screenReaderMode = false;
   window.currentUserSession = { name: 'أحمد', contact: 'ahmed@test.com' };
   window.setupAccessibleVoices = jest.fn();
 });

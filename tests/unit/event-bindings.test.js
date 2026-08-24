@@ -135,7 +135,6 @@ beforeEach(() => {
   };
   window.speak = jest.fn();
   window.announceToScreenReader = jest.fn();
-  window.screenReaderMode = false;
   window.localData = { books: [], assignments: [], submissions: [] };
   window.saveLocalData = jest.fn();
   window.addNotification = jest.fn();
