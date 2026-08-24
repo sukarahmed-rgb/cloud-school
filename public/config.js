@@ -1,6 +1,10 @@
-/* eslint-disable no-unused-vars */
-const __app_id = 'cloud-school-blind-v1';
-const __firebase_config = {
+/* eslint-disable no-unused-vars, no-var */
+// Runtime config for classic-script consumers. These MUST be `var`, not
+// `const`: top-level const/let live in the global declarative record and are
+// invisible as window.* properties, which silently disabled Firebase and
+// Sentry for every module reading them via window.
+var __app_id = 'cloud-school-blind-v1';
+var __firebase_config = {
   // SECURITY: Restrict this API key in Firebase Console → Project Settings → API Key → Application restrictions
   // Set HTTP referrer restrictions to: cloud-school-6251a.web.app, cloud-school-6251a.firebaseapp.com, localhost
   apiKey: 'AIzaSyCB-560lR7KyRyD9TYShxdJbkoP8rELBuw',
@@ -11,12 +15,12 @@ const __firebase_config = {
   appId: '1:87142350368:web:0949d5cfa3bbd852904645',
   measurementId: 'G-V7CZJK62S6',
 };
-const __initial_auth_token = null;
-const __server_base = 'https://cloud-school-api.cloud-school-subdomain.workers.dev';
+var __initial_auth_token = null;
+var __server_base = 'https://cloud-school-api.cloud-school-subdomain.workers.dev';
 // Sentry DSN for client-side error monitoring (public by design — safe to ship in the bundle).
 // Leave empty to disable client Sentry. Worker-side Sentry is configured separately via the
 // SENTRY_DSN Cloudflare secret (npx wrangler secret put SENTRY_DSN).
-const __SENTRY_DSN = '';
+var __SENTRY_DSN = '';
 
 let _speechQueue = [];
 let _userInteracted = false;
