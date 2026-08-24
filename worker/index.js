@@ -45,6 +45,7 @@ const STUDENT_EDITABLE_FIELDS = {
 const MAX_BODY_SIZE = 65536;
 const MAX_STRING_LENGTH = 10000;
 const MAX_ARRAY_ITEMS = 2000;
+const GEMINI_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MODELS = {
   text: 'gemini-2.5-flash-preview-09-2025',
   vision: 'gemini-2.5-flash-preview-09-2025',
@@ -160,17 +161,41 @@ async function constantTimeCompare(a, b) {
   return diff === 0;
 }
 
-async function checkAuthRateLimit(env, ip, max, windowSec) {
+/**
+ * Atomic fixed-window rate limiting backed by D1.
+ * A single upsert statement is serialized by SQLite, so concurrent requests
+ * cannot race past the limit (unlike the previous KV read-modify-write).
+ */
+async function bumpRateLimit(env, key, windowSec) {
   const now = Math.floor(Date.now() / 1000);
-  const windowKey = Math.floor(now / windowSec);
-  const rateKey = `authip:${ip}:${windowKey}`;
-  const current = await env.DATA.get(rateKey);
-  const count = current ? Number(current) : 0;
-  if (count >= max) {
-    return false;
+  const windowStart = Math.floor(now / windowSec);
+  try {
+    const row = await env.DB.prepare(
+      `INSERT INTO rate_limits (key, count, window_start)
+       VALUES (?, 1, ?)
+       ON CONFLICT(key) DO UPDATE SET
+         count = CASE WHEN window_start < excluded.window_start THEN 1 ELSE count + 1 END,
+         window_start = excluded.window_start
+       RETURNING count`,
+    )
+      .bind(key, windowStart)
+      .first();
+    if (Math.random() < 0.01) {
+      await env.DB.prepare('DELETE FROM rate_limits WHERE window_start < ?')
+        .bind(windowStart - 10)
+        .run();
+    }
+    return row ? Number(row.count) : 1;
+  } catch (err) {
+    console.error('rate limit check failed:', err && err.message);
+    return null;
   }
-  await env.DATA.put(rateKey, String(count + 1), { expirationTtl: windowSec * 2 });
-  return true;
+}
+
+async function checkAuthRateLimit(env, ip, max, windowSec) {
+  const count = await bumpRateLimit(env, `authrl:${ip}`, windowSec);
+  // Fail open so a D1 outage does not take the whole app down.
+  return count === null || count <= max;
 }
 
 function stripMetaFields(obj) {
@@ -268,16 +293,8 @@ async function verifyFirebaseToken(idToken, apiKey) {
 }
 
 async function checkRateLimit(env, key, max, windowSec) {
-  const now = Math.floor(Date.now() / 1000);
-  const windowKey = Math.floor(now / windowSec);
-  const rateKey = `ratelimit:${key}:${windowKey}`;
-  const current = await env.DATA.get(rateKey);
-  const count = current ? Number(current) : 0;
-  if (count >= max) {
-    return false;
-  }
-  await env.DATA.put(rateKey, String(count + 1), { expirationTtl: windowSec * 2 });
-  return true;
+  const count = await bumpRateLimit(env, `rl:${key}`, windowSec);
+  return count === null || count <= max;
 }
 
 async function safeGetSession(env, token) {
@@ -342,6 +359,14 @@ export default {
       const rlKey = rateLimitKey(request);
       if (!(await checkRateLimit(env, `gen:${rlKey}`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW))) {
         return respond({ error: 'Rate limit exceeded. Try again later.' }, 429);
+      }
+
+      // Enforce payload size limit on JSON routes (Gemini media endpoints are exempt)
+      if ((method === 'POST' || method === 'PUT') && !path.startsWith('/api/gemini/')) {
+        const contentLength = Number(request.headers.get('content-length') || '0');
+        if (contentLength > MAX_BODY_SIZE) {
+          return respond({ error: 'Payload too large' }, 413);
+        }
       }
 
       // ====== Auth Routes ======
@@ -607,8 +632,8 @@ export default {
         if (!session) {
           return respond({ error: 'Not authenticated' }, 401);
         }
-        if (session.role !== 'teacher' && session.role !== 'admin') {
-          return respond({ error: 'Only teachers and admins can update the API key' }, 403);
+        if (session.role !== 'admin') {
+          return respond({ error: 'Only admins can update the API key' }, 403);
         }
         let body;
         try {
@@ -785,6 +810,19 @@ export default {
             query += ` WHERE ${conditions.join(' AND ')}`;
           }
           query += ' ORDER BY created_at DESC';
+
+          // Pagination (defaults: newest 100, hard cap 200)
+          let limit = parseInt(url.searchParams.get('limit') || '', 10);
+          if (!Number.isFinite(limit) || limit <= 0) {
+            limit = 100;
+          }
+          limit = Math.min(limit, 200);
+          let offset = parseInt(url.searchParams.get('offset') || '', 10);
+          if (!Number.isFinite(offset) || offset < 0) {
+            offset = 0;
+          }
+          query += ' LIMIT ? OFFSET ?';
+          params.push(limit, offset);
 
           const { results } = await env.DB.prepare(query)
             .bind(...params)
@@ -1009,12 +1047,13 @@ export default {
           const hashArray = Array.from(new Uint8Array(hashBuffer));
           const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 
-          // Check if response is cached
+          // Check if response is cached (entries older than the TTL are treated as misses)
           try {
+            const cacheCutoff = new Date(Date.now() - GEMINI_CACHE_TTL_MS).toISOString();
             const cached = await env.DB.prepare(
-              'SELECT response FROM gemini_cache WHERE prompt_hash = ?',
+              'SELECT response FROM gemini_cache WHERE prompt_hash = ? AND created_at >= ?',
             )
-              .bind(hashHex)
+              .bind(hashHex, cacheCutoff)
               .first();
             if (cached) {
               const cachedData = JSON.parse(cached.response);
@@ -1022,21 +1061,25 @@ export default {
             }
           } catch (dbErr) {}
 
-          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          // Key travels in a header, never in the URL (avoids leaking into logs)
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
           const geminiResp = await fetch(apiUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
             body: bodyText,
           });
           const data = await geminiResp.json();
 
-          // Cache the successful response
+          // Cache the successful response and purge entries past the TTL
           if (geminiResp.status === 200 && data) {
             try {
               await env.DB.prepare(
                 'INSERT OR REPLACE INTO gemini_cache (prompt_hash, prompt, response, created_at) VALUES (?, ?, ?, ?)',
               )
                 .bind(hashHex, bodyText, JSON.stringify(data), new Date().toISOString())
+                .run();
+              await env.DB.prepare('DELETE FROM gemini_cache WHERE created_at < ?')
+                .bind(new Date(Date.now() - GEMINI_CACHE_TTL_MS).toISOString())
                 .run();
             } catch (dbErr) {}
           }
@@ -1053,13 +1096,17 @@ export default {
 
       return respond({ error: 'Not found' }, 404);
     } catch (err) {
+      // Never reflect the request Origin with credentials, and never leak
+      // internal error messages to clients. Pin the origin to our own config.
       ctx.waitUntil(reportErrorToSentry(err, request, env));
-      const origin = request.headers.get('origin');
-      return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), {
+      const pinnedOrigin = isValidOrigin(env.CORS_ORIGIN || '')
+        ? env.CORS_ORIGIN
+        : ALLOWED_ORIGINS[0];
+      return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': origin || 'https://cloud-school-6251a.web.app',
+          'Access-Control-Allow-Origin': pinnedOrigin,
           'Access-Control-Allow-Credentials': 'true',
         },
       });
@@ -1101,7 +1148,13 @@ async function reportErrorToSentry(err, request, env) {
       request: {
         url: request.url,
         method: request.method,
-        headers: Object.fromEntries(request.headers.entries()),
+        // Allowlist only safe headers — never forward Cookie/Authorization
+        // or any other header that could carry session tokens.
+        headers: {
+          'user-agent': request.headers.get('user-agent') || '',
+          'content-type': request.headers.get('content-type') || '',
+          referer: request.headers.get('referer') || '',
+        },
       },
       environment: env.ENVIRONMENT || 'production',
     };

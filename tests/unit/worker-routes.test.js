@@ -236,6 +236,9 @@ describe('Worker Routes', () => {
     test('creates new user on first login', async () => {
       mockFetch(() => Promise.resolve(new Response(JSON.stringify(fbResponse), { status: 200 })));
       const { env } = startServer();
+      // Two rate-limit bumps (general + auth) hit D1 before user lookup
+      env.DB.first.mockResolvedValueOnce(null);
+      env.DB.first.mockResolvedValueOnce(null);
       env.DB.first.mockResolvedValueOnce(null);
       env.DB.first.mockResolvedValueOnce({
         id: 'new-u1',
@@ -261,6 +264,8 @@ describe('Worker Routes', () => {
     test('logs in existing user', async () => {
       mockFetch(() => Promise.resolve(new Response(JSON.stringify(fbResponse), { status: 200 })));
       const { env } = startServer();
+      env.DB.first.mockResolvedValueOnce(null);
+      env.DB.first.mockResolvedValueOnce(null);
       env.DB.first.mockResolvedValueOnce({
         id: 'existing-u1',
         data: JSON.stringify({ name: 'Existing', email: 'test@example.com' }),
@@ -300,6 +305,8 @@ describe('Worker Routes', () => {
       mockFetch(() => Promise.resolve(new Response(JSON.stringify(fbResponse), { status: 200 })));
       const { env } = startServer();
       env.DB.first.mockResolvedValueOnce(null);
+      env.DB.first.mockResolvedValueOnce(null);
+      env.DB.first.mockResolvedValueOnce(null);
       env.DB.first.mockResolvedValueOnce({
         id: 'new-u2',
         data: JSON.stringify({}),
@@ -322,6 +329,8 @@ describe('Worker Routes', () => {
     test('returns 409 if email already registered', async () => {
       mockFetch(() => Promise.resolve(new Response(JSON.stringify(fbResponse), { status: 200 })));
       const { env } = startServer();
+      env.DB.first.mockResolvedValueOnce(null);
+      env.DB.first.mockResolvedValueOnce(null);
       env.DB.first.mockResolvedValueOnce({ id: 'existing' });
 
       const req = makeRequest('/api/auth/firebase-register', {
@@ -362,7 +371,7 @@ describe('Worker Routes', () => {
   });
 
   describe('POST /api/admin/gemini-key', () => {
-    test('teacher can update the key', async () => {
+    test('teacher cannot update the key (admin only)', async () => {
       const session = {
         userId: 'u1',
         email: 'a@b.com',
@@ -381,9 +390,9 @@ describe('Worker Routes', () => {
           Origin: 'http://localhost:8080',
         },
       });
-      const { body } = await respondJson(await worker.fetch(req, env, ctx));
-      expect(body.success).toBe(true);
-      expect(env.CONFIG._store.get('gemini_key')).toBe('abc123');
+      const { status, body } = await respondJson(await worker.fetch(req, env, ctx));
+      expect(status).toBe(403);
+      expect(env.CONFIG._store.get('gemini_key')).toBeUndefined();
     });
 
     test('student cannot update the key', async () => {
@@ -438,6 +447,7 @@ describe('Worker Routes', () => {
       test('admin can list all items', async () => {
         const { env, token } = startServer(adminSession);
         env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(adminSession));
+        env.DB.first.mockResolvedValueOnce(null); // rate limit bump
         env.DB.all.mockResolvedValueOnce({
           results: [{ id: 'm1', data: JSON.stringify({ title: 'Math' }), created_by: 'a1' }],
         });
@@ -448,6 +458,7 @@ describe('Worker Routes', () => {
         expect(Array.isArray(body)).toBe(true);
         expect(body.length).toBe(1);
         expect(body[0].title).toBe('Math');
+        expect(env.DB._getLastSql()).toContain('LIMIT ? OFFSET ?');
       });
 
       test('student gets 403 for students collection', async () => {
@@ -476,6 +487,7 @@ describe('Worker Routes', () => {
       test('returns item when found', async () => {
         const { env, token } = startServer(teacherSession);
         env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(teacherSession));
+        env.DB.first.mockResolvedValueOnce(null); // rate limit bump
         env.DB.first.mockResolvedValueOnce({
           id: 'm1',
           data: JSON.stringify({ title: 'Physics' }),
@@ -503,6 +515,7 @@ describe('Worker Routes', () => {
       test('teacher can create curriculum module', async () => {
         const { env, token } = startServer(teacherSession);
         env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(teacherSession));
+        env.DB.first.mockResolvedValueOnce(null); // rate limit bump
         env.DB.first.mockResolvedValueOnce({ total: 5 });
         env.DB.first.mockResolvedValueOnce({
           id: 'new-m1',
@@ -576,6 +589,7 @@ describe('Worker Routes', () => {
       test('teacher can update own item', async () => {
         const { env, token } = startServer(teacherSession);
         env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(teacherSession));
+        env.DB.first.mockResolvedValueOnce(null); // rate limit bump
         env.DB.first.mockResolvedValueOnce({
           id: 'm1',
           data: JSON.stringify({ title: 'Old' }),
@@ -602,6 +616,7 @@ describe('Worker Routes', () => {
       test('student cannot update others submission', async () => {
         const { env, token } = startServer(studentSession);
         env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(studentSession));
+        env.DB.first.mockResolvedValueOnce(null); // rate limit bump
         env.DB.first.mockResolvedValueOnce({
           id: 'sub1',
           data: JSON.stringify({ content: 'x' }),
@@ -625,6 +640,7 @@ describe('Worker Routes', () => {
       test('admin can delete any item', async () => {
         const { env, token } = startServer(adminSession);
         env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(adminSession));
+        env.DB.first.mockResolvedValueOnce(null); // rate limit bump
         env.DB.first.mockResolvedValueOnce({ id: 'm1', data: '{}', created_by: 't1' });
         const req = makeRequest('/api/data/curriculum_modules/m1', {
           method: 'DELETE',
@@ -660,6 +676,8 @@ describe('Worker Routes', () => {
       const { env, token } = startServer(session);
       env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(session));
       env.GEMINI_API_KEY = 'test-gemini-key';
+      env.DB.first.mockResolvedValueOnce(null); // general rate limit bump
+      env.DB.first.mockResolvedValueOnce(null); // gemini rate limit bump
       env.DB.first.mockResolvedValueOnce({
         response: JSON.stringify({ candidates: [{ content: { parts: [{ text: 'cached' }] } }] }),
       });
@@ -683,7 +701,9 @@ describe('Worker Routes', () => {
       const { env, token } = startServer(session);
       env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(session));
       env.GEMINI_API_KEY = 'test-gemini-key';
-      env.DB.first.mockResolvedValueOnce(null);
+      env.DB.first.mockResolvedValueOnce(null); // general rate limit bump
+      env.DB.first.mockResolvedValueOnce(null); // gemini rate limit bump
+      env.DB.first.mockResolvedValueOnce(null); // cache miss
 
       const req = makeRequest('/api/gemini/text', {
         method: 'POST',
@@ -696,6 +716,9 @@ describe('Worker Routes', () => {
       });
       const { body } = await respondJson(await worker.fetch(req, env, ctx));
       expect(body.candidates[0].content.parts[0].text).toBe('hello back');
+      // The API key must travel in a header, never in the URL
+      const calledUrl = globalThis.fetch.mock.calls[0][0];
+      expect(calledUrl).not.toContain('test-gemini-key');
     });
 
     test('returns 400 for unknown model', async () => {
@@ -738,8 +761,8 @@ describe('Worker Routes', () => {
       };
       const { env, token } = startServer(session);
       env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(session));
-      const windowKey = Math.floor(Math.floor(Date.now() / 1000) / 60);
-      env.DATA._store.set(`ratelimit:gen:${token}:${windowKey}`, '60');
+      // Atomic upsert returns the incremented count; 61 > RATE_LIMIT_MAX (60)
+      env.DB.first.mockResolvedValueOnce({ count: 61 });
 
       const req = makeRequest('/api/auth/me', {
         headers: { Cookie: makeSessionCookie(token), Origin: 'http://localhost:8080' },
@@ -747,6 +770,112 @@ describe('Worker Routes', () => {
       const { status, body } = await respondJson(await worker.fetch(req, env, ctx));
       expect(status).toBe(429);
       expect(body.error).toContain('Rate limit');
+    });
+
+    test('rate limiter allows requests under the limit', async () => {
+      const session = {
+        userId: 'u2',
+        email: 'b@b.com',
+        name: 'B',
+        role: 'admin',
+        expiresAt: Date.now() + 999999,
+      };
+      const { env, token } = startServer(session);
+      env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(session));
+      env.DB.first.mockResolvedValueOnce({ count: 1 });
+
+      const req = makeRequest('/api/auth/me', {
+        headers: { Cookie: makeSessionCookie(token), Origin: 'http://localhost:8080' },
+      });
+      const { status } = await respondJson(await worker.fetch(req, env, ctx));
+      expect(status).toBe(200);
+    });
+
+    test('rate limiter fails open when D1 is down', async () => {
+      const session = {
+        userId: 'u3',
+        email: 'c@b.com',
+        name: 'C',
+        role: 'admin',
+        expiresAt: Date.now() + 999999,
+      };
+      const { env, token } = startServer(session);
+      env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(session));
+      // The rate limiter swallows D1 errors and fails open...
+      env.DB.prepare.mockImplementation(() => {
+        throw new Error('D1 unavailable');
+      });
+
+      const req = makeRequest('/api/auth/me', {
+        headers: { Cookie: makeSessionCookie(token), Origin: 'http://localhost:8080' },
+      });
+      const { status } = await respondJson(await worker.fetch(req, env, ctx));
+      expect(status).toBe(200);
+    });
+  });
+
+  describe('Error handling', () => {
+    test('500 responses use a generic error and pinned CORS origin', async () => {
+      const session = {
+        userId: 'u4',
+        email: 'd@b.com',
+        name: 'D',
+        role: 'admin',
+        expiresAt: Date.now() + 999999,
+      };
+      const { env, token } = startServer(session);
+      env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(session));
+      // First prepare call is the rate-limit bump (must succeed so the
+      // request reaches a route); the next one blows up outside any
+      // local try/catch, triggering the top-level error handler.
+      let calls = 0;
+      env.DB.prepare.mockImplementation(() => {
+        calls++;
+        if (calls > 1) {
+          throw new Error('secret internal detail: users table missing');
+        }
+        return env.DB;
+      });
+
+      const req = makeRequest('/api/data/curriculum_modules/m1', {
+        headers: { Cookie: makeSessionCookie(token), Origin: 'https://evil.com' },
+      });
+      const resp = await worker.fetch(req, env, ctx);
+      const body = await resp.json();
+      expect(resp.status).toBe(500);
+      expect(body.error).toBe('Internal Server Error');
+      expect(JSON.stringify(body)).not.toContain('secret');
+      expect(resp.headers.get('Access-Control-Allow-Origin')).not.toBe('https://evil.com');
+      expect(resp.headers.get('Access-Control-Allow-Origin')).toBe(env.CORS_ORIGIN);
+    });
+  });
+
+  describe('Payload size limit', () => {
+    test('returns 413 for oversized JSON bodies', async () => {
+      const session = {
+        userId: 'u5',
+        email: 'e@b.com',
+        name: 'E',
+        role: 'teacher',
+        expiresAt: Date.now() + 999999,
+      };
+      const { env, token } = startServer(session);
+      env.SESSIONS._store.set(`sess:${token}`, JSON.stringify(session));
+
+      const bigBody = JSON.stringify({ title: 'x'.repeat(70000) });
+      const req = makeRequest('/api/data/curriculum_modules', {
+        method: 'POST',
+        body: bigBody,
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': String(bigBody.length),
+          Cookie: makeSessionCookie(token),
+          Origin: 'http://localhost:8080',
+        },
+      });
+      const { status, body } = await respondJson(await worker.fetch(req, env, ctx));
+      expect(status).toBe(413);
+      expect(body.error).toContain('too large');
     });
   });
 
