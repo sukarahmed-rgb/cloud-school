@@ -41,10 +41,14 @@ export function getGeminiKey() {
       return decoded;
     }
   }
-  const key = prompt(window.__('promptApiKey'));
-  if (key) {
-    localStorage.setItem('gemini_api_key', _obfuscate(key));
-    return key;
+  // Non-blocking notice instead of a modal prompt(): blocking dialogs
+  // freeze screen readers — the exact audience of this app. The user can
+  // enter a key from the toolbar settings (setupGeminiKeyControls).
+  if (typeof window.showToast === 'function') {
+    window.showToast(window.__('promptApiKey'));
+  }
+  if (typeof window.speak === 'function') {
+    window.speak(window.__('promptApiKey'));
   }
   return '';
 }

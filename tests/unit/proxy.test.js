@@ -37,11 +37,15 @@ describe('proxy.js', () => {
     expect(getGeminiKey()).toBe(key);
   });
 
-  test('getGeminiKey prompts when no stored key', () => {
-    window.prompt = jest.fn(() => '');
+  test('getGeminiKey shows a non-blocking toast when no stored key', () => {
+    window.prompt = jest.fn();
+    window.showToast = jest.fn();
+    window.speak = jest.fn();
     const result = getGeminiKey();
     expect(result).toBe('');
-    expect(window.prompt).toHaveBeenCalled();
+    expect(window.prompt).not.toHaveBeenCalled();
+    expect(window.showToast).toHaveBeenCalledWith('promptApiKey');
+    expect(window.speak).toHaveBeenCalledWith('promptApiKey');
   });
 
   test('checkProxyHealth returns true on success', async () => {
