@@ -23,9 +23,7 @@ export function setCurrentLang(lang) {
   applyJsTranslations();
   // تحديث لغة TTS
   initTtsLang();
-  if (typeof window.speak === 'function') {
-    window.speak(__('langChanged'));
-  }
+  import('./speech.js').then((m) => m.speak(__('langChanged')));
 }
 
 export function __(key, ...args) {

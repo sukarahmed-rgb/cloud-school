@@ -1,7 +1,9 @@
 // @ts-check
+import { STORAGE_KEYS, localData } from './app-state.js';
+
 export function saveLocalData() {
   try {
-    window.localStorage.setItem(window.STORAGE_KEYS.localData, JSON.stringify(window.localData));
+    localStorage.setItem(STORAGE_KEYS.localData, JSON.stringify(localData));
   } catch (e) {
     console.warn('Failed to save local data:', e);
   }
@@ -9,33 +11,33 @@ export function saveLocalData() {
 
 export function loadLocalData() {
   try {
-    const saved = window.localStorage.getItem(window.STORAGE_KEYS.localData);
+    const saved = localStorage.getItem(STORAGE_KEYS.localData);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed.books) {
-        window.localData.books = parsed.books;
+        localData.books = parsed.books;
       }
       if (parsed.assignments) {
-        window.localData.assignments = parsed.assignments;
+        localData.assignments = parsed.assignments;
       }
       if (parsed.submissions) {
-        window.localData.submissions = parsed.submissions;
+        localData.submissions = parsed.submissions;
       }
       if (parsed.students) {
-        window.localData.students = parsed.students;
+        localData.students = parsed.students;
       }
       if (parsed.notifications) {
-        window.localData.notifications = parsed.notifications;
+        localData.notifications = parsed.notifications;
       }
       if (parsed.gameProgress) {
-        window.localData.gameProgress = parsed.gameProgress;
+        localData.gameProgress = parsed.gameProgress;
       }
     }
-    if (!window.localData.notifications) {
-      window.localData.notifications = [];
+    if (!localData.notifications) {
+      localData.notifications = [];
     }
-    if (!window.localData.gameProgress) {
-      window.localData.gameProgress = [];
+    if (!localData.gameProgress) {
+      localData.gameProgress = [];
     }
   } catch (e) {
     console.warn('Failed to load local data:', e);

@@ -1,4 +1,8 @@
 // @ts-check
+import { arabicBrailleMap, updateBraillePreview } from './braille.js';
+import { speak } from './speech.js';
+import { __ } from './i18n.js';
+
 /** @type {Object} */
 export let perkinsKeysPressed = {};
 /** @type {number|null} */
@@ -72,7 +76,7 @@ export function processPerkinsChord() {
     .map((key) => PERKINS_KEY_MAP[key])
     .sort((a, b) => a - b);
   if (chord.length > 0) {
-    window.toggleBrailleDot(chord);
+    toggleBrailleDot(chord);
   }
 }
 
@@ -96,7 +100,7 @@ export function toggleBrailleDot(dotNumber) {
     }
   }
   syncScreenDotsPressed();
-  window.updateBraillePreview();
+  updateBraillePreview(currentBrailleDots, 'braille-char-preview', '\u2014');
 }
 
 /** Reflect the active dots on the screen keyboard buttons */
@@ -118,14 +122,14 @@ function dotsToKey(dots) {
 
 /** Enter the current braille character into the answer field */
 export function enterBrailleChar() {
-  const char = window.arabicBrailleMap?.[dotsToKey(currentBrailleDots)];
+  const char = arabicBrailleMap[dotsToKey(currentBrailleDots)];
   if (char) {
     const answer = /** @type {HTMLTextAreaElement|null} */ (
       document.getElementById('assignment-student-answer')
     );
     if (answer) {
       answer.value += char;
-      window.speak(char);
+      speak(char);
     }
   }
   clearBrailleDots();
@@ -135,7 +139,7 @@ export function enterBrailleChar() {
 export function clearBrailleDots() {
   currentBrailleDots.clear();
   syncScreenDotsPressed();
-  window.updateBraillePreview();
+  updateBraillePreview(currentBrailleDots, 'braille-char-preview', '\u2014');
 }
 
 /** Add a space to the answer field */
@@ -145,7 +149,7 @@ export function addSpaceToAnswer() {
   );
   if (answer) {
     answer.value += ' ';
-    window.speak(window.__('space'));
+    speak(__('space'));
   }
 }
 
@@ -168,7 +172,7 @@ export function toggleBrailleKeyboard(type) {
   if (type === 'screen') {
     if (screenKb) {
       const hidden = screenKb.classList.toggle('hidden');
-      window.speak(hidden ? window.__('brailleKbClosed') : window.__('screenBrailleKbOpened'));
+      speak(hidden ? __('brailleKbClosed') : __('screenBrailleKbOpened'));
       if (!hidden) {
         document.getElementById('dot-1')?.focus();
       }
@@ -176,7 +180,7 @@ export function toggleBrailleKeyboard(type) {
   } else if (type === 'perkins') {
     if (perkinsKb) {
       const hidden = perkinsKb.classList.toggle('hidden');
-      window.speak(hidden ? window.__('brailleKbClosed') : window.__('perkinsBrailleKbOpened'));
+      speak(hidden ? __('brailleKbClosed') : __('perkinsBrailleKbOpened'));
       if (!hidden) {
         perkinsKb.focus();
       }
@@ -194,7 +198,7 @@ export function toggleCheatDot(dotNum) {
     currentCheatDots.add(dotNum);
   }
   syncCheatDotsPressed();
-  window.updateCheatPreview();
+  updateBraillePreview(currentCheatDots, 'cheat-char-preview', '\u2014');
 }
 
 /** Reflect the active cheat dots on their buttons */
@@ -209,9 +213,9 @@ function syncCheatDotsPressed() {
 
 /** Pronounce the current cheat braille character */
 export function pronounceCheatBraille() {
-  const char = window.arabicBrailleMap?.[dotsToKey(currentCheatDots)];
+  const char = arabicBrailleMap[dotsToKey(currentCheatDots)];
   if (char) {
-    window.speak(char);
+    speak(char);
   }
 }
 
@@ -219,5 +223,5 @@ export function pronounceCheatBraille() {
 export function clearCheatDots() {
   currentCheatDots.clear();
   syncCheatDotsPressed();
-  window.updateCheatPreview();
+  updateBraillePreview(currentCheatDots, 'cheat-char-preview', '\u2014');
 }

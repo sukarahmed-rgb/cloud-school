@@ -1,4 +1,7 @@
 // @ts-check
+import { __ } from './i18n.js';
+import { speak } from './speech.js';
+
 /** Braille module - لغة برايل */
 
 export const arabicBrailleMap = {
@@ -39,10 +42,9 @@ export function updateBraillePreview(dotsSet, previewId, fallback) {
   const dotsArray = Array.from(dotsSet).sort((a, b) => a - b);
   const keyString = dotsArray.join(',');
   const mappedChar = arabicBrailleMap[keyString] || fallback;
-  const translateFn = window.__ || ((k) => k);
   const previewEl = document.getElementById(previewId);
   if (previewEl) {
-    previewEl.textContent = translateFn('brailleCurrentChar', mappedChar, keyString || '');
+    previewEl.textContent = __('brailleCurrentChar', mappedChar, keyString || '');
   }
 }
 
@@ -70,13 +72,12 @@ export function clearDots(dotsSet, prefix, previewId, speakOnClear) {
       dot.classList.remove('active');
     }
   }
-  const translateFn = window.__ || ((k) => k);
   const previewEl = document.getElementById(previewId);
   if (previewEl) {
-    previewEl.textContent = translateFn('brailleNoChar');
+    previewEl.textContent = __('brailleNoChar');
   }
-  if (speakOnClear && typeof window.speak === 'function') {
-    window.speak(translateFn('brailleCleared'));
+  if (speakOnClear) {
+    speak(__('brailleCleared'));
   }
 }
 
@@ -89,9 +90,7 @@ export function commitBrailleChar(keyString) {
     if (ansTextarea) {
       ansTextarea.value += mappedChar;
     }
-    if (typeof window.speak === 'function') {
-      window.speak(mappedChar);
-    }
+    speak(mappedChar);
     return true;
   }
   return false;

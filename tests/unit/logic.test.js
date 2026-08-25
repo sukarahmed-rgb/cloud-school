@@ -3,7 +3,17 @@
  */
 
 import { addNotification, updateNotifBadge } from '../../src/modules/notifications.js';
-import { saveLocalData, loadLocalData } from '../../src/modules/ui-core.js';
+import { saveLocalData, loadLocalData } from '../../src/modules/local-data.js';
+import { localData as appData, STORAGE_KEYS } from '../../src/modules/app-state.js';
+
+const mockT = jest.fn((key) => key);
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: (...args) => mockT(...args),
+}));
+
+jest.mock('../../src/modules/ui-core.js', () => ({
+  showToast: jest.fn(),
+}));
 
 // ====== محاكاة المتغيرات العامة ======
 let currentUserSession = null;
@@ -54,10 +64,9 @@ function cycleTheme(currentTheme) {
 
 describe('Notifications Module', () => {
   beforeEach(() => {
-    window.localData = { notifications: [] };
-    window.saveLocalData = jest.fn();
-    window.__ = jest.fn((key) => key);
-    window.showToast = jest.fn();
+    jest.clearAllMocks();
+    mockT.mockImplementation((key) => key);
+    appData.notifications = [];
     document.body.innerHTML =
       '<span id="notif-badge"></span><button id="btn-notifications"></button>';
   });
@@ -68,28 +77,28 @@ describe('Notifications Module', () => {
 
   test('addNotification adds a notification to the list', () => {
     addNotification('اختبار', 'تفاصيل', 'info');
-    expect(window.localData.notifications.length).toBe(1);
-    expect(window.localData.notifications[0].title).toBe('اختبار');
-    expect(window.localData.notifications[0].read).toBe(false);
+    expect(appData.notifications.length).toBe(1);
+    expect(appData.notifications[0].title).toBe('اختبار');
+    expect(appData.notifications[0].read).toBe(false);
   });
 
   test('addNotification caps at 50 notifications', () => {
     for (let i = 0; i < 60; i++) {
       addNotification(`n${i}`, '', 'info');
     }
-    expect(window.localData.notifications.length).toBe(50);
+    expect(appData.notifications.length).toBe(50);
   });
 
   test('addNotification prepends (newest first)', () => {
     addNotification('first', '', 'info');
     addNotification('second', '', 'info');
-    expect(window.localData.notifications[0].title).toBe('second');
+    expect(appData.notifications[0].title).toBe('second');
   });
 
   test('updateNotifBadge updates DOM with unread count', () => {
     addNotification('n1', '', 'info');
     addNotification('n2', '', 'info');
-    window.localData.notifications[0].read = true;
+    appData.notifications[0].read = true;
     updateNotifBadge();
     expect(document.getElementById('notif-badge').textContent).toBe('1');
   });
@@ -129,37 +138,35 @@ describe('Student Dashboard Logic', () => {
 describe('Local Data Persistence', () => {
   beforeEach(() => {
     localStorage.clear();
-    window.STORAGE_KEYS = { localData: 'cloudSchoolData' };
-    window.localData = {
-      books: [],
-      assignments: [],
-      submissions: [],
-      students: [],
-      notifications: [],
-    };
+    appData.books = [];
+    appData.assignments = [];
+    appData.submissions = [];
+    appData.students = [];
+    appData.notifications = [];
+    delete appData.gameProgress;
   });
 
   test('saveLocalData and loadLocalData round-trip', () => {
-    window.localData.books = [{ id: 'x', title: 'اختبار', content: 'محتوى' }];
-    window.localData.notifications = [{ title: 'n1', details: 'd', read: false }];
+    appData.books = [{ id: 'x', title: 'اختبار', content: 'محتوى' }];
+    appData.notifications = [{ title: 'n1', details: 'd', read: false }];
     saveLocalData();
 
-    window.localData.books = [];
-    window.localData.notifications = [];
+    appData.books = [];
+    appData.notifications = [];
     loadLocalData();
-    expect(window.localData.books.length).toBe(1);
-    expect(window.localData.books[0].title).toBe('اختبار');
-    expect(window.localData.notifications.length).toBe(1);
+    expect(appData.books.length).toBe(1);
+    expect(appData.books[0].title).toBe('اختبار');
+    expect(appData.notifications.length).toBe(1);
   });
 
   test('loadLocalData initializes notifications if missing', () => {
     localStorage.setItem(
-      window.STORAGE_KEYS.localData,
+      STORAGE_KEYS.localData,
       JSON.stringify({ books: [], assignments: [], submissions: [], students: [] }),
     );
-    window.localData.notifications = null;
+    appData.notifications = null;
     loadLocalData();
-    expect(window.localData.notifications).toEqual([]);
+    expect(appData.notifications).toEqual([]);
   });
 });
 

@@ -1,5 +1,8 @@
 // @ts-check
 import { getProxyBase } from './gemini-client.js';
+import { showToast } from './ui-core.js';
+import { speak } from './speech.js';
+import { __ } from './i18n.js';
 
 /**
  * @param {string} str
@@ -44,12 +47,8 @@ export function getGeminiKey() {
   // Non-blocking notice instead of a modal prompt(): blocking dialogs
   // freeze screen readers — the exact audience of this app. The user can
   // enter a key from the toolbar settings (setupGeminiKeyControls).
-  if (typeof window.showToast === 'function') {
-    window.showToast(window.__('promptApiKey'));
-  }
-  if (typeof window.speak === 'function') {
-    window.speak(window.__('promptApiKey'));
-  }
+  showToast(__('promptApiKey'));
+  speak(__('promptApiKey'));
   return '';
 }
 
@@ -71,7 +70,7 @@ export function updateProxyStatus() {
     document.getElementById('proxy-status-icon').textContent = ok ? '\u2705' : '\u{1F534}';
     const el = document.getElementById('proxy-status');
     if (el) {
-      el.textContent = ok ? window.__('proxyConnected') : window.__('proxyDisconnected');
+      el.textContent = ok ? __('proxyConnected') : __('proxyDisconnected');
     }
   });
 }
@@ -96,7 +95,7 @@ export function setupGeminiKeyControls() {
     container.classList.remove('hidden');
     toggleBtn.setAttribute('aria-expanded', 'true');
     input.focus();
-    window.speak(window.__('geminiKeyPrompt'));
+    speak(__('geminiKeyPrompt'));
   };
   toggleBtn.setAttribute('aria-expanded', 'false');
   toggleBtn.addEventListener('click', () => {
@@ -110,10 +109,10 @@ export function setupGeminiKeyControls() {
     const val = input.value.trim();
     if (val) {
       localStorage.setItem('gemini_api_key', _obfuscate(val));
-      window.speak(window.__('geminiKeySaved'));
+      speak(__('geminiKeySaved'));
     } else {
       localStorage.removeItem('gemini_api_key');
-      window.speak(window.__('geminiKeyCleared'));
+      speak(__('geminiKeyCleared'));
     }
     close();
   });

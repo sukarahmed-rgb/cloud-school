@@ -1,6 +1,8 @@
 // @ts-check
 import { initDialog } from './dom-utils.js';
 import { escapeHtml } from './helpers.js';
+import { speak } from './speech.js';
+import { __ } from './i18n.js';
 
 export function shortcutRow(key, desc) {
   return `<div class="grid grid-cols-2 gap-2 py-1"><span class="font-mono bg-gray-800 px-2 py-1 rounded text-yellow-300 text-center dir-ltr text-sm">${escapeHtml(key)}</span><span class="text-gray-200">${escapeHtml(desc)}</span></div>`;
@@ -17,41 +19,41 @@ export function showKeyboardHelp() {
   overlay.className =
     'fixed inset-0 bg-black bg-opacity-95 z-[100] flex items-center justify-center p-4';
   overlay.innerHTML =
-    `<div class="card p-6 rounded-3xl max-w-lg border-4 border-yellow-400 bg-slate-900 text-white w-full max-h-[80vh] overflow-y-auto" role="dialog" aria-label="${window.__('keyboardHelpLabel')}" aria-modal="true">` +
-    `<h2 class="text-3xl font-black text-yellow-400 mb-4 text-center">⌨️ ${window.__('keyboardHelp')}</h2>` +
+    `<div class="card p-6 rounded-3xl max-w-lg border-4 border-yellow-400 bg-slate-900 text-white w-full max-h-[80vh] overflow-y-auto" role="dialog" aria-label="${__('keyboardHelpLabel')}" aria-modal="true">` +
+    `<h2 class="text-3xl font-black text-yellow-400 mb-4 text-center">⌨️ ${__('keyboardHelp')}</h2>` +
     '<div class="space-y-3 text-right" dir="rtl">' +
-    `<div class="grid grid-cols-2 gap-2 font-bold border-b border-gray-600 pb-2 mb-2"><span>${window.__('keyboardColKey')}</span><span>${window.__('keyboardColFunc')}</span></div>${shortcutRow(
-      window.__('keyboardShortcutHelpKey'),
-      window.__('keyboardShortcutHelp'),
-    )}${shortcutRow('Escape', window.__('keyboardShortcutClose'))}${shortcutRow(
+    `<div class="grid grid-cols-2 gap-2 font-bold border-b border-gray-600 pb-2 mb-2"><span>${__('keyboardColKey')}</span><span>${__('keyboardColFunc')}</span></div>${shortcutRow(
+      __('keyboardShortcutHelpKey'),
+      __('keyboardShortcutHelp'),
+    )}${shortcutRow('Escape', __('keyboardShortcutClose'))}${shortcutRow(
       '1',
-      window.__('sectionBooks'),
-    )}${shortcutRow('2', window.__('sectionAssignments'))}${shortcutRow(
+      __('sectionBooks'),
+    )}${shortcutRow('2', __('sectionAssignments'))}${shortcutRow(
       '3',
-      window.__('sectionGames'),
-    )}${shortcutRow('4', window.__('keyboardSecTutor'))}${shortcutRow(
+      __('sectionGames'),
+    )}${shortcutRow('4', __('keyboardSecTutor'))}${shortcutRow(
       '5',
-      window.__('keyboardSecVision'),
-    )}${shortcutRow('6', window.__('sectionDialogic'))}${shortcutRow(
+      __('keyboardSecVision'),
+    )}${shortcutRow('6', __('sectionDialogic'))}${shortcutRow(
       '7',
-      window.__('sectionStudyGroup'),
-    )}${shortcutRow('8', window.__('sectionDashboard'))}${shortcutRow(
+      __('sectionStudyGroup'),
+    )}${shortcutRow('8', __('sectionDashboard'))}${shortcutRow(
       '0',
-      window.__('keyboardHome'),
-    )}${shortcutRow('B', window.__('keyboardBraille'))}${shortcutRow(
+      __('keyboardHome'),
+    )}${shortcutRow('B', __('keyboardBraille'))}${shortcutRow(
       'T',
-      window.__('keyboardTheme'),
-    )}${shortcutRow('R', window.__('keyboardRoles'))}${shortcutRow(
+      __('keyboardTheme'),
+    )}${shortcutRow('R', __('keyboardRoles'))}${shortcutRow(
       'Ctrl+M',
-      window.__('keyboardMic'),
-    )}${shortcutRow('Ctrl+Shift+S', window.__('keyboardSR'))}${shortcutRow(
+      __('keyboardMic'),
+    )}${shortcutRow('Ctrl+Shift+S', __('keyboardSR'))}${shortcutRow(
       'Ctrl+Shift+A',
-      window.__('keyboardAudioCp'),
-    )}${shortcutRow('Ctrl+Shift+T', window.__('keyboardTts'))}${shortcutRow(
+      __('keyboardAudioCp'),
+    )}${shortcutRow('Ctrl+Shift+T', __('keyboardTts'))}${shortcutRow(
       '+ / -',
-      window.__('keyboardFontSize'),
+      __('keyboardFontSize'),
     )}</div>` +
-    `<button id="btn-close-help" class="w-full mt-4 p-4 bg-yellow-400 text-black font-black text-xl rounded-xl btn-interactive">${window.__('keyboardClose')}</button></div>`;
+    `<button id="btn-close-help" class="w-full mt-4 p-4 bg-yellow-400 text-black font-black text-xl rounded-xl btn-interactive">${__('keyboardClose')}</button></div>`;
   document.body.appendChild(overlay);
   const closeHelp = initDialog(overlay);
   document.getElementById('btn-close-help')?.addEventListener('click', closeHelp);
@@ -60,5 +62,5 @@ export function showKeyboardHelp() {
       closeHelp();
     }
   });
-  window.speak(window.__('keyboardHelpOpened'));
+  speak(__('keyboardHelpOpened'));
 }

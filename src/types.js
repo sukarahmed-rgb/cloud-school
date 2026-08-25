@@ -47,11 +47,10 @@
 
 /**
  * @typedef {Object} Notification
- * @property {string} id
  * @property {string} title
- * @property {string} message
+ * @property {string} details
  * @property {'submission'|'achievement'|'info'} type
- * @property {string} timestamp
+ * @property {string} time
  * @property {boolean} read
  */
 

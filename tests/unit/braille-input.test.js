@@ -14,6 +14,22 @@ import {
   processPerkinsChord,
   perkinsKeysPressed,
 } from '../../src/modules/braille-input.js';
+import { speak } from '../../src/modules/speech.js';
+
+const translations = {
+  space: 'مسافة',
+  brailleKbClosed: 'braille keyboard closed',
+  screenBrailleKbOpened: 'screen braille keyboard opened',
+  perkinsBrailleKbOpened: 'perkins braille keyboard opened',
+};
+const mockT = jest.fn((key, ...args) => args[0] || translations[key] || key);
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: (...args) => mockT(...args),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
 
 describe('braille-input.js', () => {
   beforeEach(() => {
@@ -23,26 +39,11 @@ describe('braille-input.js', () => {
       <div id="perkins-braille-keyboard" class="hidden"></div>
       <button id="dot-1"></button>
       <button id="perkins-key-7"></button>
+      <div id="braille-char-preview">x</div>
+      <div id="cheat-char-preview">y</div>
     `;
-
-    window.speak = jest.fn();
-    window.__ = jest.fn((key) => {
-      const map = {
-        space: 'مسافة',
-        brailleKbClosed: 'braille keyboard closed',
-        screenBrailleKbOpened: 'screen braille keyboard opened',
-        perkinsBrailleKbOpened: 'perkins braille keyboard opened',
-      };
-      return map[key] || key;
-    });
-    window.updateBraillePreview = jest.fn();
-    window.updateCheatPreview = jest.fn();
-    window.arabicBrailleMap = {
-      1: 'ا',
-      '1,2': 'ب',
-      '1,2,3,4,5,6': 'ظ',
-    };
-    window.toggleBrailleDot = jest.fn();
+    jest.clearAllMocks();
+    mockT.mockImplementation((key, ...args) => args[0] || translations[key] || key);
 
     currentBrailleDots.clear();
     currentCheatDots.clear();
@@ -51,10 +52,10 @@ describe('braille-input.js', () => {
   });
 
   describe('toggleBrailleDot', () => {
-    test('toggles single dot', () => {
+    test('toggles single dot and refreshes preview', () => {
       toggleBrailleDot(1);
       expect(currentBrailleDots.has(1)).toBe(true);
-      expect(window.updateBraillePreview).toHaveBeenCalled();
+      expect(document.getElementById('braille-char-preview').textContent).toBe('ا');
     });
 
     test('toggles dot off when already active', () => {
@@ -82,11 +83,11 @@ describe('braille-input.js', () => {
   });
 
   describe('clearBrailleDots', () => {
-    test('clears all dots', () => {
+    test('clears all dots and resets preview', () => {
       currentBrailleDots.add(1).add(2).add(3);
       clearBrailleDots();
       expect(currentBrailleDots.size).toBe(0);
-      expect(window.updateBraillePreview).toHaveBeenCalled();
+      expect(document.getElementById('braille-char-preview').textContent).toContain('—');
     });
   });
 
@@ -96,7 +97,7 @@ describe('braille-input.js', () => {
       const answer = document.getElementById('assignment-student-answer');
       enterBrailleChar();
       expect(answer.value).toBe('ا');
-      expect(window.speak).toHaveBeenCalledWith('ا');
+      expect(speak).toHaveBeenCalledWith('ا');
     });
 
     test('clears dots after entering char', () => {
@@ -116,7 +117,7 @@ describe('braille-input.js', () => {
     test('appends space and speaks', () => {
       addSpaceToAnswer();
       expect(document.getElementById('assignment-student-answer').value).toBe(' ');
-      expect(window.speak).toHaveBeenCalledWith('مسافة');
+      expect(speak).toHaveBeenCalledWith('مسافة');
     });
   });
 
@@ -162,12 +163,13 @@ describe('braille-input.js', () => {
   });
 
   describe('cheat dots', () => {
-    test('toggleCheatDot adds and removes dots', () => {
+    test('toggleCheatDot adds and removes dots with preview refresh', () => {
       toggleCheatDot(1);
       expect(currentCheatDots.has(1)).toBe(true);
+      expect(document.getElementById('cheat-char-preview').textContent).toBe('ا');
       toggleCheatDot(1);
       expect(currentCheatDots.has(1)).toBe(false);
-      expect(window.updateCheatPreview).toHaveBeenCalledTimes(2);
+      expect(document.getElementById('cheat-char-preview').textContent).toContain('—');
     });
 
     test('clearCheatDots resets cheat state', () => {
@@ -179,13 +181,13 @@ describe('braille-input.js', () => {
     test('pronounceCheatBraille speaks matching char', () => {
       currentCheatDots.add(1);
       pronounceCheatBraille();
-      expect(window.speak).toHaveBeenCalledWith('ا');
+      expect(speak).toHaveBeenCalledWith('ا');
     });
 
     test('pronounceCheatBraille does nothing for unknown pattern', () => {
       currentCheatDots.add(6);
       pronounceCheatBraille();
-      expect(window.speak).not.toHaveBeenCalled();
+      expect(speak).not.toHaveBeenCalled();
     });
   });
 
@@ -197,20 +199,17 @@ describe('braille-input.js', () => {
   });
 
   describe('processPerkinsChord', () => {
-    beforeEach(() => {
-      window.toggleBrailleDot = jest.fn();
-    });
-
-    test('calls toggleBrailleDot with chorded dots', () => {
+    test('adds chorded dots to the braille set', () => {
       perkinsKeysPressed['f'] = true;
       perkinsKeysPressed['d'] = true;
       processPerkinsChord();
-      expect(window.toggleBrailleDot).toHaveBeenCalledWith([1, 2]);
+      expect(currentBrailleDots.has(1)).toBe(true);
+      expect(currentBrailleDots.has(2)).toBe(true);
     });
 
     test('does nothing for empty chord', () => {
       processPerkinsChord();
-      expect(window.toggleBrailleDot).not.toHaveBeenCalled();
+      expect(currentBrailleDots.size).toBe(0);
     });
   });
 });

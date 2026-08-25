@@ -1,14 +1,28 @@
 import { showNotificationsPanel } from '../../src/modules/ui-core.js';
+import { localData } from '../../src/modules/app-state.js';
+import { updateNotifBadge } from '../../src/modules/notifications.js';
+
+const mockT = jest.fn((key) => key);
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: (...args) => mockT(...args),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
+
+jest.mock('../../src/modules/notifications.js', () => ({
+  updateNotifBadge: jest.fn(),
+}));
 
 jest.mock('../../src/modules/local-data.js', () => ({ saveLocalData: jest.fn() }));
 
 describe('notifications-panel.js', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
-    window.__ = jest.fn((k) => k);
-    window.speak = jest.fn();
-    window.updateNotifBadge = jest.fn();
-    window.localData = { notifications: [] };
+    jest.clearAllMocks();
+    mockT.mockImplementation((key) => key);
+    localData.notifications = [];
   });
 
   test('showNotificationsPanel creates overlay with dialog', () => {
@@ -33,9 +47,7 @@ describe('notifications-panel.js', () => {
   });
 
   test('showNotificationsPanel renders notification items', () => {
-    window.localData.notifications = [
-      { title: 'Test', details: 'Detail', time: '10:00', read: false },
-    ];
+    localData.notifications = [{ title: 'Test', details: 'Detail', time: '10:00', read: false }];
     showNotificationsPanel();
     const html = document.getElementById('notifications-panel-overlay').innerHTML;
     expect(html).toContain('Test');
@@ -49,9 +61,9 @@ describe('notifications-panel.js', () => {
   });
 
   test('mark-all-read button calls updateNotifBadge', () => {
-    window.localData.notifications = [{ title: 'N1', details: 'D1', time: '10:00', read: false }];
+    localData.notifications = [{ title: 'N1', details: 'D1', time: '10:00', read: false }];
     showNotificationsPanel();
     document.getElementById('btn-mark-read-notifs').click();
-    expect(window.updateNotifBadge).toHaveBeenCalled();
+    expect(updateNotifBadge).toHaveBeenCalled();
   });
 });

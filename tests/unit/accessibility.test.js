@@ -1,30 +1,40 @@
 import * as accessibility from '../../src/modules/accessibility.js';
+import { setCurrentUserSession } from '../../src/modules/app-state.js';
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
+
+const mockT = jest.fn((key) => key);
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: (...args) => mockT(...args),
+}));
 
 describe('accessibility.js', () => {
   describe('getAgeTone', () => {
     it('returns child-like tone for auto mode with age < 12', () => {
-      window.currentUserSession = { age: 8 };
+      setCurrentUserSession({ age: 8 });
       const result = accessibility.getAgeTone();
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(10);
     });
 
     it('returns teen tone for auto mode with age between 12 and 18', () => {
-      window.currentUserSession = { age: 15 };
+      setCurrentUserSession({ age: 15 });
       const result = accessibility.getAgeTone();
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(10);
     });
 
     it('returns adult tone for auto mode with age >= 18', () => {
-      window.currentUserSession = { age: 25 };
+      setCurrentUserSession({ age: 25 });
       const result = accessibility.getAgeTone();
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(10);
     });
 
     it('defaults to age 14 when no user session', () => {
-      window.currentUserSession = null;
+      setCurrentUserSession(null);
       const result = accessibility.getAgeTone();
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(10);
@@ -35,8 +45,7 @@ describe('accessibility.js', () => {
     beforeEach(() => {
       localStorage.removeItem('cloudSchoolTheme');
       document.documentElement.removeAttribute('data-theme');
-      window.speak = jest.fn();
-      window.__ = jest.fn((key) => key);
+      jest.clearAllMocks();
     });
 
     it('cycles from dark-hc to light-hc', () => {
@@ -55,12 +64,8 @@ describe('accessibility.js', () => {
   describe('adjustTextSize', () => {
     beforeEach(() => {
       localStorage.clear();
-      window.speak = jest.fn();
       document.documentElement.style.removeProperty('--base-text-size');
-      Object.defineProperty(window, 'STORAGE_KEYS', {
-        value: { sizeOffset: 'cloudSchoolSizeOffset' },
-        configurable: true,
-      });
+      jest.clearAllMocks();
     });
 
     it('increases size', () => {

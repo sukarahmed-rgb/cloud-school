@@ -1,4 +1,9 @@
 // @ts-check
+import { __ } from './i18n.js';
+import { speak } from './speech.js';
+import { STORAGE_KEYS, getCurrentUserSession } from './app-state.js';
+import { checkAgeLimitations } from './auth.js';
+
 /** @type {string} */
 export let currentAgeLevel = localStorage.getItem('cloudSchoolAgeLevel') || 'auto';
 
@@ -18,35 +23,35 @@ export function setupAgeLevel() {
 export function toggleAgeLevel() {
   const levels = ['auto', 'child', 'teen', 'adult'];
   const labels = {
-    auto: window.__('ageLevelAuto'),
-    child: window.__('ageLevelChild'),
-    teen: window.__('ageLevelTeen'),
-    adult: window.__('ageLevelAdult'),
+    auto: __('ageLevelAuto'),
+    child: __('ageLevelChild'),
+    teen: __('ageLevelTeen'),
+    adult: __('ageLevelAdult'),
   };
   const idx = levels.indexOf(currentAgeLevel);
   currentAgeLevel = levels[(idx + 1) % levels.length];
   localStorage.setItem('cloudSchoolAgeLevel', currentAgeLevel);
   updateAgeLevelButton();
-  window.speak(window.__('ageSet', labels[currentAgeLevel]));
+  speak(__('ageSet', labels[currentAgeLevel]));
 }
 
 /** Update the age level button label */
 export function updateAgeLevelButton() {
   const btn = document.getElementById('btn-age-level');
   const labels = {
-    auto: window.__('ageLevelAuto'),
-    child: window.__('ageLevelChild'),
-    teen: window.__('ageLevelTeen'),
-    adult: window.__('ageLevelAdult'),
+    auto: __('ageLevelAuto'),
+    child: __('ageLevelChild'),
+    teen: __('ageLevelTeen'),
+    adult: __('ageLevelAdult'),
   };
   if (btn) {
-    btn.textContent = window.__('ageButton', labels[currentAgeLevel] || window.__('ageLevelAuto'));
+    btn.textContent = __('ageButton', labels[currentAgeLevel] || __('ageLevelAuto'));
   }
 }
 
 /** @returns {string} */
 export function getAgeTone() {
-  const age = window.currentUserSession?.age || 14;
+  const age = getCurrentUserSession()?.age || 14;
   switch (currentAgeLevel) {
     case 'child':
       return '\u0627\u0633\u062A\u062E\u062F\u0645 \u0623\u0633\u0644\u0648\u0628\u0627\u064B \u0645\u0628\u0633\u0637\u0627\u064B \u062C\u062F\u0627\u064B \u0645\u0646\u0627\u0633\u0628\u0627\u064B \u0644\u0644\u0623\u0637\u0641\u0627\u0644\u060C \u0645\u0639 \u0623\u0645\u062B\u0644\u0629 \u064A\u0648\u0645\u064A\u0629 \u0645\u0644\u0645\u0648\u0633\u0629\u060C \u0648\u062A\u0634\u062C\u064A\u0639 \u0645\u0633\u062A\u0645\u0631.';
@@ -76,7 +81,7 @@ export function toggleRegFields() {
     ageField.classList.remove('hidden');
     studentFields.classList.remove('hidden');
     parentFields.classList.add('hidden');
-    window.checkAgeLimitations();
+    checkAgeLimitations();
   } else if (role === 'parent') {
     ageField.classList.add('hidden');
     studentFields.classList.add('hidden');
@@ -104,7 +109,7 @@ export function toggleRegFields() {
  * @param {number} direction
  */
 export function adjustTextSize(direction) {
-  let offset = parseInt(localStorage.getItem(window.STORAGE_KEYS.sizeOffset) || '0', 10);
+  let offset = parseInt(localStorage.getItem(STORAGE_KEYS.sizeOffset) || '0', 10);
   offset += direction;
   if (offset < -2) {
     offset = -2;
@@ -112,16 +117,16 @@ export function adjustTextSize(direction) {
   if (offset > 6) {
     offset = 6;
   }
-  localStorage.setItem(window.STORAGE_KEYS.sizeOffset, String(offset));
+  localStorage.setItem(STORAGE_KEYS.sizeOffset, String(offset));
   const sizes = [1, 1.125, 1.25, 1.5, 1.75, 2, 2.5, 3];
   const chosen = sizes[1 + Math.min(Math.max(offset, -2), 6)] || 1.125;
   document.documentElement.style.setProperty('--base-text-size', `${chosen}rem`);
-  window.speak(`${Math.round(chosen * 100)}%`);
+  speak(`${Math.round(chosen * 100)}%`);
 }
 
 /** Load saved text size from localStorage */
 export function loadTextSize() {
-  const offset = parseInt(localStorage.getItem(window.STORAGE_KEYS.sizeOffset) || '0', 10);
+  const offset = parseInt(localStorage.getItem(STORAGE_KEYS.sizeOffset) || '0', 10);
   const sizes = [1, 1.125, 1.25, 1.5, 1.75, 2, 2.5, 3];
   const chosen = sizes[1 + Math.min(Math.max(offset, -2), 6)] || 1.125;
   document.documentElement.style.setProperty('--base-text-size', `${chosen}rem`);
@@ -137,7 +142,7 @@ export function setTheme(theme) {
     const themeBtn = /** @type {HTMLElement} */ (btn);
     themeBtn.setAttribute('aria-pressed', themeBtn.dataset.theme === theme ? 'true' : 'false');
   });
-  window.speak(window.__('themeSet', theme));
+  speak(__('themeSet', theme));
 }
 
 /** Load and apply saved theme */

@@ -5,11 +5,21 @@ import {
   commitBrailleChar,
   arabicBrailleMap,
 } from '../../src/modules/braille.js';
+import { speak } from '../../src/modules/speech.js';
+
+const mockT = jest.fn((key, ...args) => args[0] || key);
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: (...args) => mockT(...args),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
 
 beforeEach(() => {
   document.body.innerHTML = '';
-  window.__ = jest.fn((key, ...args) => args[0] || key);
-  window.speak = jest.fn();
+  jest.clearAllMocks();
+  mockT.mockImplementation((key, ...args) => args[0] || key);
 });
 
 describe('braille.js - arabicBrailleMap', () => {
@@ -31,7 +41,7 @@ describe('braille.js - updateBraillePreview', () => {
     document.body.appendChild(preview);
     const dots = new Set([1, 2]);
     updateBraillePreview(dots, 'braille-preview', '?');
-    expect(window.__).toHaveBeenCalledWith('brailleCurrentChar', 'ب', '1,2');
+    expect(mockT).toHaveBeenCalledWith('brailleCurrentChar', 'ب', '1,2');
   });
 
   test('uses fallback when no mapping found', () => {
@@ -40,7 +50,7 @@ describe('braille.js - updateBraillePreview', () => {
     document.body.appendChild(preview);
     const dots = new Set([1, 6]);
     updateBraillePreview(dots, 'braille-preview', '?');
-    expect(window.__).toHaveBeenCalledWith('brailleCurrentChar', '?', '1,6');
+    expect(mockT).toHaveBeenCalledWith('brailleCurrentChar', '?', '1,6');
   });
 
   test('does nothing when preview element missing', () => {
@@ -95,7 +105,7 @@ describe('braille.js - clearDots', () => {
     for (let i = 1; i <= 6; i++) {
       expect(document.getElementById(`braille-${i}`).classList.contains('active')).toBe(false);
     }
-    expect(window.speak).toHaveBeenCalled();
+    expect(speak).toHaveBeenCalled();
   });
 
   test('does not speak when speakOnClear is false', () => {
@@ -103,7 +113,7 @@ describe('braille.js - clearDots', () => {
     preview.id = 'braille-preview';
     document.body.appendChild(preview);
     clearDots(new Set([1]), 'braille', 'braille-preview', false);
-    expect(window.speak).not.toHaveBeenCalled();
+    expect(speak).not.toHaveBeenCalled();
   });
 });
 
@@ -115,7 +125,7 @@ describe('braille.js - commitBrailleChar', () => {
     const result = commitBrailleChar('1,2');
     expect(result).toBe(true);
     expect(textarea.value).toBe('ب');
-    expect(window.speak).toHaveBeenCalledWith('ب');
+    expect(speak).toHaveBeenCalledWith('ب');
   });
 
   test('returns false for unknown pattern', () => {

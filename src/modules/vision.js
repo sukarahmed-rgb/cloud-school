@@ -1,4 +1,7 @@
 // @ts-check
+import { speak } from './speech.js';
+import { __ } from './i18n.js';
+
 /** @type {string|null} */
 export let uploadedImageBase64 = null;
 /** @type {string|null} */
@@ -22,7 +25,7 @@ export function previewVisionImage(event) {
       /** @type {HTMLImageElement} */ (document.getElementById('vision-image-preview')).src =
         reader.result;
     }
-    window.speak(window.__('visionImageLoaded'));
+    speak(__('visionImageLoaded'));
   };
   reader.readAsDataURL(file);
 }
@@ -30,5 +33,5 @@ export function previewVisionImage(event) {
 /** Speak the vision response text */
 export function speakVisionResponse() {
   const text = document.getElementById('vision-response-text').textContent;
-  window.speak(text);
+  speak(text);
 }

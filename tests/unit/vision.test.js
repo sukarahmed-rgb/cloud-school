@@ -4,6 +4,17 @@ import {
   uploadedImageBase64,
   uploadedImageMime,
 } from '../../src/modules/vision.js';
+import { speak } from '../../src/modules/speech.js';
+
+const translations = { visionImageLoaded: 'image loaded' };
+const mockT = jest.fn((key) => translations[key] || key);
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: (...args) => mockT(...args),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
 
 describe('vision.js', () => {
   beforeEach(() => {
@@ -13,12 +24,8 @@ describe('vision.js', () => {
       </div>
       <div id="vision-response-text">some description</div>
     `;
-
-    window.speak = jest.fn();
-    window.__ = jest.fn((key) => {
-      const map = { visionImageLoaded: 'image loaded' };
-      return map[key] || key;
-    });
+    jest.clearAllMocks();
+    mockT.mockImplementation((key) => translations[key] || key);
   });
 
   describe('previewVisionImage', () => {
@@ -49,7 +56,7 @@ describe('vision.js', () => {
 
       // FileReader is async; wait for the next tick
       setTimeout(() => {
-        expect(window.speak).toHaveBeenCalledWith('image loaded');
+        expect(speak).toHaveBeenCalledWith('image loaded');
         done();
       }, 50);
     });
@@ -58,7 +65,7 @@ describe('vision.js', () => {
   describe('speakVisionResponse', () => {
     test('reads response text and speaks it', () => {
       speakVisionResponse();
-      expect(window.speak).toHaveBeenCalledWith('some description');
+      expect(speak).toHaveBeenCalledWith('some description');
     });
   });
 });

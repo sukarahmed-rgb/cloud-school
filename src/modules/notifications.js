@@ -1,26 +1,31 @@
 // @ts-check
+import { localData } from './app-state.js';
+import { saveLocalData } from './local-data.js';
+import { showToast } from './ui-core.js';
+import { __ } from './i18n.js';
+
 /**
  * @param {string} title
  * @param {string} details
- * @param {string} [type]
+ * @param {'submission'|'achievement'|'info'} [type]
  */
 export function addNotification(title, details, type) {
-  if (!window.localData.notifications) {
-    window.localData.notifications = [];
+  if (!localData.notifications) {
+    localData.notifications = [];
   }
-  window.localData.notifications.unshift({
+  localData.notifications.unshift({
     title: title,
     details: details,
     type: type || 'info',
     time: new Date().toLocaleString('ar-EG'),
     read: false,
   });
-  if (window.localData.notifications.length > 50) {
-    window.localData.notifications.length = 50;
+  if (localData.notifications.length > 50) {
+    localData.notifications.length = 50;
   }
-  window.saveLocalData();
+  saveLocalData();
   updateNotifBadge();
-  window.showToast(`${window.__('notifPrefix')} ${title}`);
+  showToast(`${__('notifPrefix')} ${title}`);
 }
 
 /** Update the notification badge count */
@@ -30,11 +35,11 @@ export function updateNotifBadge() {
   if (!badge || !btn) {
     return;
   }
-  const unread = (window.localData.notifications || []).filter(function (n) {
+  const unread = (localData.notifications || []).filter(function (n) {
     return !n.read;
   }).length;
   badge.textContent = String(unread);
-  const hasAny = (window.localData.notifications || []).length > 0;
+  const hasAny = (localData.notifications || []).length > 0;
   if (hasAny) {
     btn.classList.remove('hidden');
   } else {

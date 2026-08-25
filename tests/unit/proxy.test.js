@@ -5,15 +5,31 @@ import {
   checkProxyHealth,
   updateProxyStatus,
 } from '../../src/modules/proxy.js';
+import { showToast } from '../../src/modules/ui-core.js';
+import { speak } from '../../src/modules/speech.js';
+
+const mockT = jest.fn((key) => key);
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: (...args) => mockT(...args),
+}));
 
 jest.mock('../../src/modules/gemini-client.js', () => ({
   getProxyBase: jest.fn(() => 'http://localhost:8787'),
 }));
 
+jest.mock('../../src/modules/ui-core.js', () => ({
+  showToast: jest.fn(),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
+
 describe('proxy.js', () => {
   beforeEach(() => {
     localStorage.clear();
-    window.__ = jest.fn((k) => k);
+    jest.clearAllMocks();
+    mockT.mockImplementation((key) => key);
   });
 
   test('_obfuscate and _deobfuscate round-trip', () => {
@@ -39,13 +55,11 @@ describe('proxy.js', () => {
 
   test('getGeminiKey shows a non-blocking toast when no stored key', () => {
     window.prompt = jest.fn();
-    window.showToast = jest.fn();
-    window.speak = jest.fn();
     const result = getGeminiKey();
     expect(result).toBe('');
     expect(window.prompt).not.toHaveBeenCalled();
-    expect(window.showToast).toHaveBeenCalledWith('promptApiKey');
-    expect(window.speak).toHaveBeenCalledWith('promptApiKey');
+    expect(showToast).toHaveBeenCalledWith('promptApiKey');
+    expect(speak).toHaveBeenCalledWith('promptApiKey');
   });
 
   test('checkProxyHealth returns true on success', async () => {
