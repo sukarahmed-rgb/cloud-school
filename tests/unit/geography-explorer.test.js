@@ -1,4 +1,7 @@
 import { state, getAgeLevelDifficulty } from '../../src/modules/games/game-state.js';
+import { speak } from '../../src/modules/speech.js';
+import { playSuccess3D, playFail3D } from '../../src/modules/spatial-audio.js';
+import { callGeminiAPI } from '../../src/modules/ai-utils.js';
 
 jest.mock('../../src/modules/games/game-state.js', () => {
   const actual = jest.requireActual('../../src/modules/games/game-state.js');
@@ -9,6 +12,25 @@ jest.mock('../../src/modules/games/game-state.js', () => {
     endGame: jest.fn(),
   };
 });
+
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((k) => k),
+  getPrompt: jest.fn((l, ar) => ar),
+  getCurrentLang: jest.fn(() => 'ar'),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
+
+jest.mock('../../src/modules/spatial-audio.js', () => ({
+  playSuccess3D: jest.fn(),
+  playFail3D: jest.fn(),
+}));
+
+jest.mock('../../src/modules/ai-utils.js', () => ({
+  callGeminiAPI: jest.fn(),
+}));
 
 jest.useFakeTimers();
 
@@ -37,13 +59,6 @@ describe('geography-explorer.js', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     setupDOM();
-    window.__ = jest.fn((k) => k);
-    window.speak = jest.fn();
-    window.playSuccess3D = jest.fn();
-    window.playFail3D = jest.fn();
-    window.callGeminiAPI = jest.fn();
-    window.getPrompt = jest.fn((l, ar, en) => ar);
-    window.getCurrentLang = jest.fn(() => 'ar');
     Element.prototype.scrollIntoView = jest.fn();
     state.activeGameType = '';
     state.currentGameScore = 0;
@@ -52,7 +67,7 @@ describe('geography-explorer.js', () => {
 
   test('initGeographyExplorer sets up UI', async () => {
     const { initGeographyExplorer } = await import('../../src/modules/games/geography-explorer.js');
-    window.callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
+    callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
     initGeographyExplorer();
     expect(document.getElementById('active-game-panel').classList.contains('hidden')).toBe(false);
     expect(document.getElementById('game-title').textContent).toBe('gameGeography');
@@ -62,11 +77,11 @@ describe('geography-explorer.js', () => {
 
   test('initGeographyExplorer handles callGeminiAPI error', async () => {
     const { initGeographyExplorer } = await import('../../src/modules/games/geography-explorer.js');
-    window.callGeminiAPI.mockRejectedValue(new Error('fail'));
+    callGeminiAPI.mockRejectedValue(new Error('fail'));
     initGeographyExplorer();
     await Promise.resolve();
     await Promise.resolve();
-    expect(window.speak).toHaveBeenCalledWith('gameAIError');
+    expect(speak).toHaveBeenCalledWith('gameAIError');
   });
 
   describe('getGeographyLevelText', () => {
@@ -74,36 +89,36 @@ describe('geography-explorer.js', () => {
       getAgeLevelDifficulty.mockReturnValue(1);
       const { initGeographyExplorer } =
         await import('../../src/modules/games/geography-explorer.js');
-      window.callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
+      callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
       initGeographyExplorer();
-      expect(window.callGeminiAPI.mock.calls[0][0]).toContain('الابتدائية');
+      expect(callGeminiAPI.mock.calls[0][0]).toContain('الابتدائية');
     });
 
     test('uses level-specific prompt for difficulty 2', async () => {
       getAgeLevelDifficulty.mockReturnValue(2);
       const { initGeographyExplorer } =
         await import('../../src/modules/games/geography-explorer.js');
-      window.callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
+      callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
       initGeographyExplorer();
-      expect(window.callGeminiAPI.mock.calls[0][0]).toContain('المتوسطة');
+      expect(callGeminiAPI.mock.calls[0][0]).toContain('المتوسطة');
     });
 
     test('uses level-specific prompt for difficulty 3', async () => {
       getAgeLevelDifficulty.mockReturnValue(3);
       const { initGeographyExplorer } =
         await import('../../src/modules/games/geography-explorer.js');
-      window.callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
+      callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
       initGeographyExplorer();
-      expect(window.callGeminiAPI.mock.calls[0][0]).toContain('الثانوية');
+      expect(callGeminiAPI.mock.calls[0][0]).toContain('الثانوية');
     });
 
     test('uses level-specific prompt for difficulty >= 4', async () => {
       getAgeLevelDifficulty.mockReturnValue(4);
       const { initGeographyExplorer } =
         await import('../../src/modules/games/geography-explorer.js');
-      window.callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
+      callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
       initGeographyExplorer();
-      expect(window.callGeminiAPI.mock.calls[0][0]).toContain('الجامعية');
+      expect(callGeminiAPI.mock.calls[0][0]).toContain('الجامعية');
     });
   });
 
@@ -111,7 +126,7 @@ describe('geography-explorer.js', () => {
     test('renders question and options on timer fire', async () => {
       const { initGeographyExplorer } =
         await import('../../src/modules/games/geography-explorer.js');
-      window.callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
+      callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
       initGeographyExplorer();
       await Promise.resolve();
       jest.advanceTimersByTime(3000);
@@ -122,7 +137,7 @@ describe('geography-explorer.js', () => {
       await Promise.resolve();
       const storyOptions = document.getElementById('game-story-options');
       expect(storyOptions.children.length).toBe(3);
-      expect(window.speak).toHaveBeenCalledWith(MOCK_GEO.questions[0].info);
+      expect(speak).toHaveBeenCalledWith(MOCK_GEO.questions[0].info);
     });
 
     test('skips info speech when qData.info is missing', async () => {
@@ -133,7 +148,7 @@ describe('geography-explorer.js', () => {
       };
       const { initGeographyExplorer } =
         await import('../../src/modules/games/geography-explorer.js');
-      window.callGeminiAPI.mockResolvedValue(JSON.stringify(noInfoGeo));
+      callGeminiAPI.mockResolvedValue(JSON.stringify(noInfoGeo));
       initGeographyExplorer();
       await Promise.resolve();
       jest.advanceTimersByTime(3000);
@@ -150,7 +165,7 @@ describe('geography-explorer.js', () => {
       const { initGeographyExplorer } =
         await import('../../src/modules/games/geography-explorer.js');
       const { endGame } = await import('../../src/modules/games/game-state.js');
-      window.callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
+      callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
       initGeographyExplorer();
       await Promise.resolve();
       state.currentAIGameData.currentQ = 1;
@@ -168,7 +183,7 @@ describe('geography-explorer.js', () => {
     test('correct answer increments score and plays success', async () => {
       const { initGeographyExplorer } =
         await import('../../src/modules/games/geography-explorer.js');
-      window.callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
+      callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
       initGeographyExplorer();
       await Promise.resolve();
       jest.advanceTimersByTime(3000);
@@ -179,14 +194,14 @@ describe('geography-explorer.js', () => {
       await Promise.resolve();
       const buttons = document.getElementById('game-story-options').querySelectorAll('button');
       buttons[1].click();
-      expect(window.playSuccess3D).toHaveBeenCalled();
+      expect(playSuccess3D).toHaveBeenCalled();
       expect(state.currentGameScore).toBe(15);
     });
 
     test('wrong answer plays fail', async () => {
       const { initGeographyExplorer } =
         await import('../../src/modules/games/geography-explorer.js');
-      window.callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
+      callGeminiAPI.mockResolvedValue(JSON.stringify(MOCK_GEO));
       initGeographyExplorer();
       await Promise.resolve();
       jest.advanceTimersByTime(3000);
@@ -197,8 +212,8 @@ describe('geography-explorer.js', () => {
       await Promise.resolve();
       const buttons = document.getElementById('game-story-options').querySelectorAll('button');
       buttons[0].click();
-      expect(window.playFail3D).toHaveBeenCalled();
-      expect(window.speak).toHaveBeenCalledWith(expect.stringContaining('gameCorrectAnswer'));
+      expect(playFail3D).toHaveBeenCalled();
+      expect(speak).toHaveBeenCalledWith(expect.stringContaining('gameCorrectAnswer'));
     });
   });
 });

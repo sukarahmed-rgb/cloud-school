@@ -1,10 +1,15 @@
 // Unit tests for audio-game.js questions and difficulty picker
 
 import { questionBank, pickQuestionByDifficulty } from '../../src/modules/audio-game.js';
+import { secureRandomInt } from '../../src/modules/error-handler.js';
+
+jest.mock('../../src/modules/error-handler.js', () => ({
+  secureRandomInt: jest.fn(() => 0),
+}));
 
 describe('audio-game.js - pickQuestionByDifficulty', () => {
   beforeEach(() => {
-    window.secureRandomInt = jest.fn().mockReturnValue(0);
+    secureRandomInt.mockReturnValue(0);
   });
 
   test('picks question of level 1 successfully', () => {

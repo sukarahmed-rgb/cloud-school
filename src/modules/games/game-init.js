@@ -5,6 +5,11 @@ import { initListeningQuiz } from './listening-quiz.js';
 import { initScienceLab } from './science-lab.js';
 import { initGeographyExplorer } from './geography-explorer.js';
 import { startAudioMemoryGame, initAudioMemoryUI } from './audio-memory.js';
+import { speak, setupAccessibleVoices } from '../speech.js';
+import { listenForSpeech } from '../speech-recognition.js';
+import { __ } from '../i18n.js';
+import { playSuccess3D, playFail3D, playTick3D } from '../spatial-audio.js';
+import { startAiStoryRound } from '../ai-tutor.js';
 
 export function startNewGameRound() {
   if (state.activeGameType === 'audio-memory') {
@@ -22,20 +27,17 @@ export function startNewGameRound() {
   const questionData = pickQuestionByDifficulty(level);
   document.getElementById('game-question').textContent = questionData.q;
   state.currentCorrectAnswer = questionData.a;
-  window.speak(questionData.q);
+  speak(questionData.q);
   setTimeout(function () {
     listenForGameAnswer();
   }, 1500);
 }
 
 export function listenForGameAnswer() {
-  if (typeof window.listenForSpeech !== 'function') {
-    return;
-  }
-  window.speak(window.__('gameSpeakAnswer'));
-  window.listenForSpeech(function (text) {
+  speak(__('gameSpeakAnswer'));
+  listenForSpeech(function (text) {
     if (!text) {
-      window.speak(window.__('gameNoAnswer'));
+      speak(__('gameNoAnswer'));
       setTimeout(function () {
         listenForGameAnswer();
       }, 1500);
@@ -57,7 +59,7 @@ export function listenForGameAnswer() {
     ) {
       answerGame(false);
     } else {
-      window.speak(window.__('gameUnclear'));
+      speak(__('gameUnclear'));
       setTimeout(function () {
         listenForGameAnswer();
       }, 1500);
@@ -69,18 +71,18 @@ export function answerGame(userAnswer) {
   if (userAnswer === state.currentCorrectAnswer) {
     state.currentGameScore += 10;
     document.getElementById('game-score').textContent = String(state.currentGameScore);
-    window.playSuccess3D();
-    window.speak(window.__('gameCorrect'));
+    playSuccess3D();
+    speak(__('gameCorrect'));
     setTimeout(function () {
       startNewGameRound();
     }, 1000);
   } else {
-    window.playFail3D();
+    playFail3D();
     if (state.activeGameType === 'hero') {
-      window.speak(window.__('gameWrongScore', state.currentGameScore));
+      speak(__('gameWrongScore', state.currentGameScore));
       endGame();
     } else {
-      window.speak(window.__('gameWrong'));
+      speak(__('gameWrong'));
       setTimeout(function () {
         startNewGameRound();
       }, 1000);
@@ -108,32 +110,32 @@ export function initGame(gameType) {
   }
 
   if (gameType === 'seconds') {
-    document.getElementById('game-title').textContent = window.__('gameTrueFalse');
+    document.getElementById('game-title').textContent = __('gameTrueFalse');
     document.getElementById('game-timer-wrapper').classList.remove('hidden');
     binaryOptions.classList.remove('hidden');
     storyOptions.classList.add('hidden');
     startNewGameRound();
-    window.speak(window.__('gameTrueFalseStart'));
+    speak(__('gameTrueFalseStart'));
   } else if (gameType === 'hero') {
-    document.getElementById('game-title').textContent = window.__('gameSpeed');
+    document.getElementById('game-title').textContent = __('gameSpeed');
     document.getElementById('game-timer-wrapper').classList.add('hidden');
     binaryOptions.classList.remove('hidden');
     storyOptions.classList.add('hidden');
     startNewGameRound();
-    window.speak(window.__('gameSpeedStart'));
+    speak(__('gameSpeedStart'));
   } else if (gameType === 'pvp') {
-    document.getElementById('game-title').textContent = window.__('gamePvP');
+    document.getElementById('game-title').textContent = __('gamePvP');
     document.getElementById('game-timer-wrapper').classList.remove('hidden');
     binaryOptions.classList.remove('hidden');
     storyOptions.classList.add('hidden');
     startNewGameRound();
-    window.speak(window.__('gamePvPStart'));
+    speak(__('gamePvPStart'));
   } else if (gameType === 'ai-story') {
-    document.getElementById('game-title').textContent = window.__('gameStory');
+    document.getElementById('game-title').textContent = __('gameStory');
     document.getElementById('game-timer-wrapper').classList.add('hidden');
-    window.startAiStoryRound(null);
+    startAiStoryRound(null);
   } else if (gameType === 'audio-memory') {
-    document.getElementById('game-title').textContent = window.__('gameMemory');
+    document.getElementById('game-title').textContent = __('gameMemory');
     document.getElementById('game-timer-wrapper').classList.add('hidden');
     binaryOptions.classList.add('hidden');
     storyOptions.classList.add('hidden');
@@ -159,7 +161,7 @@ export function initGame(gameType) {
       state.gameTimeLeft -= 1;
       document.getElementById('game-timer').textContent = String(state.gameTimeLeft);
       if (state.gameTimeLeft <= 5 && state.gameTimeLeft > 0) {
-        window.playTick3D();
+        playTick3D();
       }
       if (state.gameTimeLeft <= 0) {
         endGame();
@@ -168,5 +170,5 @@ export function initGame(gameType) {
   }
 
   document.getElementById('active-game-panel').scrollIntoView({ behavior: 'smooth' });
-  setTimeout(window.setupAccessibleVoices, 200);
+  setTimeout(setupAccessibleVoices, 200);
 }

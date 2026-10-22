@@ -8,15 +8,43 @@ import {
   clearGameTimer,
   endGame,
 } from '../../src/modules/games/game-state.js';
+import { setCurrentUserSession } from '../../src/modules/app-state.js';
+import { speak } from '../../src/modules/speech.js';
+import { secureRandomInt } from '../../src/modules/error-handler.js';
+
+let mockCurrentAgeLevel = 'auto';
+jest.mock('../../src/modules/accessibility.js', () => ({
+  get currentAgeLevel() {
+    return mockCurrentAgeLevel;
+  },
+}));
+
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((k) => k),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
+
+jest.mock('../../src/modules/error-handler.js', () => ({
+  secureRandomInt: jest.fn(() => 0),
+}));
+
+jest.mock('../../src/modules/analytics.js', () => ({
+  recordGameScore: jest.fn(),
+}));
+
+jest.mock('../../src/modules/notifications.js', () => ({
+  addNotification: jest.fn(),
+}));
 
 describe('game-state.js', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     document.body.innerHTML = '<div id="active-game-panel" class="hidden"></div>';
-    window.__ = jest.fn((k) => k);
-    window.speak = jest.fn();
-    window.addNotification = jest.fn();
-    window.currentUserSession = { name: 'Test' };
+    mockCurrentAgeLevel = 'auto';
+    setCurrentUserSession(/** @type {any} */ ({ name: 'Test' }));
   });
 
   test('state has correct initial values', () => {
@@ -38,59 +66,59 @@ describe('game-state.js', () => {
   });
 
   test('getAgeLevelDifficulty returns 1 for child', () => {
-    window.currentAgeLevel = 'child';
+    mockCurrentAgeLevel = 'child';
     expect(getAgeLevelDifficulty()).toBe(1);
   });
 
   test('getAgeLevelDifficulty returns 2 for teen', () => {
-    window.currentAgeLevel = 'teen';
+    mockCurrentAgeLevel = 'teen';
     expect(getAgeLevelDifficulty()).toBe(2);
   });
 
   test('getAgeLevelDifficulty returns 4 for adult', () => {
-    window.currentAgeLevel = 'adult';
+    mockCurrentAgeLevel = 'adult';
     expect(getAgeLevelDifficulty()).toBe(4);
   });
 
   test('getAgeLevelDifficulty auto mode for age < 12 returns 1', () => {
-    window.currentAgeLevel = 'auto';
-    window.currentUserSession = { age: 10 };
+    mockCurrentAgeLevel = 'auto';
+    setCurrentUserSession(/** @type {any} */ ({ age: 10 }));
     expect(getAgeLevelDifficulty()).toBe(1);
   });
 
   test('getAgeLevelDifficulty auto mode for age 14 returns 2', () => {
-    window.currentAgeLevel = 'auto';
-    window.currentUserSession = { age: 14 };
+    mockCurrentAgeLevel = 'auto';
+    setCurrentUserSession(/** @type {any} */ ({ age: 14 }));
     expect(getAgeLevelDifficulty()).toBe(2);
   });
 
   test('getAgeLevelDifficulty auto mode for age 16 returns 3', () => {
-    window.currentAgeLevel = 'auto';
-    window.currentUserSession = { age: 16 };
+    mockCurrentAgeLevel = 'auto';
+    setCurrentUserSession(/** @type {any} */ ({ age: 16 }));
     expect(getAgeLevelDifficulty()).toBe(3);
   });
 
   test('getAgeLevelDifficulty auto mode for age >= 18 returns 4', () => {
-    window.currentAgeLevel = 'auto';
-    window.currentUserSession = { age: 18 };
+    mockCurrentAgeLevel = 'auto';
+    setCurrentUserSession(/** @type {any} */ ({ age: 18 }));
     expect(getAgeLevelDifficulty()).toBe(4);
   });
 
   test('getAgeLevelDifficulty defaults to 14 when no session', () => {
-    window.currentAgeLevel = 'auto';
-    window.currentUserSession = null;
+    mockCurrentAgeLevel = 'auto';
+    setCurrentUserSession(null);
     expect(getAgeLevelDifficulty()).toBe(2);
   });
 
   test('pickQuestionByDifficulty returns a question', () => {
-    window.secureRandomInt = jest.fn().mockReturnValue(0);
+    secureRandomInt.mockReturnValue(0);
     const q = pickQuestionByDifficulty(1);
     expect(q.q).toBeTruthy();
     expect(q.a).toBeDefined();
   });
 
   test('pickQuestionByDifficulty falls back to all levels when pool empty', () => {
-    window.secureRandomInt = jest.fn().mockReturnValue(0);
+    secureRandomInt.mockReturnValue(0);
     const q = pickQuestionByDifficulty(99);
     expect(q).toBeTruthy();
   });
@@ -107,6 +135,6 @@ describe('game-state.js', () => {
     state.currentGameScore = 0;
     endGame();
     expect(document.getElementById('active-game-panel').classList.contains('hidden')).toBe(true);
-    expect(window.speak).toHaveBeenCalled();
+    expect(speak).toHaveBeenCalled();
   });
 });

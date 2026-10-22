@@ -5,6 +5,25 @@ import {
   initAudioMemoryUI,
 } from '../../src/modules/games/audio-memory.js';
 import { state, audioMemoryPatterns, endGame } from '../../src/modules/games/game-state.js';
+import { playSuccess3D, playFail3D } from '../../src/modules/spatial-audio.js';
+
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((k) => k),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
+
+jest.mock('../../src/modules/spatial-audio.js', () => ({
+  play3DTone: jest.fn(),
+  playSuccess3D: jest.fn(),
+  playFail3D: jest.fn(),
+}));
+
+jest.mock('../../src/modules/error-handler.js', () => ({
+  secureRandomInt: jest.fn(() => 0),
+}));
 
 jest.mock('../../src/modules/games/game-state.js', () => {
   const audioMemoryPatterns = [
@@ -43,12 +62,6 @@ describe('audio-memory.js', () => {
       <div id="game-story-options" class="hidden"></div>
       <div id="game-question"></div>
     `;
-    window.__ = jest.fn((k) => k);
-    window.speak = jest.fn();
-    window.secureRandomInt = jest.fn().mockReturnValue(0);
-    window.play3DTone = jest.fn();
-    window.playSuccess3D = jest.fn();
-    window.playFail3D = jest.fn();
   });
 
   test('startAudioMemoryGame sets up game state and DOM', () => {
@@ -76,7 +89,7 @@ describe('audio-memory.js', () => {
     state.audioMemoryStep = 0;
     answerAudioMemory(0);
     expect(state.currentGameScore).toBe(10);
-    expect(window.playSuccess3D).toHaveBeenCalled();
+    expect(playSuccess3D).toHaveBeenCalled();
   });
 
   test('answerAudioMemory wrong answer ends game', () => {
@@ -84,7 +97,7 @@ describe('audio-memory.js', () => {
     state.audioMemoryStep = 0;
     answerAudioMemory(1);
     expect(endGame).toHaveBeenCalled();
-    expect(window.playFail3D).toHaveBeenCalled();
+    expect(playFail3D).toHaveBeenCalled();
   });
 
   test('addAudioMemoryStep adds to sequence', () => {

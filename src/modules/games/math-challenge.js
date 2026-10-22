@@ -1,4 +1,9 @@
 // @ts-check
+import { __ } from '../i18n.js';
+import { speak } from '../speech.js';
+import { playSuccess3D, playFail3D, playTick3D } from '../spatial-audio.js';
+import { secureRandomInt } from '../error-handler.js';
+import { escapeHtml } from '../helpers.js';
 import {
   state,
   mathQuestionBank,
@@ -19,7 +24,7 @@ function pickMathQuestion(level) {
   if (pool.length === 0) {
     pool = mathQuestionBank;
   }
-  return pool[window.secureRandomInt(0, pool.length)];
+  return pool[secureRandomInt(0, pool.length)];
 }
 
 function startMathRound() {
@@ -27,7 +32,7 @@ function startMathRound() {
   const q = pickMathQuestion(level);
   state.currentMathAnswer = q.a;
   document.getElementById('game-question').textContent = q.q;
-  window.speak(q.q);
+  speak(q.q);
   const inp = /** @type {HTMLInputElement|null} */ (document.getElementById('math-answer-input'));
   if (inp) {
     inp.value = '';
@@ -42,7 +47,7 @@ function checkMathAnswer() {
   }
   const userAns = inp.value.trim();
   if (!userAns) {
-    window.speak(window.__('gameMathNoAnswer'));
+    speak(__('gameMathNoAnswer'));
     return;
   }
   if (
@@ -53,12 +58,12 @@ function checkMathAnswer() {
     const points = level <= 1 ? 5 : level <= 2 ? 10 : 20;
     state.currentGameScore += points;
     document.getElementById('game-score').textContent = String(state.currentGameScore);
-    window.playSuccess3D();
-    window.speak(`${window.__('gameCorrect')}! +${points}`);
+    playSuccess3D();
+    speak(`${__('gameCorrect')}! +${points}`);
     setTimeout(startMathRound, 800);
   } else {
-    window.playFail3D();
-    window.speak(window.__('gameMathWrongAnswer', state.currentMathAnswer));
+    playFail3D();
+    speak(__('gameMathWrongAnswer', state.currentMathAnswer));
     setTimeout(startMathRound, 1500);
   }
 }
@@ -71,7 +76,7 @@ export function initMathChallenge() {
   document.getElementById('active-game-panel').classList.remove('hidden');
   document.getElementById('game-score').textContent = '0';
   document.getElementById('game-timer').textContent = '60';
-  document.getElementById('game-title').textContent = window.__('gameMathChallenge');
+  document.getElementById('game-title').textContent = __('gameMathChallenge');
   document.getElementById('game-timer-wrapper').classList.remove('hidden');
   document.getElementById('game-binary-options').classList.add('hidden');
   document.getElementById('game-story-options').classList.add('hidden');
@@ -84,11 +89,11 @@ export function initMathChallenge() {
     document.getElementById('game-arena').appendChild(inputArea);
   }
   inputArea.classList.remove('hidden');
-  const label = window.escapeHtml(window.__('gameMathTypeAnswer'));
+  const label = escapeHtml(__('gameMathTypeAnswer'));
   inputArea.innerHTML =
     `<label for="math-answer-input" class="text-lg font-bold text-yellow-300">${label}</label>` +
     `<input id="math-answer-input" type="text" inputmode="text" autocomplete="off" class="p-4 text-2xl text-center rounded-xl bg-gray-800 text-white border-2 border-yellow-400 w-64 focus-ring" aria-label="${label}">` +
-    `<button id="math-submit-btn" class="p-4 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl btn-interactive w-64">${window.escapeHtml(window.__('gameMathSubmit'))}</button>`;
+    `<button id="math-submit-btn" class="p-4 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl btn-interactive w-64">${escapeHtml(__('gameMathSubmit'))}</button>`;
 
   document.getElementById('math-submit-btn').addEventListener('click', checkMathAnswer);
   document.getElementById('math-answer-input').addEventListener('keydown', function (e) {
@@ -102,7 +107,7 @@ export function initMathChallenge() {
     state.gameTimeLeft -= 1;
     document.getElementById('game-timer').textContent = String(state.gameTimeLeft);
     if (state.gameTimeLeft <= 5 && state.gameTimeLeft > 0) {
-      window.playTick3D();
+      playTick3D();
     }
     if (state.gameTimeLeft <= 0) {
       endGame();
@@ -110,6 +115,6 @@ export function initMathChallenge() {
   }, 1000);
 
   startMathRound();
-  window.speak(window.__('gameMathStart'));
+  speak(__('gameMathStart'));
   document.getElementById('active-game-panel').scrollIntoView({ behavior: 'smooth' });
 }

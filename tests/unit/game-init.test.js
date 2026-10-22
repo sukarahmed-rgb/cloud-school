@@ -1,11 +1,40 @@
-import { initGame, startNewGameRound, answerGame } from '../../src/modules/games/game-init.js';
+import { initGame, answerGame } from '../../src/modules/games/game-init.js';
 import { state } from '../../src/modules/games/game-state.js';
+import { playSuccess3D, playFail3D } from '../../src/modules/spatial-audio.js';
+import { setCurrentUserSession } from '../../src/modules/app-state.js';
 
 jest.mock('../../src/modules/games/math-challenge.js', () => ({ initMathChallenge: jest.fn() }));
 jest.mock('../../src/modules/games/listening-quiz.js', () => ({ initListeningQuiz: jest.fn() }));
 jest.mock('../../src/modules/games/science-lab.js', () => ({ initScienceLab: jest.fn() }));
 jest.mock('../../src/modules/games/geography-explorer.js', () => ({
   initGeographyExplorer: jest.fn(),
+}));
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((k) => k),
+}));
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+  setupAccessibleVoices: jest.fn(),
+}));
+jest.mock('../../src/modules/speech-recognition.js', () => ({
+  listenForSpeech: jest.fn(),
+}));
+jest.mock('../../src/modules/spatial-audio.js', () => ({
+  playSuccess3D: jest.fn(),
+  playFail3D: jest.fn(),
+  playTick3D: jest.fn(),
+}));
+jest.mock('../../src/modules/ai-tutor.js', () => ({
+  startAiStoryRound: jest.fn(),
+}));
+jest.mock('../../src/modules/error-handler.js', () => ({
+  secureRandomInt: jest.fn(() => 0),
+}));
+jest.mock('../../src/modules/analytics.js', () => ({
+  recordGameScore: jest.fn(),
+}));
+jest.mock('../../src/modules/notifications.js', () => ({
+  addNotification: jest.fn(),
 }));
 
 describe('game-init.js', () => {
@@ -21,16 +50,8 @@ describe('game-init.js', () => {
       <div id="game-binary-options" class="hidden"></div>
       <div id="game-story-options" class="hidden"></div>
     `;
-    window.__ = jest.fn((k) => k);
-    window.speak = jest.fn();
-    window.playSuccess3D = jest.fn();
-    window.playFail3D = jest.fn();
-    window.playTick3D = jest.fn();
-    window.secureRandomInt = jest.fn().mockReturnValue(0);
-    window.currentUserSession = null;
+    setCurrentUserSession(null);
     Element.prototype.scrollIntoView = jest.fn();
-    window.listenForSpeech = jest.fn();
-    window.setupAccessibleVoices = jest.fn();
     state.activeGameType = '';
     state.currentGameScore = 0;
     state.gameTimeLeft = 30;
@@ -55,13 +76,13 @@ describe('game-init.js', () => {
     state.currentGameScore = 0;
     answerGame(true);
     expect(state.currentGameScore).toBe(10);
-    expect(window.playSuccess3D).toHaveBeenCalled();
+    expect(playSuccess3D).toHaveBeenCalled();
   });
 
   test('answerGame wrong answer for hero ends game', () => {
     state.activeGameType = 'hero';
     state.currentCorrectAnswer = true;
     answerGame(false);
-    expect(window.playFail3D).toHaveBeenCalled();
+    expect(playFail3D).toHaveBeenCalled();
   });
 });

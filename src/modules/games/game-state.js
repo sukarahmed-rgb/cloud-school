@@ -1,4 +1,12 @@
 // @ts-check
+import { __ } from '../i18n.js';
+import { speak } from '../speech.js';
+import { currentAgeLevel } from '../accessibility.js';
+import { getCurrentUserSession } from '../app-state.js';
+import { secureRandomInt } from '../error-handler.js';
+import { recordGameScore } from '../analytics.js';
+import { addNotification } from '../notifications.js';
+
 export const state = {
   activeGameType: '',
   currentGameScore: 0,
@@ -146,8 +154,8 @@ export const mathQuestionBank = [
 ];
 
 export function getAgeLevelDifficulty() {
-  const ageLevel = window.currentAgeLevel || 'auto';
-  const age = window.currentUserSession?.age || 14;
+  const ageLevel = currentAgeLevel || 'auto';
+  const age = getCurrentUserSession()?.age || 14;
   switch (ageLevel) {
     case 'child':
       return 1;
@@ -176,7 +184,7 @@ export function pickQuestionByDifficulty(targetLevel) {
   if (pool.length === 0) {
     pool = questionBank;
   }
-  return pool[window.secureRandomInt(0, pool.length)];
+  return pool[secureRandomInt(0, pool.length)];
 }
 
 export function clearGameTimer() {
@@ -189,14 +197,12 @@ export function clearGameTimer() {
 export function endGame() {
   clearGameTimer();
   document.getElementById('active-game-panel').classList.add('hidden');
-  window.speak(window.__('gameOver', state.currentGameScore));
-  if (typeof window.recordGameScore === 'function') {
-    window.recordGameScore(state.activeGameType || 'unknown', state.currentGameScore);
-  }
+  speak(__('gameOver', state.currentGameScore));
+  recordGameScore(state.activeGameType || 'unknown', state.currentGameScore);
   if (state.currentGameScore >= 50) {
-    window.addNotification(
-      window.__('notifGameAchievement'),
-      `${window.currentUserSession?.name || window.__('notifStudent')} ${window.__('notifGotScore')} ${state.currentGameScore} ${window.__('notifPointsInGame')} ${state.activeGameType === 'audio-memory' ? window.__('notifMemoryGame') : window.__('notifQuizGame')}!`,
+    addNotification(
+      __('notifGameAchievement'),
+      `${getCurrentUserSession()?.name || __('notifStudent')} ${__('notifGotScore')} ${state.currentGameScore} ${__('notifPointsInGame')} ${state.activeGameType === 'audio-memory' ? __('notifMemoryGame') : __('notifQuizGame')}!`,
       'achievement',
     );
   }

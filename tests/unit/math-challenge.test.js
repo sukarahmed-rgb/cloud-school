@@ -8,6 +8,24 @@ jest.mock('../../src/modules/games/game-state.js', () => {
   };
 });
 
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((k) => k),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
+
+jest.mock('../../src/modules/spatial-audio.js', () => ({
+  playSuccess3D: jest.fn(),
+  playFail3D: jest.fn(),
+  playTick3D: jest.fn(),
+}));
+
+jest.mock('../../src/modules/error-handler.js', () => ({
+  secureRandomInt: jest.fn(() => 0),
+}));
+
 jest.useFakeTimers();
 
 describe('math-challenge.js', () => {
@@ -25,13 +43,6 @@ describe('math-challenge.js', () => {
       <div id="game-story-options" class="hidden"></div>
       <div id="game-arena"></div>
     `;
-    window.__ = jest.fn((k) => k);
-    window.speak = jest.fn();
-    window.escapeHtml = jest.fn((s) => String(s === null || s === undefined ? '' : s));
-    window.playSuccess3D = jest.fn();
-    window.playFail3D = jest.fn();
-    window.playTick3D = jest.fn();
-    window.secureRandomInt = jest.fn().mockReturnValue(0);
     Element.prototype.scrollIntoView = jest.fn();
     state.activeGameType = '';
     state.currentGameScore = 0;
