@@ -1,5 +1,13 @@
 // @ts-check
 import { saveSubmissionToFirebase } from './teacher-management.js';
+import { localData, getCurrentUserSession } from './app-state.js';
+import { saveLocalData } from './local-data.js';
+import { escapeHtml } from './helpers.js';
+import { __ } from './i18n.js';
+import { speak, screenReaderMode, setupAccessibleVoices } from './speech.js';
+import { announceToScreenReader } from './ui-core.js';
+import { addNotification } from './notifications.js';
+import { voiceExamActive, setVoiceExamQuizId } from './voice-exam-state.js';
 
 /** @type {string|null} */
 export let selectedQuizId = null;
@@ -13,15 +21,15 @@ export function renderStudentAssignments() {
   const list = document.getElementById('student-assignments-list');
   list.innerHTML = '';
 
-  window.localData.assignments.forEach((a) => {
+  localData.assignments.forEach((a) => {
     const item = document.createElement('div');
     item.className = 'card p-6 rounded-xl flex justify-between items-center flex-wrap gap-4';
     item.innerHTML = `
             <div>
-                <h4 class="text-2xl font-black">${window.escapeHtml(a.title)}</h4>
-                <span class="text-sm px-2 py-1 bg-yellow-400 text-black rounded font-bold">${a.type === 'mcq' ? window.__('typeMCQ') : window.__('typeEssay')}</span>
+                <h4 class="text-2xl font-black">${escapeHtml(a.title)}</h4>
+                <span class="text-sm px-2 py-1 bg-yellow-400 text-black rounded font-bold">${a.type === 'mcq' ? __('typeMCQ') : __('typeEssay')}</span>
             </div>
-            <button data-action="start-quiz" data-quiz-id="${window.escapeHtml(a.id)}" class="p-4 bg-green-600 text-white font-black text-lg rounded-xl hover:bg-green-500 large-touch-target btn-interactive">${window.__('btnStartQuiz')} \u{1F3DF}</button>
+            <button data-action="start-quiz" data-quiz-id="${escapeHtml(a.id)}" class="p-4 bg-green-600 text-white font-black text-lg rounded-xl hover:bg-green-500 large-touch-target btn-interactive">${__('btnStartQuiz')} \u{1F3DF}</button>
         `;
     list.appendChild(item);
   });
@@ -41,7 +49,8 @@ export function renderStudentAssignments() {
 export function startQuiz(quizId) {
   selectedQuizId = quizId;
   selectedOption = null;
-  const quiz = window.localData.assignments.find((a) => a.id === quizId);
+  setVoiceExamQuizId(quizId);
+  const quiz = localData.assignments.find((a) => a.id === quizId);
   if (!quiz) {
     return;
   }
@@ -55,15 +64,15 @@ export function startQuiz(quizId) {
 
     document.getElementById('quiz-question-text').textContent = quiz.question;
     document.getElementById('btn-opt-A').querySelector('span').textContent =
-      `${window.__('optA')} ${quiz.options.A}`;
+      `${__('optA')} ${quiz.options.A}`;
     document.getElementById('btn-opt-B').querySelector('span').textContent =
-      `${window.__('optB')} ${quiz.options.B}`;
+      `${__('optB')} ${quiz.options.B}`;
     document.getElementById('btn-opt-C').querySelector('span').textContent =
-      `${window.__('optC')} ${quiz.options.C}`;
+      `${__('optC')} ${quiz.options.C}`;
     document.getElementById('btn-opt-D').querySelector('span').textContent =
-      `${window.__('optD')} ${quiz.options.D}`;
+      `${__('optD')} ${quiz.options.D}`;
 
-    window.speak(window.__('quizStarted', quiz.title, quiz.question));
+    speak(__('quizStarted', quiz.title, quiz.question));
   } else {
     document.getElementById('quiz-question-container').classList.add('hidden');
     document.getElementById('quiz-text-input-section').classList.remove('hidden');
@@ -72,7 +81,7 @@ export function startQuiz(quizId) {
       document.getElementById('assignment-student-answer')
     ).value = '';
     document.getElementById('braille-evaluation-box').classList.add('hidden');
-    window.speak(window.__('essayStarted', quiz.question));
+    speak(__('essayStarted', quiz.question));
   }
 
   let totalSecondsLeft = 10 * 60;
@@ -93,18 +102,18 @@ export function startQuiz(quizId) {
 
     if (secs === 0 && mins !== lastSpokenMinute) {
       lastSpokenMinute = mins;
-      window.announceToScreenReader(window.__('quizTimeRemaining', mins));
-      if (mins > 0 && !window.screenReaderMode) {
-        window.speak(window.__('quizTimeRemaining', mins));
+      announceToScreenReader(__('quizTimeRemaining', mins));
+      if (mins > 0 && !screenReaderMode) {
+        speak(__('quizTimeRemaining', mins));
       }
     }
 
     if (totalSecondsLeft === 5 * 60) {
-      window.speak(window.__('quizWarn5min'));
+      speak(__('quizWarn5min'));
     } else if (totalSecondsLeft === 60) {
-      window.speak(window.__('quizWarn1min'));
+      speak(__('quizWarn1min'));
     } else if (totalSecondsLeft === 10) {
-      window.speak(window.__('quizWarn10sec'));
+      speak(__('quizWarn10sec'));
     }
 
     if (totalSecondsLeft <= 0) {
@@ -114,7 +123,12 @@ export function startQuiz(quizId) {
   }, 1000);
 
   document.getElementById('active-quiz-panel').scrollIntoView({ behavior: 'smooth' });
-  setTimeout(window.setupAccessibleVoices, 200);
+  setTimeout(setupAccessibleVoices, 200);
+  if (voiceExamActive) {
+    setTimeout(function () {
+      import('./voice-exam-listening.js').then((m) => m.readCurrentQuizAloud());
+    }, 2000);
+  }
 }
 
 /**
@@ -122,7 +136,7 @@ export function startQuiz(quizId) {
  */
 export function selectQuizOption(option) {
   selectedOption = option;
-  window.speak(window.__('quizOptionSelected', option));
+  speak(__('quizOptionSelected', option));
 
   ['A', 'B', 'C', 'D'].forEach((opt) => {
     const btn = document.getElementById(`btn-opt-${opt}`);
@@ -148,7 +162,7 @@ export function submitQuizAnswer() {
     clearInterval(quizTimerInterval);
   }
 
-  const quiz = window.localData.assignments.find((a) => a.id === selectedQuizId);
+  const quiz = localData.assignments.find((a) => a.id === selectedQuizId);
   if (!quiz) {
     return;
   }
@@ -157,7 +171,7 @@ export function submitQuizAnswer() {
   let score;
   if (quiz.type === 'mcq') {
     if (!selectedOption) {
-      window.speak(window.__('quizSelectOption'));
+      speak(__('quizSelectOption'));
       return;
     }
     finalAnswer = selectedOption;
@@ -167,42 +181,42 @@ export function submitQuizAnswer() {
       document.getElementById('assignment-student-answer')
     ).value.trim();
     if (!finalAnswer) {
-      window.speak(window.__('quizEmptyAnswer'));
+      speak(__('quizEmptyAnswer'));
       return;
     }
     score = finalAnswer.length > 10 ? 90 : 50;
   }
 
+  const session = getCurrentUserSession();
   const submission = {
-    studentName: window.currentUserSession?.name || window.__('fallbackStudent'),
-    studentContact: window.currentUserSession?.contact || '0555555555',
-    parentContact: window.currentUserSession?.parentContact || 'parent@cloudschool.com',
+    studentName: session?.name || __('fallbackStudent'),
+    studentContact: session?.contact || '0555555555',
+    parentContact: session?.parentContact || 'parent@cloudschool.com',
     quizId: selectedQuizId,
     quizTitle: quiz.title,
     studentAnswer: finalAnswer,
     initialScore: score,
-    graderFeedback:
-      quiz.type === 'mcq' ? window.__('autoGradingFeedback') : window.__('awaitingAIGrading'),
+    graderFeedback: quiz.type === 'mcq' ? __('autoGradingFeedback') : __('awaitingAIGrading'),
     timestamp: new Date().toLocaleTimeString('ar-EG'),
   };
 
-  window.localData.submissions.unshift(submission);
-  window.saveLocalData();
+  localData.submissions.unshift(submission);
+  saveLocalData();
   saveSubmissionToFirebase(submission);
-  window.addNotification(
-    window.__('notifNewAnswer'),
-    `${submission.studentName} ${window.__('notifQuizDone')} ${submission.quizTitle || ''} ${window.__('notifScored')} ${score}%`,
+  addNotification(
+    __('notifNewAnswer'),
+    `${submission.studentName} ${__('notifQuizDone')} ${submission.quizTitle || ''} ${__('notifScored')} ${score}%`,
     'submission',
   );
   if (score >= 80) {
-    window.addNotification(
-      window.__('notifAchievement'),
-      `${submission.studentName} ${window.__('notifScoredAchievement')} ${score}% ${window.__('notifInQuiz')} ${submission.quizTitle || ''}!`,
+    addNotification(
+      __('notifAchievement'),
+      `${submission.studentName} ${__('notifScoredAchievement')} ${score}% ${__('notifInQuiz')} ${submission.quizTitle || ''}!`,
       'achievement',
     );
   }
 
-  window.speak(window.__('quizSubmitted'));
+  speak(__('quizSubmitted'));
   document.getElementById('active-quiz-panel').classList.add('hidden');
   selectedQuizId = null;
 }

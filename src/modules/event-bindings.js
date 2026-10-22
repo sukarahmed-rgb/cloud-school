@@ -1,8 +1,8 @@
 // @ts-check
-import { toggleTtsEngine, toggleAudioCoPilot, toggleScreenReaderMode } from './speech.js';
+import { speak, toggleTtsEngine, toggleAudioCoPilot, toggleScreenReaderMode } from './speech.js';
 import { toggleAudioRecording } from './recording.js';
 import { setTheme, adjustTextSize, toggleRegFields } from './accessibility.js';
-import { setCurrentLang, getCurrentLang } from './i18n.js';
+import { __, setCurrentLang, getCurrentLang } from './i18n.js';
 import { showKeyboardHelp, showNotificationsPanel } from './ui-core.js';
 import {
   logout,
@@ -62,13 +62,13 @@ export function bindAllEvents({
     document.getElementById('login-form-container').classList.add('hidden');
     document.getElementById('register-form-container').classList.remove('hidden');
     document.getElementById('auth-warning-box').classList.add('hidden');
-    window.speak(window.__('registerFormOpen'));
+    speak(__('registerFormOpen'));
   });
   document.getElementById('btn-show-login')?.addEventListener('click', () => {
     document.getElementById('register-form-container').classList.add('hidden');
     document.getElementById('login-form-container').classList.remove('hidden');
     document.getElementById('auth-warning-box').classList.add('hidden');
-    window.speak(window.__('backToLogin'));
+    speak(__('backToLogin'));
   });
 
   /** @type {HTMLSelectElement|null} */ (document.getElementById('reg-role'))?.addEventListener(
@@ -150,7 +150,7 @@ export function bindAllEvents({
       localStorage.setItem('cloudSchoolProxyUrl', val);
       updateProxyStatus();
       setupGeminiKeyControls();
-      window.speak(window.__('proxyUrlSaved'));
+      speak(__('proxyUrlSaved'));
     }
   });
   document.getElementById('btn-reset-proxy-url')?.addEventListener('click', () => {
@@ -159,7 +159,7 @@ export function bindAllEvents({
       proxyUrlInput.value = DEFAULT_PROXY_BASE;
     }
     updateProxyStatus();
-    window.speak(window.__('proxyUrlReset'));
+    speak(__('proxyUrlReset'));
   });
 
   for (let i = 1; i <= 6; i++) {

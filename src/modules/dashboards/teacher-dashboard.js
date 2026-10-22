@@ -1,10 +1,13 @@
 // @ts-check
 // Teacher Dashboard Module - لوحة قيادة المعلم (Lazy loaded)
 import { initDialog } from '../dom-utils.js';
+import { localData } from '../app-state.js';
+import { __ } from '../i18n.js';
+import { escapeHtml } from '../helpers.js';
+import { speak } from '../speech.js';
+import { gradeSubmissionWithAI } from '../ai-tutor.js';
 
 export function renderTeacherDashboard() {
-  const localData = window.localData;
-  const __ = window.__;
   const submissions = localData.submissions || [];
   const students = localData.students || [];
   const assignments = localData.assignments || [];
@@ -47,8 +50,6 @@ export function renderTeacherDashboard() {
 }
 
 function renderGradeDistribution(submissions) {
-  const __ = window.__;
-  const escapeHtml = window.escapeHtml;
   const container = document.getElementById('grade-distribution');
   const ranges = [
     { label: __('gradePoor'), min: 0, max: 49, color: 'bg-red-500' },
@@ -89,8 +90,6 @@ function renderGradeDistribution(submissions) {
 }
 
 function renderStudentPerformanceTable(submissions, _assignments) {
-  const __ = window.__;
-  const escapeHtml = window.escapeHtml;
   const tbody = document.getElementById('teacher-performance-tbody');
   tbody.innerHTML = '';
   if (submissions.length === 0) {
@@ -135,10 +134,6 @@ function renderStudentPerformanceTable(submissions, _assignments) {
 }
 
 function generateTeacherReport() {
-  const localData = window.localData;
-  const __ = window.__;
-  const speak = window.speak;
-  const escapeHtml = window.escapeHtml;
   const submissions = localData.submissions || [];
   const students = localData.students || [];
   const assignments = localData.assignments || [];
@@ -212,9 +207,6 @@ function generateTeacherReport() {
 }
 
 export function renderTeacherSubmissions() {
-  const localData = window.localData;
-  const __ = window.__;
-  const escapeHtml = window.escapeHtml;
   const tbody = document.getElementById('teacher-submissions-tbody');
   tbody.innerHTML = '';
 
@@ -242,8 +234,8 @@ export function renderTeacherSubmissions() {
 
   tbody.addEventListener('click', (e) => {
     const btn = /** @type {HTMLElement} */ (e.target).closest('[data-action="grade-ai"]');
-    if (btn && window.gradeSubmissionWithAI) {
-      window.gradeSubmissionWithAI(/** @type {HTMLElement} */ (btn).dataset.index);
+    if (btn) {
+      gradeSubmissionWithAI(/** @type {HTMLElement} */ (btn).dataset.index);
     }
   });
 }

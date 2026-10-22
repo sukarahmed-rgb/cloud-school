@@ -73,15 +73,15 @@ export function applyTranslations() {
 export function applyJsTranslations() {
   // تحديث النصوص الديناميكية في الـ JS
   const ageLevelBtn = document.getElementById('btn-age-level');
-  if (ageLevelBtn && typeof ageLevelLabels !== 'undefined') {
-    const labels = window['ageLevelLabels'] || [
-      __('ageLevelAuto'),
-      __('ageLevelChild'),
-      __('ageLevelTeen'),
-      __('ageLevelAdult'),
-    ];
-    const level = typeof currentAgeLevel !== 'undefined' ? currentAgeLevel : 0;
-    ageLevelBtn.textContent = __('ageLevelLabel', labels[level] || labels[0]);
+  if (ageLevelBtn) {
+    const labels = {
+      auto: __('ageLevelAuto'),
+      child: __('ageLevelChild'),
+      teen: __('ageLevelTeen'),
+      adult: __('ageLevelAdult'),
+    };
+    const level = localStorage.getItem('cloudSchoolAgeLevel') || 'auto';
+    ageLevelBtn.textContent = __('ageButton', labels[level] || labels.auto);
   }
 }
 

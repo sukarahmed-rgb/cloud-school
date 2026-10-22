@@ -1,4 +1,10 @@
 // @ts-check
+import { __ } from './i18n.js';
+import { speak, setupAccessibleVoices } from './speech.js';
+import { renderStudentStats } from './dashboards/student-dashboard.js';
+import { renderTeacherDashboard, renderTeacherSubmissions } from './teacher-management.js';
+import { renderParentDashboard, renderAdminDashboard } from './app-dashboards.js';
+
 /** @type {string} */
 export let activeRole = 'student';
 
@@ -27,25 +33,25 @@ export function switchRole(role) {
 
   if (role === 'student') {
     document.getElementById('view-student').classList.remove('hidden');
-    window.renderStudentStats();
-    window.speak(window.__('studentViewActive'));
+    renderStudentStats();
+    speak(__('studentViewActive'));
   } else if (role === 'teacher') {
     document.getElementById('view-teacher').classList.remove('hidden');
-    window.speak(window.__('teacherViewActive'));
-    window.renderTeacherDashboard();
-    window.renderTeacherSubmissions();
+    speak(__('teacherViewActive'));
+    renderTeacherDashboard();
+    renderTeacherSubmissions();
   } else if (role === 'parent') {
     document.getElementById('view-parent').classList.remove('hidden');
-    window.speak(window.__('parentViewActive'));
-    window.renderParentDashboard();
+    speak(__('parentViewActive'));
+    renderParentDashboard();
   } else if (role === 'admin') {
     document.getElementById('view-admin').classList.remove('hidden');
-    window.speak(window.__('adminViewActive'));
-    window.renderAdminDashboard();
+    speak(__('adminViewActive'));
+    renderAdminDashboard();
   }
 
   setTimeout(() => {
-    window.setupAccessibleVoices();
+    setupAccessibleVoices();
     const activeEl = document.activeElement;
     const inDialog =
       activeEl instanceof HTMLElement &&

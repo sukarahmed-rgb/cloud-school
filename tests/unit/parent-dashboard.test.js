@@ -1,16 +1,21 @@
 import { renderParentDashboard } from '../../src/modules/dashboards/parent-dashboard.js';
+import { localData, setCurrentUserSession } from '../../src/modules/app-state.js';
+
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((k) => k),
+}));
 
 describe('parent-dashboard.js', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     document.body.innerHTML = `
       <div id="parent-linked-child-name"></div>
       <div id="parent-grades-list"></div>
       <div id="parent-notifications-list"></div>
     `;
-    window.localData = { submissions: [], notifications: [] };
-    window.currentUserSession = { contact: '0550000000' };
-    window.__ = jest.fn((k) => k);
-    window.escapeHtml = jest.fn((s) => s);
+    localData.submissions = [];
+    localData.notifications = [];
+    setCurrentUserSession(/** @type {any} */ ({ contact: '0550000000' }));
   });
 
   test('renderParentDashboard shows fallback when no submissions', () => {
@@ -22,8 +27,8 @@ describe('parent-dashboard.js', () => {
   });
 
   test('renderParentDashboard renders child submissions', () => {
-    window.currentUserSession = { childContact: '0551111111' };
-    window.localData.submissions = [
+    setCurrentUserSession(/** @type {any} */ ({ childContact: '0551111111' }));
+    localData.submissions = [
       {
         studentContact: '0551111111',
         studentName: 'Ali',
@@ -38,8 +43,8 @@ describe('parent-dashboard.js', () => {
   });
 
   test('renderParentDashboard renders notifications', () => {
-    window.currentUserSession = { childContact: '0551111111' };
-    window.localData.submissions = [
+    setCurrentUserSession(/** @type {any} */ ({ childContact: '0551111111' }));
+    localData.submissions = [
       {
         studentContact: '0551111111',
         studentName: 'Ali',
@@ -48,7 +53,7 @@ describe('parent-dashboard.js', () => {
         timestamp: '10:00',
       },
     ];
-    window.localData.notifications = [
+    localData.notifications = [
       { title: 'New Grade', details: 'Math 85%', time: '10:00', read: false, type: 'submission' },
     ];
     renderParentDashboard();
@@ -56,8 +61,8 @@ describe('parent-dashboard.js', () => {
   });
 
   test('renderParentDashboard shows empty notif state', () => {
-    window.currentUserSession = { childContact: '0551111111' };
-    window.localData.submissions = [
+    setCurrentUserSession(/** @type {any} */ ({ childContact: '0551111111' }));
+    localData.submissions = [
       {
         studentContact: '0551111111',
         studentName: 'Ali',

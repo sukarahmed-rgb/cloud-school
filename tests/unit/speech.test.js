@@ -15,6 +15,10 @@ jest.mock('../../src/modules/audio-core.js', () => ({
   speakToUser: jest.fn(),
 }));
 
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((k) => k),
+}));
+
 describe('speech.js', () => {
   beforeEach(() => {
     jest.resetModules();
@@ -26,7 +30,6 @@ describe('speech.js', () => {
       <button id="view-student"></button>
     `;
     localStorage.clear();
-    window.__ = jest.fn((k) => k);
     window.speechSynthesis = { cancel: jest.fn(), speak: jest.fn() };
     window.SpeechSynthesisUtterance = jest.fn(() => ({}));
   });

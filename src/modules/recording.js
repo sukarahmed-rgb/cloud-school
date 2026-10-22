@@ -1,6 +1,8 @@
 // @ts-check
 import { blobToBase64 } from './helpers.js';
 import { transcribeAudio } from './gemini-client.js';
+import { speak } from './speech.js';
+import { __ } from './i18n.js';
 
 /** @type {MediaRecorder|null} */
 export let mediaRecorder = null;
@@ -30,10 +32,10 @@ export function toggleAudioRecording() {
     if (micBtn) {
       micBtn.classList.remove('bg-red-600', 'animate-pulse');
     }
-    window.speak(window.__('micStop'));
+    speak(__('micStop'));
   } else {
     if (!navigator.mediaDevices?.getUserMedia) {
-      window.speak(window.__('micUnsupported'));
+      speak(__('micUnsupported'));
       return;
     }
     navigator.mediaDevices
@@ -66,10 +68,10 @@ export function toggleAudioRecording() {
               ) {
                 /** @type {HTMLInputElement} */ (aiQ).value = text.trim();
               }
-              window.speak(window.__('micCaptureOk'));
+              speak(__('micCaptureOk'));
             }
           } catch (e) {
-            window.speak(window.__('micError'));
+            speak(__('micError'));
           }
           stopAudioTracks();
         };
@@ -78,10 +80,10 @@ export function toggleAudioRecording() {
         if (micBtn) {
           micBtn.classList.add('bg-red-600', 'animate-pulse');
         }
-        window.speak(window.__('micStart'));
+        speak(__('micStart'));
       })
       .catch(function () {
-        window.speak(window.__('micPermission'));
+        speak(__('micPermission'));
       });
   }
 }

@@ -1,6 +1,7 @@
 // @ts-check
 import { speak } from './speech.js';
 import { __ } from './i18n.js';
+import { escapeHtml } from './helpers.js';
 import { callGeminiAPI } from './ai-utils.js';
 import { listenForSpeech, stopSpeechRecognition, waitForSpeechEnd } from './speech-recognition.js';
 

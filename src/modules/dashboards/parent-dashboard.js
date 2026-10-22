@@ -1,10 +1,11 @@
+// @ts-check
 // Parent Dashboard Module - لوحة قيادة ولي الأمر (Lazy loaded)
+import { localData, getCurrentUserSession } from '../app-state.js';
+import { __ } from '../i18n.js';
+import { escapeHtml } from '../helpers.js';
 
 export function renderParentDashboard() {
-  const currentUserSession = window.currentUserSession;
-  const localData = window.localData;
-  const __ = window.__;
-  const escapeHtml = window.escapeHtml;
+  const currentUserSession = getCurrentUserSession();
 
   const list = document.getElementById('parent-grades-list');
   list.innerHTML = '';

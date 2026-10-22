@@ -2,6 +2,19 @@
 /** Router Module - التنقل بين أقسام التطبيق */
 
 import { showKeyboardHelp, focusElement } from './ui-core.js';
+import { __ } from './i18n.js';
+import {
+  speak,
+  setupAccessibleVoices,
+  toggleScreenReaderMode,
+  toggleAudioCoPilot,
+  toggleTtsEngine,
+} from './speech.js';
+import { renderStudentBooks, controlAudiobook } from './books.js';
+import { renderStudentAssignments } from './quizzes.js';
+import { renderStudentDashboard } from './dashboards/student-dashboard.js';
+import { cycleTheme, adjustTextSize } from './accessibility.js';
+import { toggleAudioRecording } from './recording.js';
 
 export function openStudentSection(section) {
   document.getElementById('student-sub-books').classList.add('hidden');
@@ -18,45 +31,45 @@ export function openStudentSection(section) {
   const title = document.getElementById('student-section-title');
 
   if (section === 'books') {
-    title.textContent = window.__('sectionBooks');
+    title.textContent = __('sectionBooks');
     document.getElementById('student-sub-books').classList.remove('hidden');
-    window.renderStudentBooks();
-    window.speak(window.__('sectionOpened', window.__('sectionBooks')));
+    renderStudentBooks();
+    speak(__('sectionOpened', __('sectionBooks')));
   } else if (section === 'assignments') {
-    title.textContent = window.__('sectionAssignments');
+    title.textContent = __('sectionAssignments');
     document.getElementById('student-sub-assignments').classList.remove('hidden');
-    window.renderStudentAssignments();
-    window.speak(window.__('sectionOpened', window.__('sectionAssignments')));
+    renderStudentAssignments();
+    speak(__('sectionOpened', __('sectionAssignments')));
   } else if (section === 'image-describer') {
-    title.textContent = window.__('sectionVision');
+    title.textContent = __('sectionVision');
     document.getElementById('student-sub-image-describer').classList.remove('hidden');
-    window.speak(window.__('sectionOpened', window.__('sectionVision')));
+    speak(__('sectionOpened', __('sectionVision')));
   } else if (section === 'games') {
-    title.textContent = window.__('sectionGames');
+    title.textContent = __('sectionGames');
     document.getElementById('student-sub-games').classList.remove('hidden');
-    window.speak(window.__('sectionOpened', window.__('sectionGames')));
+    speak(__('sectionOpened', __('sectionGames')));
   } else if (section === 'ai-tutor') {
-    title.textContent = window.__('sectionTutor');
+    title.textContent = __('sectionTutor');
     document.getElementById('student-sub-ai-tutor').classList.remove('hidden');
-    window.speak(window.__('sectionOpened', window.__('sectionTutor')));
+    speak(__('sectionOpened', __('sectionTutor')));
   } else if (section === 'dialogic-classroom') {
-    title.textContent = window.__('sectionDialogic');
+    title.textContent = __('sectionDialogic');
     document.getElementById('student-sub-dialogic-classroom')?.classList.remove('hidden');
-    window.speak(window.__('sectionOpened', window.__('sectionDialogic')));
+    speak(__('sectionOpened', __('sectionDialogic')));
   } else if (section === 'study-group') {
-    title.textContent = window.__('sectionStudyGroup');
+    title.textContent = __('sectionStudyGroup');
     document.getElementById('student-sub-study-group')?.classList.remove('hidden');
-    window.speak(window.__('sectionOpened', window.__('sectionStudyGroup')));
+    speak(__('sectionOpened', __('sectionStudyGroup')));
   } else if (section === 'dashboard') {
-    title.textContent = window.__('sectionDashboard');
+    title.textContent = __('sectionDashboard');
     document.getElementById('student-sub-dashboard')?.classList.remove('hidden');
-    window.renderStudentDashboard();
-    window.speak(window.__('sectionOpened', window.__('sectionDashboard')));
+    renderStudentDashboard();
+    speak(__('sectionOpened', __('sectionDashboard')));
   }
 
   container.scrollIntoView({ behavior: 'smooth' });
   setTimeout(() => {
-    window.setupAccessibleVoices();
+    setupAccessibleVoices();
     const activeEl = document.activeElement;
     const inDialog =
       activeEl instanceof HTMLElement &&
@@ -82,7 +95,7 @@ export function openStudentSection(section) {
 
 export function closeStudentSection() {
   document.getElementById('student-section-container').classList.add('hidden');
-  window.controlAudiobook('stop');
+  controlAudiobook('stop');
   const activeBtn = /** @type {HTMLElement|null} */ (
     document.querySelector('[data-student-section].bg-yellow-400')
   );
@@ -95,7 +108,7 @@ export function closeStudentSection() {
       mainContent.focus();
     }
   }
-  window.speak(window.__('sectionClosed'));
+  speak(__('sectionClosed'));
 }
 
 export function setupKeyboardShortcuts() {
@@ -171,12 +184,12 @@ export function setupKeyboardShortcuts() {
           e.preventDefault();
           document.getElementById('dot-1')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           document.getElementById('dot-1')?.focus();
-          window.speak(window.__('brailleBoardHelp'));
+          speak(__('brailleBoardHelp'));
           break;
         case 't':
         case 'T':
           e.preventDefault();
-          window.cycleTheme();
+          cycleTheme();
           break;
         case 'r':
         case 'R': {
@@ -184,10 +197,8 @@ export function setupKeyboardShortcuts() {
           const roleBar = document.getElementById('dev-role-bar');
           if (roleBar) {
             roleBar.classList.toggle('hidden');
-            window.speak(
-              roleBar.classList.contains('hidden')
-                ? window.__('roleBarHidden')
-                : window.__('roleBarVisible'),
+            speak(
+              roleBar.classList.contains('hidden') ? __('roleBarHidden') : __('roleBarVisible'),
             );
           }
           break;
@@ -199,36 +210,36 @@ export function setupKeyboardShortcuts() {
         case 'm':
         case 'M':
           e.preventDefault();
-          window.toggleAudioRecording();
+          toggleAudioRecording();
           break;
         case 's':
         case 'S':
           if (shift) {
             e.preventDefault();
-            window.toggleScreenReaderMode();
+            toggleScreenReaderMode();
           }
           break;
         case 'a':
         case 'A':
           if (shift) {
             e.preventDefault();
-            window.toggleAudioCoPilot();
+            toggleAudioCoPilot();
           }
           break;
         case 't':
         case 'T':
           if (shift) {
             e.preventDefault();
-            window.toggleTtsEngine();
+            toggleTtsEngine();
           }
           break;
         case '=':
           e.preventDefault();
-          window.adjustTextSize(1);
+          adjustTextSize(1);
           break;
         case '-':
           e.preventDefault();
-          window.adjustTextSize(-1);
+          adjustTextSize(-1);
           break;
       }
     }

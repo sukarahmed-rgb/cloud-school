@@ -1,7 +1,37 @@
 import { switchRole, activeRole } from '../../src/modules/role-switcher.js';
+import { speak, setupAccessibleVoices } from '../../src/modules/speech.js';
+import { renderStudentStats } from '../../src/modules/dashboards/student-dashboard.js';
+import {
+  renderTeacherDashboard,
+  renderTeacherSubmissions,
+} from '../../src/modules/teacher-management.js';
+
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((k) => k),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+  setupAccessibleVoices: jest.fn(),
+}));
+
+jest.mock('../../src/modules/dashboards/student-dashboard.js', () => ({
+  renderStudentStats: jest.fn(),
+}));
+
+jest.mock('../../src/modules/teacher-management.js', () => ({
+  renderTeacherDashboard: jest.fn(),
+  renderTeacherSubmissions: jest.fn(),
+}));
+
+jest.mock('../../src/modules/app-dashboards.js', () => ({
+  renderParentDashboard: jest.fn(),
+  renderAdminDashboard: jest.fn(),
+}));
 
 describe('role-switcher.js', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     document.body.innerHTML = `
       <div id="view-student" class="hidden"></div>
       <div id="view-teacher" class="hidden"></div>
@@ -13,14 +43,6 @@ describe('role-switcher.js', () => {
       <button id="role-btn-admin"></button>
       <h2 id="student-welcome-msg">Welcome</h2>
     `;
-    window.renderStudentStats = jest.fn();
-    window.renderTeacherDashboard = jest.fn();
-    window.renderTeacherSubmissions = jest.fn();
-    window.renderParentDashboard = jest.fn();
-    window.renderAdminDashboard = jest.fn();
-    window.speak = jest.fn();
-    window.__ = jest.fn((k) => k);
-    window.setupAccessibleVoices = jest.fn();
     jest.useFakeTimers();
   });
 
@@ -37,15 +59,15 @@ describe('role-switcher.js', () => {
     switchRole('student');
     const view = document.getElementById('view-student');
     expect(view.classList.contains('hidden')).toBe(false);
-    expect(window.renderStudentStats).toHaveBeenCalled();
-    expect(window.speak).toHaveBeenCalled();
+    expect(renderStudentStats).toHaveBeenCalled();
+    expect(speak).toHaveBeenCalled();
   });
 
   test('switchRole shows teacher view and calls teacher renderers', () => {
     switchRole('teacher');
     expect(document.getElementById('view-teacher').classList.contains('hidden')).toBe(false);
-    expect(window.renderTeacherDashboard).toHaveBeenCalled();
-    expect(window.renderTeacherSubmissions).toHaveBeenCalled();
+    expect(renderTeacherDashboard).toHaveBeenCalled();
+    expect(renderTeacherSubmissions).toHaveBeenCalled();
   });
 
   test('switchRole hides all other role views', () => {
@@ -60,6 +82,6 @@ describe('role-switcher.js', () => {
   test('switchRole sets focus after timeout', () => {
     switchRole('student');
     jest.advanceTimersByTime(200);
-    expect(window.setupAccessibleVoices).toHaveBeenCalled();
+    expect(setupAccessibleVoices).toHaveBeenCalled();
   });
 });

@@ -58,10 +58,15 @@
  * @typedef {Object} UserSession
  * @property {string} name
  * @property {string} contact
+ * @property {string} [email]
  * @property {string} [parentContact]
+ * @property {string} [childContact]
  * @property {number} [age]
  * @property {'student'|'teacher'|'admin'|'parent'} role
  * @property {string} [uid]
+ * @property {string} [id]
+ * @property {string} [serverId]
+ * @property {boolean} [serverAuth]
  */
 
 /**

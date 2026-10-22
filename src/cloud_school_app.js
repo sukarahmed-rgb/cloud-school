@@ -473,8 +473,7 @@ function buildReportHTML(name, stats) {
 }
 
 function showReportOnPlatform() {
-  const localData = /** @type {LocalData} */ (window.localData) || {};
-  const session = /** @type {UserSession|undefined} */ (window.currentUserSession);
+  const session = getCurrentUserSession();
   const name = session?.name || __('defaultStudentName');
   const stats = getStudentStats(name, localData);
   const content = buildReportHTML(name, stats);
@@ -506,8 +505,7 @@ function showReportOnPlatform() {
 }
 
 function exportReportAsPdf() {
-  const localData = /** @type {LocalData} */ (window.localData) || {};
-  const session = /** @type {UserSession|undefined} */ (window.currentUserSession);
+  const session = getCurrentUserSession();
   const name = session?.name || __('defaultStudentName');
   const stats = getStudentStats(name, localData);
   const bodyContent = buildReportHTML(name, stats);

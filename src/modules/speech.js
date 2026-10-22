@@ -1,5 +1,6 @@
 // @ts-check
 import { speakToUser } from './audio-core.js';
+import { __ } from './i18n.js';
 
 /** @type {boolean} */
 export let audioCoPilotEnabled = true;
@@ -39,12 +40,10 @@ export function toggleTtsEngine() {
   if (btn) {
     btn.textContent =
       ttsEngineMode === 'gemini'
-        ? `\u{1F3B9}\uFE0F ${window.__('ttsGemini')}`
-        : `\u{1F3B9}\uFE0F ${window.__('ttsBrowser')}`;
+        ? `\u{1F3B9}\uFE0F ${__('ttsGemini')}`
+        : `\u{1F3B9}\uFE0F ${__('ttsBrowser')}`;
   }
-  speak(
-    ttsEngineMode === 'gemini' ? window.__('ttsGeminiActivated') : window.__('ttsBrowserActivated'),
-  );
+  speak(ttsEngineMode === 'gemini' ? __('ttsGeminiActivated') : __('ttsBrowserActivated'));
 }
 
 /** @type {boolean} */
@@ -58,15 +57,15 @@ export function toggleScreenReaderMode() {
     return;
   }
   if (screenReaderMode) {
-    btn.textContent = window.__('srModeOn');
+    btn.textContent = __('srModeOn');
     stopAllAudio();
     const ariaLive = document.getElementById('aria-live');
     if (ariaLive) {
-      ariaLive.textContent = window.__('srModeActive');
+      ariaLive.textContent = __('srModeActive');
     }
   } else {
-    btn.textContent = window.__('srModeOff');
-    speak(window.__('srModeOffSpoken'));
+    btn.textContent = __('srModeOff');
+    speak(__('srModeOffSpoken'));
   }
 }
 
@@ -78,11 +77,11 @@ export function toggleAudioCoPilot() {
     return;
   }
   if (audioCoPilotEnabled) {
-    btn.textContent = window.__('audioCpOn');
+    btn.textContent = __('audioCpOn');
     btn.setAttribute('aria-pressed', 'true');
-    speak(window.__('audioCpActivated'));
+    speak(__('audioCpActivated'));
   } else {
-    btn.textContent = window.__('audioCpOff');
+    btn.textContent = __('audioCpOff');
     btn.setAttribute('aria-pressed', 'false');
     stopAllAudio();
   }

@@ -97,7 +97,10 @@ declare global {
     auth: () => {
       onAuthStateChanged: (cb: (user: FirebaseUser | null) => void) => void;
       signInWithEmailAndPassword: (email: string, password: string) => Promise<FirebaseCredential>;
-      createUserWithEmailAndPassword: (email: string, password: string) => Promise<FirebaseCredential>;
+      createUserWithEmailAndPassword: (
+        email: string,
+        password: string,
+      ) => Promise<FirebaseCredential>;
       signOut: () => Promise<void>;
       currentUser: FirebaseUser | null;
     };
@@ -108,22 +111,14 @@ declare global {
     apps: unknown[];
   };
 
-  // Runtime globals (accessible without window. prefix)
-  var __: (key: string, ...args: (string | number)[]) => string;
-  var speak: (text: string) => void;
-  var localData: LocalData;
-  var Sentry: { captureException: (err: unknown, hint?: unknown) => void; init: (config: Record<string, unknown>) => void } | undefined;
-  var ageLevelLabels: Record<string, string>;
-  var currentAgeLevel: string;
-  var callGeminiAPI: (userQuery: string, systemPrompt: string, maxRetries?: number) => Promise<string>;
-  var startAiStoryRound: (choiceIndex?: number | null) => Promise<void>;
-  var getPrompt: (lang: string, arabicText: string, englishText: string) => string;
-  var getCurrentLang: () => string;
-  var updateBraillePreview: () => void;
-  var updateCheatPreview: () => void;
-  var arabicBrailleMap: Map<Set<number>, string>;
-  var listenForSpeech: (callback: (text: string) => void, timeoutMs?: number) => void;
-  var startQuiz: (quizId: string) => void;
+  // Runtime browser/app globals
+  var Sentry:
+    | {
+        captureException: (err: unknown, hint?: unknown) => void;
+        init: (config: Record<string, unknown>) => void;
+      }
+    | undefined;
+  var speechRecognizer: { start: () => void } | undefined;
   var webkitAudioContext: typeof AudioContext;
   interface SpeechRecognition extends EventTarget {
     lang: string;
@@ -158,67 +153,6 @@ declare global {
   }
   var SpeechRecognition: new () => SpeechRecognition;
   var webkitSpeechRecognition: new () => SpeechRecognition;
-  var STORAGE_KEYS: { sizeOffset: string; theme: string; localData: string };
-  var escapeHtml: (str: unknown) => string;
-  var secureRandomInt: (min: number, max: number) => number;
-  var saveLocalData: () => boolean;
-  var loadLocalData: () => boolean;
-  var showToast: (msg: string) => void;
-  var currentUserSession: UserSession | null;
-  var updateNotifBadge: () => void;
-  var addNotification: (title: string, message: string, type: string) => void;
-  var announceToScreenReader: (msg: string) => void;
-  var setupAccessibleVoices: () => void;
-  var renderStudentBooks: () => void;
-  var renderStudentAssignments: () => void;
-  var renderStudentDashboard: () => void;
-  var renderStudentStats: () => void;
-  var renderTeacherDashboard: () => void;
-  var renderTeacherSubmissions: () => void;
-  var renderParentDashboard: () => void;
-  var renderAdminDashboard: () => void;
-  var gradeSubmissionWithAI: (submissionId: string | number) => void;
-  var getArabicRoleName: (role: string) => string;
-  var switchRole: (role: string) => void;
-  var syncDataFromServer: () => void;
-  var checkAgeLimitations: () => void;
-  var adjustTextSize: (direction: number) => void;
-  var cycleTheme: () => void;
-  var toggleAudioRecording: () => void;
-  var play3DTone: (startFreq: number, endFreq: number, type?: string, duration?: number, panX?: number, panY?: number, panZ?: number) => void;
-  var playSuccess3D: () => void;
-  var playFail3D: () => void;
-  var playTick3D: () => void;
-  var controlAudiobook: (action: string) => void;
-  var readActiveBookWithAi: () => void;
-  var selectQuizOption: (option: string) => void;
-  var submitQuizAnswer: () => void;
-  var toggleCheatDot: (dot: number) => void;
-  var pronounceCheatBraille: () => void;
-  var clearCheatDots: () => void;
-  var toggleBrailleKeyboard: (mode: string) => void;
-  var toggleBrailleDot: (dot: number | number[]) => void;
-  var enterBrailleChar: () => void;
-  var clearBrailleDots: () => void;
-  var addSpaceToAnswer: () => void;
-  var deleteLastChar: () => void;
-  var saveSubmissionToFirebase: (submission: Submission) => void;
-  var saveBookToFirebase: (book: Book) => void;
-  var saveQuizToFirebase: (quiz: Assignment) => void;
-  var saveStudentToFirebase: (student: Student) => void;
-  var toggleTtsEngine: () => void;
-  var toggleScreenReaderMode: () => void;
-  var toggleAudioCoPilot: () => void;
-  var openStudentSection: (section: string) => void;
-  var closeStudentSection: () => void;
-  var setupKeyboardShortcuts: () => void;
-  var stopAllAudio: () => void;
-  var screenReaderMode: boolean;
-  var speechRecognizer: unknown;
-  var i18n: Record<string, string>;
-  var recordGameScore: (gameType: string, score: number) => void;
-  var printStudentReport: () => void;
-  var setupOfflineDetection: () => void;
 }
 
 export {};

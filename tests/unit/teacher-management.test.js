@@ -10,9 +10,23 @@ import {
   serverSave,
 } from '../../src/modules/server-backend.js';
 import { queueOfflineSave } from '../../src/modules/offline-sync.js';
+import { localData } from '../../src/modules/app-state.js';
+import { speak } from '../../src/modules/speech.js';
 
 jest.mock('../../src/modules/offline-sync.js', () => ({
   queueOfflineSave: jest.fn(),
+}));
+
+jest.mock('../../src/modules/local-data.js', () => ({
+  saveLocalData: jest.fn(),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
+
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((k) => k),
 }));
 
 let mockServerAvailable = false;
@@ -29,6 +43,7 @@ jest.mock('../../src/modules/server-backend.js', () => ({
 
 describe('teacher-management.js', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     document.body.innerHTML = `
       <select id="teacher-quiz-type">
         <option value="mcq">MCQ</option>
@@ -49,13 +64,9 @@ describe('teacher-management.js', () => {
       <input id="teacher-quiz-text-q" value="Essay?" />
       <input id="teacher-quiz-ideal-ans" value="Ideal" />
     `;
-    window.localData = { books: [], assignments: [] };
-    window.saveLocalData = jest.fn();
-    window.speak = jest.fn();
-    window.__ = jest.fn((k) => k);
+    localData.books = [];
+    localData.assignments = [];
     mockServerAvailable = false;
-    serverSave.mockClear();
-    queueOfflineSave.mockClear();
   });
 
   test('toggleTeacherQuizType shows MCQ fields', () => {
@@ -74,26 +85,26 @@ describe('teacher-management.js', () => {
   test('handleTeacherAddBook adds book and speaks', () => {
     const e = { preventDefault: jest.fn(), target: { reset: jest.fn() } };
     handleTeacherAddBook(e);
-    expect(window.localData.books.length).toBe(1);
-    expect(window.localData.books[0].title).toBe('Book 3');
-    expect(window.speak).toHaveBeenCalledWith('bookPublished');
+    expect(localData.books.length).toBe(1);
+    expect(localData.books[0].title).toBe('Book 3');
+    expect(speak).toHaveBeenCalledWith('bookPublished');
     expect(e.preventDefault).toHaveBeenCalled();
   });
 
   test('handleTeacherAddQuiz adds MCQ quiz', () => {
     const e = { preventDefault: jest.fn(), target: { reset: jest.fn() } };
     handleTeacherAddQuiz(e);
-    expect(window.localData.assignments.length).toBe(1);
-    expect(window.localData.assignments[0].type).toBe('mcq');
-    expect(window.speak).toHaveBeenCalledWith('quizPublished');
+    expect(localData.assignments.length).toBe(1);
+    expect(localData.assignments[0].type).toBe('mcq');
+    expect(speak).toHaveBeenCalledWith('quizPublished');
   });
 
   test('handleTeacherAddQuiz adds text quiz', () => {
     document.getElementById('teacher-quiz-type').value = 'text';
     const e = { preventDefault: jest.fn(), target: { reset: jest.fn() } };
     handleTeacherAddQuiz(e);
-    expect(window.localData.assignments.length).toBe(1);
-    expect(window.localData.assignments[0].type).toBe('text');
+    expect(localData.assignments.length).toBe(1);
+    expect(localData.assignments[0].type).toBe('text');
   });
 
   test('setServerAvailable flips the live binding', () => {

@@ -5,6 +5,16 @@ import {
   readActiveBookWithAi,
   controlAudiobook,
 } from '../../src/modules/books.js';
+import { localData } from '../../src/modules/app-state.js';
+import { speak } from '../../src/modules/speech.js';
+
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((k, ...args) => (args.length ? `${k} ${args.join(', ')}` : k)),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
 
 describe('books.js', () => {
   beforeEach(() => {
@@ -14,20 +24,10 @@ describe('books.js', () => {
       <div id="audiobook-playing-title"></div>
       <div id="book-ai-summary-box" class="hidden"></div>
     `;
-    window.localData = {
-      books: [
-        { id: 'b1', title: 'Book 1', content: 'Content 1' },
-        { id: 'b2', title: 'Book 2', content: 'Content 2' },
-      ],
-    };
-    window.escapeHtml = jest.fn((s) => s);
-    window.__ = jest.fn((k, ...args) => {
-      if (args.length) {
-        return `${k} ${args.join(', ')}`;
-      }
-      return k;
-    });
-    window.speak = jest.fn();
+    localData.books = [
+      { id: 'b1', title: 'Book 1', content: 'Content 1', audio: '' },
+      { id: 'b2', title: 'Book 2', content: 'Content 2', audio: '' },
+    ];
     jest.clearAllMocks();
   });
 
@@ -49,7 +49,7 @@ describe('books.js', () => {
   });
 
   test('renderStudentBooks handles empty books array', () => {
-    window.localData.books = [];
+    localData.books = [];
     renderStudentBooks();
     const grid = document.getElementById('student-books-grid');
     expect(grid.children.length).toBe(0);
@@ -57,12 +57,12 @@ describe('books.js', () => {
 
   test('readBookAloud speaks the book content', () => {
     readBookAloud('b1');
-    expect(window.speak).toHaveBeenCalled();
+    expect(speak).toHaveBeenCalled();
   });
 
   test('readBookAloud does nothing for unknown book', () => {
     readBookAloud('nonexistent');
-    expect(window.speak).not.toHaveBeenCalled();
+    expect(speak).not.toHaveBeenCalled();
   });
 
   test('playBookAudio shows audiobook player and speaks', () => {
@@ -70,14 +70,14 @@ describe('books.js', () => {
     const player = document.getElementById('audiobook-player');
     expect(player.classList.contains('hidden')).toBe(false);
     expect(document.getElementById('audiobook-playing-title').textContent).toBeTruthy();
-    expect(window.speak).toHaveBeenCalled();
+    expect(speak).toHaveBeenCalled();
   });
 
   test('readActiveBookWithAi does nothing when no book is playing', () => {
     jest.isolateModules(() => {
       const { readActiveBookWithAi } = require('../../src/modules/books.js');
       readActiveBookWithAi();
-      expect(window.speak).not.toHaveBeenCalled();
+      expect(speak).not.toHaveBeenCalled();
     });
   });
 
@@ -89,7 +89,7 @@ describe('books.js', () => {
   test('readActiveBookWithAi reads currently playing book', () => {
     playBookAudio('b1');
     readActiveBookWithAi();
-    expect(window.speak).toHaveBeenCalled();
+    expect(speak).toHaveBeenCalled();
   });
 
   test('controlAudiobook stop hides player and summary and speaks', () => {
@@ -99,6 +99,6 @@ describe('books.js', () => {
     controlAudiobook('stop');
     expect(document.getElementById('audiobook-player').classList.contains('hidden')).toBe(true);
     expect(document.getElementById('book-ai-summary-box').classList.contains('hidden')).toBe(true);
-    expect(window.speak).toHaveBeenCalled();
+    expect(speak).toHaveBeenCalled();
   });
 });

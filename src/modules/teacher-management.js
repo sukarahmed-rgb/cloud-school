@@ -1,6 +1,10 @@
 // @ts-check
 import { queueOfflineSave } from './offline-sync.js';
 import { serverAvailable, serverSave } from './server-backend.js';
+import { localData } from './app-state.js';
+import { saveLocalData } from './local-data.js';
+import { speak } from './speech.js';
+import { __ } from './i18n.js';
 
 /** Toggle between MCQ and text quiz fields */
 export function toggleTeacherQuizType() {
@@ -27,12 +31,12 @@ export function handleTeacherAddBook(e) {
   const audio = /** @type {HTMLInputElement} */ (document.getElementById('teacher-book-audio'))
     .value;
 
-  const newBook = { id: `b${window.localData.books.length + 1}`, title, content, audio };
-  window.localData.books.push(newBook);
-  window.saveLocalData();
+  const newBook = { id: `b${localData.books.length + 1}`, title, content, audio };
+  localData.books.push(newBook);
+  saveLocalData();
 
   saveBookToFirebase(newBook);
-  window.speak(window.__('bookPublished'));
+  speak(__('bookPublished'));
   const form = /** @type {HTMLFormElement|null} */ (e.target);
   if (form) {
     form.reset();
@@ -50,7 +54,7 @@ export function handleTeacherAddQuiz(e) {
     .value;
 
   const newQuiz = /** @type {Assignment} */ ({
-    id: `a${window.localData.assignments.length + 1}`,
+    id: `a${localData.assignments.length + 1}`,
     title,
     type,
   });
@@ -77,10 +81,10 @@ export function handleTeacherAddQuiz(e) {
     ).value;
   }
 
-  window.localData.assignments.push(newQuiz);
-  window.saveLocalData();
+  localData.assignments.push(newQuiz);
+  saveLocalData();
   saveQuizToFirebase(newQuiz);
-  window.speak(window.__('quizPublished'));
+  speak(__('quizPublished'));
   const form = /** @type {HTMLFormElement|null} */ (e.target);
   if (form) {
     form.reset();

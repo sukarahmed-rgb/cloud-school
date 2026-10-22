@@ -6,8 +6,52 @@ import {
   renderTeacherDashboard,
   renderTeacherSubmissions,
 } from '../../src/modules/dashboards/teacher-dashboard.js';
+import { localData } from '../../src/modules/app-state.js';
+
+const MSGS = {
+  activeStudentsSuffix: ' نشط',
+  gradePoor: 'ضعيف',
+  gradePass: 'مقبول',
+  gradeGood: 'جيد',
+  gradeExcellent: 'ممتاز',
+  noGradesForDistribution: 'لا توجد درجات',
+  totalCorrections: 'إجمالي التصحيحات:',
+  noAnswersYet: 'لا توجد إجابات بعد',
+  unknownStudent: 'طالب غير معروف',
+  teacherNoData: 'لا توجد بيانات',
+  gradeLabel: 'الدرجة:',
+  btnAIGradeFeedback: 'تصحيح AI',
+  reportTitle: 'التقرير',
+  reportDate: 'التاريخ',
+  reportStudents: 'الطلاب',
+  reportQuizzes: 'الاختبارات',
+  reportCorrections: 'التصحيحات',
+  reportAvgScore: 'متوسط الدرجات',
+  reportPerStudent: 'حسب الطالب',
+  reportAvg: 'المتوسط',
+  reportEnd: 'نهاية التقرير',
+  reportNoData: 'لا توجد بيانات',
+  reportCopied: 'تم النسخ',
+  reportGenerated: 'تم إنشاء التقرير',
+  teacherReportLabel: 'التقرير',
+  teacherReport: 'تقرير المعلم',
+  close: 'إغلاق',
+};
+
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((key) => MSGS[key] || key),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+}));
+
+jest.mock('../../src/modules/ai-tutor.js', () => ({
+  gradeSubmissionWithAI: jest.fn(),
+}));
 
 beforeEach(() => {
+  jest.clearAllMocks();
   document.body.innerHTML = `
     <span id="stat-total-students"></span>
     <span id="stat-total-quizzes"></span>
@@ -18,76 +62,39 @@ beforeEach(() => {
     <table><tbody id="teacher-submissions-tbody"></tbody></table>
     <button id="btn-export-report"></button>
   `;
-  window.localData = {
-    students: [
-      { name: 'أحمد', grade: 'عاشر' },
-      { name: 'سارة', grade: 'تاسع' },
-    ],
-    assignments: [
-      { id: 'a1', title: 'اختبار 1', type: 'mcq' },
-      { id: 'a2', title: 'اختبار 2', type: 'text' },
-    ],
-    submissions: [
-      {
-        studentName: 'أحمد',
-        quizTitle: 'اختبار 1',
-        studentAnswer: 'B',
-        initialScore: 90,
-        graderFeedback: 'ممتاز',
-      },
-      {
-        studentName: 'أحمد',
-        quizTitle: 'اختبار 2',
-        studentAnswer: 'نص طويل',
-        initialScore: 80,
-        graderFeedback: 'جيد',
-      },
-      {
-        studentName: 'سارة',
-        quizTitle: 'اختبار 1',
-        studentAnswer: 'C',
-        initialScore: 50,
-        graderFeedback: 'مقبول',
-      },
-    ],
-    notifications: [],
-  };
-  window.__ = (key) => {
-    const msgs = {
-      activeStudentsSuffix: ' نشط',
-      gradePoor: 'ضعيف',
-      gradePass: 'مقبول',
-      gradeGood: 'جيد',
-      gradeExcellent: 'ممتاز',
-      noGradesForDistribution: 'لا توجد درجات',
-      totalCorrections: 'إجمالي التصحيحات:',
-      noAnswersYet: 'لا توجد إجابات بعد',
-      unknownStudent: 'طالب غير معروف',
-      teacherNoData: 'لا توجد بيانات',
-      gradeLabel: 'الدرجة:',
-      btnAIGradeFeedback: 'تصحيح AI',
-      reportTitle: 'التقرير',
-      reportDate: 'التاريخ',
-      reportStudents: 'الطلاب',
-      reportQuizzes: 'الاختبارات',
-      reportCorrections: 'التصحيحات',
-      reportAvgScore: 'متوسط الدرجات',
-      reportPerStudent: 'حسب الطالب',
-      reportAvg: 'المتوسط',
-      reportEnd: 'نهاية التقرير',
-      reportNoData: 'لا توجد بيانات',
-      reportCopied: 'تم النسخ',
-      reportGenerated: 'تم إنشاء التقرير',
-      teacherReportLabel: 'التقرير',
-      teacherReport: 'تقرير المعلم',
-      close: 'إغلاق',
-    };
-    return msgs[key] || key;
-  };
-  window.speak = jest.fn();
-  window.escapeHtml = (s) => String(s);
-  window.gradeSubmissionWithAI = jest.fn();
-  global.navigator.clipboard = { writeText: jest.fn() };
+  localData.students = [
+    { name: 'أحمد', grade: 'عاشر', pin: '0000' },
+    { name: 'سارة', grade: 'تاسع', pin: '0000' },
+  ];
+  localData.assignments = [
+    { id: 'a1', title: 'اختبار 1', type: 'mcq' },
+    { id: 'a2', title: 'اختبار 2', type: 'text' },
+  ];
+  localData.submissions = /** @type {any} */ ([
+    {
+      studentName: 'أحمد',
+      quizTitle: 'اختبار 1',
+      studentAnswer: 'B',
+      initialScore: 90,
+      graderFeedback: 'ممتاز',
+    },
+    {
+      studentName: 'أحمد',
+      quizTitle: 'اختبار 2',
+      studentAnswer: 'نص طويل',
+      initialScore: 80,
+      graderFeedback: 'جيد',
+    },
+    {
+      studentName: 'سارة',
+      quizTitle: 'اختبار 1',
+      studentAnswer: 'C',
+      initialScore: 50,
+      graderFeedback: 'مقبول',
+    },
+  ]);
+  localData.notifications = [];
+  Object.assign(global.navigator, { clipboard: { writeText: jest.fn() } });
 });
 
 describe('teacher-dashboard.js - renderTeacherDashboard', () => {
@@ -107,7 +114,7 @@ describe('teacher-dashboard.js - renderTeacherDashboard', () => {
   });
 
   test('handles empty submissions', () => {
-    window.localData.submissions = [];
+    localData.submissions = [];
     renderTeacherDashboard();
     expect(document.getElementById('stat-total-students').textContent).toBe('2');
     expect(document.getElementById('grade-distribution').textContent).toContain('لا توجد درجات');
@@ -124,7 +131,7 @@ describe('teacher-dashboard.js - renderTeacherSubmissions', () => {
   });
 
   test('shows empty state', () => {
-    window.localData.submissions = [];
+    localData.submissions = [];
     renderTeacherSubmissions();
     const tbody = document.getElementById('teacher-submissions-tbody');
     expect(tbody.innerHTML).toContain('لا توجد بيانات');

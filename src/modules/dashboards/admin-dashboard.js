@@ -1,10 +1,14 @@
 // @ts-check
 // Admin Dashboard Module - لوحة قيادة المسؤول (Lazy loaded)
+import { localData } from '../app-state.js';
+import { escapeHtml } from '../helpers.js';
+import { saveLocalData } from '../local-data.js';
+import { saveStudentToFirebase } from '../teacher-management.js';
+import { secureRandomInt } from '../error-handler.js';
+import { speak } from '../speech.js';
+import { __ } from '../i18n.js';
 
 export function renderAdminDashboard() {
-  const localData = window.localData;
-  const escapeHtml = window.escapeHtml;
-
   const tbody = document.getElementById('admin-students-tbody');
   tbody.innerHTML = '';
 
@@ -21,12 +25,6 @@ export function renderAdminDashboard() {
 
 export function handleAdminCreateStudent(e) {
   e.preventDefault();
-  const localData = window.localData;
-  const saveLocalData = window.saveLocalData;
-  const saveStudentToFirebase = window.saveStudentToFirebase;
-  const secureRandomInt = window.secureRandomInt;
-  const speak = window.speak;
-  const __ = window.__;
 
   const name = /** @type {HTMLInputElement} */ (document.getElementById('admin-student-name'))
     .value;

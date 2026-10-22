@@ -1,4 +1,9 @@
 // @ts-check
+import { localData, setCurrentUserSession } from './app-state.js';
+import { saveLocalData } from './local-data.js';
+import { __ } from './i18n.js';
+import { switchRole } from './role-switcher.js';
+
 const SERVER_BASE = (typeof __server_base !== 'undefined' && __server_base) || '';
 /** @type {boolean} */
 export let serverAvailable = false;
@@ -138,23 +143,23 @@ export async function initServerBackend() {
 
     const user = await checkServerSession();
     if (user) {
-      window.currentUserSession = {
+      setCurrentUserSession({
         name: user.name,
         contact: user.email || user.contact || '',
         role: user.role,
         serverId: user.id || user.serverId,
         serverAuth: true,
-      };
+      });
       document.getElementById('auth-gate').classList.add('hidden');
       document.getElementById('dev-role-bar').classList.remove('hidden');
       document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
-      document.getElementById('active-user-badge').textContent = window.__(
+      document.getElementById('active-user-badge').textContent = __(
         'userBadge',
         user.name,
-        window.getArabicRoleName(user.role),
+        getArabicRoleName(user.role),
       );
-      window.switchRole(user.role);
-      window.syncDataFromServer();
+      switchRole(user.role);
+      syncDataFromServer();
     }
   }
 }
@@ -167,27 +172,27 @@ export function syncDataFromServer() {
   serverFetch('curriculum_modules')
     .then((books) => {
       if (books && books.length > 0) {
-        window.localData.books = books;
+        localData.books = books;
       }
       return serverFetch('assignments');
     })
     .then((assignments) => {
       if (assignments && assignments.length > 0) {
-        window.localData.assignments = assignments;
+        localData.assignments = assignments;
       }
       return serverFetch('submissions');
     })
     .then((submissions) => {
       if (submissions && submissions.length > 0) {
-        window.localData.submissions = submissions;
+        localData.submissions = submissions;
       }
       return serverFetch('students');
     })
     .then((students) => {
       if (students && students.length > 0) {
-        window.localData.students = students;
+        localData.students = students;
       }
-      window.saveLocalData();
+      saveLocalData();
     })
     .catch((e) => {
       console.warn('Server sync failed (using local data):', e.message);
@@ -200,10 +205,10 @@ export function syncDataFromServer() {
  */
 export function getArabicRoleName(role) {
   const roles = {
-    student: window.__('roleStudent'),
-    parent: window.__('roleParent'),
-    teacher: window.__('roleTeacher'),
-    admin: window.__('roleAdmin'),
+    student: __('roleStudent'),
+    parent: __('roleParent'),
+    teacher: __('roleTeacher'),
+    admin: __('roleAdmin'),
   };
   return roles[role] || role;
 }

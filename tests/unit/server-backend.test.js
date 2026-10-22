@@ -10,6 +10,25 @@ import {
   syncDataFromServer,
   getArabicRoleName,
 } from '../../src/modules/server-backend.js';
+import {
+  localData,
+  getCurrentUserSession,
+  setCurrentUserSession,
+} from '../../src/modules/app-state.js';
+import { saveLocalData } from '../../src/modules/local-data.js';
+import { __ } from '../../src/modules/i18n.js';
+
+jest.mock('../../src/modules/local-data.js', () => ({
+  saveLocalData: jest.fn(),
+}));
+
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((k, ...args) => args[0] || k),
+}));
+
+jest.mock('../../src/modules/role-switcher.js', () => ({
+  switchRole: jest.fn(),
+}));
 
 function mockResponse(body, status = 200) {
   return {
@@ -21,7 +40,7 @@ function mockResponse(body, status = 200) {
 
 describe('server-backend.js', () => {
   beforeEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
     globalThis.fetch = jest.fn();
     document.body.innerHTML = `
       <div id="auth-gate"></div>
@@ -29,13 +48,12 @@ describe('server-backend.js', () => {
       <div id="active-user-badge"></div>
       <div id="toast"></div>
     `;
-    window.__ = jest.fn((k, ...args) => args[0] || k);
-    window.speak = jest.fn();
-    window.switchRole = jest.fn();
-    window.syncDataFromServer = jest.fn();
-    window.getArabicRoleName = jest.fn((r) => r);
-    window.saveLocalData = jest.fn();
-    window.localData = {};
+    __.mockImplementation((k, ...args) => args[0] || k);
+    setCurrentUserSession(null);
+    localData.books = [];
+    localData.assignments = [];
+    localData.submissions = [];
+    localData.students = [];
     localStorage.clear();
   });
 
@@ -160,7 +178,7 @@ describe('server-backend.js', () => {
   });
 
   test('getArabicRoleName returns correct Arabic names', () => {
-    window.__ = jest.fn((k) => {
+    __.mockImplementation((k) => {
       const map = {
         roleStudent: 'طالب',
         roleTeacher: 'معلم',
@@ -188,12 +206,14 @@ describe('server-backend.js', () => {
       globalThis.fetch
         .mockResolvedValueOnce(mockResponse({ status: 'ok' }))
         .mockResolvedValueOnce(mockResponse({ configured: true }))
-        .mockResolvedValueOnce(mockResponse({ authenticated: true, user }));
+        .mockResolvedValueOnce(mockResponse({ authenticated: true, user }))
+        .mockResolvedValue(mockResponse([]));
       await initServerBackend();
-      expect(window.currentUserSession).toBeDefined();
-      expect(window.currentUserSession.name).toBe('Test');
-      expect(window.currentUserSession.role).toBe('teacher');
-      expect(window.currentUserSession.serverAuth).toBe(true);
+      const session = getCurrentUserSession();
+      expect(session).toBeDefined();
+      expect(session.name).toBe('Test');
+      expect(session.role).toBe('teacher');
+      expect(session.serverAuth).toBe(true);
     });
 
     test('removes gemini key from localStorage when server configured', async () => {
@@ -203,7 +223,8 @@ describe('server-backend.js', () => {
         .mockResolvedValueOnce(mockResponse({ configured: true }))
         .mockResolvedValueOnce(
           mockResponse({ authenticated: true, user: { name: 'T', role: 'student', id: '1' } }),
-        );
+        )
+        .mockResolvedValue(mockResponse([]));
       await initServerBackend();
       expect(localStorage.getItem('gemini_api_key')).toBeNull();
     });
@@ -221,9 +242,10 @@ describe('server-backend.js', () => {
       globalThis.fetch
         .mockResolvedValueOnce(mockResponse({ status: 'ok' }))
         .mockResolvedValueOnce(mockResponse({ configured: false }))
-        .mockResolvedValueOnce(mockResponse({ authenticated: true, user }));
+        .mockResolvedValueOnce(mockResponse({ authenticated: true, user }))
+        .mockResolvedValue(mockResponse([]));
       await initServerBackend();
-      expect(window.currentUserSession.contact).toBe('phone');
+      expect(getCurrentUserSession().contact).toBe('phone');
     });
   });
 
@@ -236,7 +258,6 @@ describe('server-backend.js', () => {
     });
 
     test('fetches and stores data from server', async () => {
-      window.localData = { books: [], assignments: [], submissions: [], students: [] };
       globalThis.fetch
         .mockResolvedValueOnce(mockResponse({ status: 'ok' }))
         .mockResolvedValueOnce(mockResponse([{ id: 'b1' }]))
@@ -246,15 +267,14 @@ describe('server-backend.js', () => {
       await checkServerHealth();
       syncDataFromServer();
       await new Promise((r) => setTimeout(r, 50));
-      expect(window.localData.books).toEqual([{ id: 'b1' }]);
-      expect(window.localData.assignments).toEqual([{ id: 'a1' }]);
-      expect(window.localData.submissions).toEqual([{ id: 's1' }]);
-      expect(window.localData.students).toEqual([{ id: 'st1' }]);
-      expect(window.saveLocalData).toHaveBeenCalled();
+      expect(localData.books).toEqual([{ id: 'b1' }]);
+      expect(localData.assignments).toEqual([{ id: 'a1' }]);
+      expect(localData.submissions).toEqual([{ id: 's1' }]);
+      expect(localData.students).toEqual([{ id: 'st1' }]);
+      expect(saveLocalData).toHaveBeenCalled();
     });
 
     test('handles empty data from server', async () => {
-      window.localData = { books: [], assignments: [], submissions: [], students: [] };
       globalThis.fetch
         .mockResolvedValueOnce(mockResponse({ status: 'ok' }))
         .mockResolvedValueOnce(mockResponse([]))
@@ -264,12 +284,11 @@ describe('server-backend.js', () => {
       await checkServerHealth();
       syncDataFromServer();
       await new Promise((r) => setTimeout(r, 50));
-      expect(window.localData.books).toEqual([]);
-      expect(window.saveLocalData).toHaveBeenCalled();
+      expect(localData.books).toEqual([]);
+      expect(saveLocalData).toHaveBeenCalled();
     });
 
     test('continues on partial fetch failure', async () => {
-      window.localData = { books: [], assignments: [], submissions: [], students: [] };
       globalThis.fetch
         .mockResolvedValueOnce(mockResponse({ status: 'ok' }))
         .mockResolvedValueOnce(mockResponse([{ id: 'b1' }]))
@@ -279,7 +298,7 @@ describe('server-backend.js', () => {
       await checkServerHealth();
       syncDataFromServer();
       await new Promise((r) => setTimeout(r, 50));
-      expect(window.localData.books).toEqual([{ id: 'b1' }]);
+      expect(localData.books).toEqual([{ id: 'b1' }]);
     });
   });
 });

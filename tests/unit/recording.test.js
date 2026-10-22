@@ -1,15 +1,24 @@
+const mockSpeak = jest.fn();
+
+jest.mock('../../src/modules/i18n.js', () => ({
+  __: jest.fn((k) => k),
+}));
+
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: (...args) => mockSpeak(...args),
+}));
+
 describe('recording.js', () => {
   beforeEach(() => {
     jest.resetModules();
+    mockSpeak.mockClear();
     document.body.innerHTML = '<button id="btn-mic-input"></button>';
-    window.__ = jest.fn((k) => k);
-    window.speak = jest.fn();
   });
 
   test('toggleAudioRecording shows unsupported when no getUserMedia', async () => {
     const { toggleAudioRecording } = await import('../../src/modules/recording.js');
     toggleAudioRecording();
-    expect(window.speak).toHaveBeenCalledWith('micUnsupported');
+    expect(mockSpeak).toHaveBeenCalledWith('micUnsupported');
   });
 
   test('toggleAudioRecording calls getUserMedia', async () => {
@@ -55,7 +64,7 @@ describe('recording.js', () => {
     await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
-    expect(window.speak).toHaveBeenCalledWith('micStart');
+    expect(mockSpeak).toHaveBeenCalledWith('micStart');
   });
 
   test('toggleAudioRecording stops recording', async () => {
@@ -79,6 +88,6 @@ describe('recording.js', () => {
     await Promise.resolve();
     await Promise.resolve();
     toggleAudioRecording();
-    expect(window.speak).toHaveBeenCalledWith('micStop');
+    expect(mockSpeak).toHaveBeenCalledWith('micStop');
   });
 });

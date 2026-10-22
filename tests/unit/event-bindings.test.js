@@ -4,6 +4,15 @@
  */
 import { bindAllEvents } from '../../src/modules/event-bindings.js';
 
+jest.mock('../../src/modules/speech.js', () => ({
+  speak: jest.fn(),
+  toggleTtsEngine: jest.fn(),
+  toggleAudioCoPilot: jest.fn(),
+  toggleScreenReaderMode: jest.fn(),
+  setupAccessibleVoices: jest.fn(),
+  screenReaderMode: false,
+}));
+
 beforeEach(() => {
   jest.useFakeTimers();
   Element.prototype.scrollIntoView = jest.fn();

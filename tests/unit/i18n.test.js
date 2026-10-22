@@ -135,9 +135,10 @@ describe('applyJsTranslations', () => {
   });
 
   test('updates age level button when element exists', () => {
-    window.ageLevelLabels = ['تلقائي', 'طفل', 'مراهق', 'بالغ'];
+    i18n.ageLevelAuto = 'تلقائي';
+    i18n.ageButton = 'العمر: {0}';
     applyJsTranslations();
     const btn = document.getElementById('btn-age-level');
-    expect(btn).toBeTruthy();
+    expect(btn.textContent).toBe('العمر: تلقائي');
   });
 });
