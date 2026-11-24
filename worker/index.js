@@ -1,3 +1,5 @@
+import { tokenHash, securityState, validateSecuritySession, securityRoutes, auditEvent, auditTarget } from './security-controls.js';
+import { accessRoutes, recordAllowed, scopeFilter, teacherApproved } from './access-policy.js';
 const SESSION_COOKIE = 'cloud_school_sid';
 const SESSION_TTL = 86400;
 const ALLOWED_COLLECTIONS = new Set([
@@ -16,6 +18,7 @@ const COLLECTION_PERMISSIONS = {
   assignments: { read: ['student', 'teacher', 'admin', 'parent'], write: ['teacher', 'admin'] },
   submissions: {
     read: ['teacher', 'admin', 'parent'],
+    readOwn: ['student'],
     writeOwn: ['student'],
     write: ['teacher', 'admin'],
   },
@@ -39,8 +42,20 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3001',
 ];
 const STUDENT_EDITABLE_FIELDS = {
-  submissions: ['content', 'file_url', 'student_name', 'notes'],
-  exam_results: ['answers', 'student_notes'],
+  submissions: [
+    'content',
+    'file_url',
+    'student_name',
+    'notes',
+    'assignment_id',
+    'assignmentId',
+    'quizId',
+    'quizTitle',
+    'studentName',
+    'studentAnswer',
+    'timestamp',
+  ],
+  exam_results: ['answers', 'student_notes', 'classId'],
 };
 const MAX_BODY_SIZE = 65536;
 const MAX_STRING_LENGTH = 10000;
@@ -65,12 +80,12 @@ const TABLE_MAP = {
 
 // Common typed columns per table (subsets of the body keys to extract)
 const EXTRACT_COLUMNS = {
-  curriculum_modules: ['title', 'subject', 'grade_level'],
-  assignments: ['title', 'subject', 'grade_level'],
-  submissions: ['assignment_id', 'student_id', 'student_name', 'status'],
-  students: ['name', 'email', 'parent_email', 'grade_level', 'age_group'],
-  notifications: ['title', 'category', 'is_read'],
-  exam_results: ['student_id', 'exam_title', 'score', 'total'],
+  curriculum_modules: ['class_id', 'title', 'subject', 'grade_level'],
+  assignments: ['class_id', 'title', 'subject', 'grade_level'],
+  submissions: ['class_id', 'assignment_id', 'student_id', 'student_name', 'status'],
+  students: ['class_id', 'name', 'email', 'parent_email', 'grade_level', 'age_group'],
+  notifications: ['class_id', 'title', 'category', 'is_read'],
+  exam_results: ['class_id', 'student_id', 'exam_title', 'score', 'total'],
   users: ['firebase_uid', 'email', 'name', 'role', 'age_group', 'parent_contact'],
 };
 
@@ -101,7 +116,7 @@ function parseCookies(header) {
   (header || '').split(';').forEach((pair) => {
     const [key, ...val] = pair.trim().split('=');
     if (key) {
-      cookies[key.trim()] = decodeURIComponent(val.join('='));
+      try { cookies[key.trim()] = decodeURIComponent(val.join('=')); } catch { /* malformed cookie is not an authenticated token */ }
     }
   });
   return cookies;
@@ -194,8 +209,8 @@ async function bumpRateLimit(env, key, windowSec) {
 
 async function checkAuthRateLimit(env, ip, max, windowSec) {
   const count = await bumpRateLimit(env, `authrl:${ip}`, windowSec);
-  // Fail open so a D1 outage does not take the whole app down.
-  return count === null || count <= max;
+  // Authentication must stop rather than silently dropping abuse controls.
+  return count !== null && count <= max;
 }
 
 function stripMetaFields(obj) {
@@ -234,7 +249,7 @@ function rowToItem(row) {
   const item = { ...data, id: row.id };
   // Typed columns may have values that are not in data (e.g., created_by, created_at)
   // But data from the client already has camelCase versions; prefer data values
-  if (!item.created_by && row.created_by) {
+  if (row.created_by) {
     item.created_by = row.created_by;
   }
   if (!item.created_at && row.created_at) {
@@ -249,7 +264,10 @@ function rowToItem(row) {
       continue;
     }
     const camel = snakeToCamel(key);
-    if (item[camel] === undefined && value !== null) {
+    if (
+      (item[camel] === undefined || ['student_id', 'class_id', 'created_by'].includes(key)) &&
+      value !== null
+    ) {
       item[camel] = value;
     }
   }
@@ -289,12 +307,15 @@ async function verifyFirebaseToken(idToken, apiKey) {
   if (!data.users || data.users.length === 0) {
     throw new Error('No Firebase user found');
   }
+  if (!data.users[0].localId || !data.users[0].email || data.users[0].disabled) {
+    throw new Error('Invalid Firebase identity');
+  }
   return data.users[0];
 }
 
 async function checkRateLimit(env, key, max, windowSec) {
   const count = await bumpRateLimit(env, `rl:${key}`, windowSec);
-  return count === null || count <= max;
+  return count !== null && count <= max;
 }
 
 async function safeGetSession(env, token) {
@@ -307,24 +328,29 @@ async function safeGetSession(env, token) {
       return null;
     }
     const session = JSON.parse(raw);
-    if (session.expiresAt < Date.now()) {
+    if (
+      !Number.isFinite(session.expiresAt) ||
+      session.expiresAt < Date.now() ||
+      !session.userId ||
+      !['student', 'teacher', 'parent', 'admin'].includes(session.role)
+    ) {
       await env.SESSIONS.delete(`sess:${token}`);
       return null;
     }
-    return session;
+    return await validateSecuritySession(env, session, token);
   } catch (err) {
     return null;
   }
 }
 
-export default {
+const handler = {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method;
       const corsOrigin = env.CORS_ORIGIN || 'https://cloud-school-6251a.web.app';
-      const cors = corsHeaders(corsOrigin);
+      const cors = corsHeaders(request.headers.get('Origin') || corsOrigin);
 
       if (method === 'OPTIONS') {
         return new Response(null, { status: 204, headers: cors });
@@ -332,11 +358,15 @@ export default {
 
       async function requireAuth() {
         const cookies = parseCookies(request.headers.get('Cookie'));
-        return await safeGetSession(env, cookies[SESSION_COOKIE]);
+        const session = await safeGetSession(env, cookies[SESSION_COOKIE]);
+        if (session) {env.__securityContext.actorId = session.userId;}
+        return session;
       }
 
       function respond(data, status = 200) {
         const resp = json(data, status);
+        resp.headers.set('Cache-Control', 'no-store');
+        resp.headers.set('X-Content-Type-Options', 'nosniff');
         for (const [key, value] of Object.entries(cors)) {
           resp.headers.set(key, value);
         }
@@ -344,15 +374,49 @@ export default {
       }
 
       function rateLimitKey(req) {
-        const cookies = parseCookies(req.headers.get('Cookie'));
         const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
-        const session = cookies[SESSION_COOKIE] || ip;
-        return session.slice(0, 64);
+        return ip.slice(0, 64);
       }
 
       // Health Check
       if (path === '/api/health' && method === 'GET') {
         return respond({ status: 'ok', timestamp: new Date().toISOString() });
+      }
+
+      if (
+        ['POST', 'PUT', 'DELETE'].includes(method) &&
+        !isValidOrigin(request.headers.get('Origin'))
+      ) {
+        return respond({ error: 'Forbidden' }, 403);
+      }
+
+      // Enforce bytes actually received, not an optional/forged Content-Length.
+      if (['POST', 'PUT'].includes(method)) {
+        const limit = path.startsWith('/api/gemini/') ? 8 * 1024 * 1024 : MAX_BODY_SIZE;
+        const reader = request.body?.getReader();
+        const chunks = [];
+        let size = 0;
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              break;
+            }
+            size += value.byteLength;
+            if (size > limit) {
+              await reader.cancel();
+              return respond({ error: 'Payload too large' }, 413);
+            }
+            chunks.push(value);
+          }
+        }
+        const bytes = new Uint8Array(size);
+        let offset = 0;
+        for (const chunk of chunks) {
+          bytes.set(chunk, offset);
+          offset += chunk.byteLength;
+        }
+        request = new Request(request.url, { method, headers: request.headers, body: bytes });
       }
 
       // Rate limiting
@@ -368,6 +432,8 @@ export default {
           return respond({ error: 'Payload too large' }, 413);
         }
       }
+
+      if (path.startsWith('/api/security/')) {return await securityRoutes(request, env, await requireAuth(), respond);}
 
       // ====== Auth Routes ======
       if (path === '/api/auth/session' && method === 'GET') {
@@ -390,6 +456,11 @@ export default {
         const cookies = parseCookies(request.headers.get('Cookie'));
         const token = cookies[SESSION_COOKIE];
         if (token) {
+          const session = await safeGetSession(env, token);
+          if (session) {
+            env.__securityContext.actorId = session.userId;
+            await env.DB.prepare('INSERT OR REPLACE INTO revoked_sessions (token_hash,expires_at) VALUES (?,?)').bind(await tokenHash(token), session.expiresAt).run();
+          }
           await env.SESSIONS.delete(`sess:${token}`);
         }
         const resp = respond({ success: true });
@@ -424,6 +495,7 @@ export default {
           } catch {
             return respond({ error: 'Invalid JSON' }, 400);
           }
+          if (!body || typeof body !== 'object' || Array.isArray(body)) {return respond({ error: 'JSON object required' }, 400);}
           const { idToken } = body;
           if (!idToken || typeof idToken !== 'string') {
             return respond({ error: 'Firebase ID token is required' }, 400);
@@ -432,9 +504,22 @@ export default {
           const fbUser = await verifyFirebaseToken(idToken, apiKey);
           const email = (fbUser.email || '').toLowerCase();
 
-          let user = await env.DB.prepare('SELECT * FROM users WHERE email = ? OR firebase_uid = ?')
-            .bind(email, fbUser.localId)
+          let user = await env.DB.prepare('SELECT * FROM users WHERE firebase_uid = ?')
+            .bind(fbUser.localId)
             .first();
+          if (!user) {
+            const legacy = await env.DB.prepare('SELECT * FROM users WHERE email = ?')
+              .bind(email)
+              .first();
+            if (legacy) {
+              // Never take over an account bound to another provider UID.
+              // Legacy linking requires verified email; records are preserved on refusal.
+              if (legacy.firebase_uid || fbUser.emailVerified !== true) {
+                return respond({ error: 'Account linking requires administrator review' }, 409);
+              }
+              user = legacy;
+            }
+          }
 
           if (!user) {
             const newId = generateId();
@@ -463,8 +548,17 @@ export default {
             return respond({ error: 'User not found after registration' }, 500);
           }
 
+          const profileData = JSON.parse(user.data || '{}');
+          profileData.emailVerified = fbUser.emailVerified === true;
+          await env.DB.prepare('UPDATE users SET data = ? WHERE id = ?')
+            .bind(JSON.stringify(profileData), user.id)
+            .run();
+          const security = await securityState(env, user.id);
+          if (security.suspended) {return respond({ error: 'Account unavailable. Contact school administration.' }, 403);}
+          env.__securityContext.actorId = user.id;
           const token = generateId();
           const session = {
+            securityVersion: security.session_version,
             userId: user.id,
             email: user.email,
             name: user.name,
@@ -513,7 +607,9 @@ export default {
           } catch {
             return respond({ error: 'Invalid JSON' }, 400);
           }
+          if (!body || typeof body !== 'object' || Array.isArray(body)) {return respond({ error: 'JSON object required' }, 400);}
           const { idToken, name, role, age, parentContact, adminInviteCode } = body;
+          if (!['student', 'teacher', 'parent', 'admin'].includes(role)) { return respond({ error: 'Valid account role required' }, 400); }
           if (!idToken || typeof idToken !== 'string') {
             return respond({ error: 'Firebase ID token is required' }, 400);
           }
@@ -523,6 +619,12 @@ export default {
           const displayName = sanitizeString(
             name || fbUser.displayName || email.split('@')[0] || 'User',
           );
+          if (role === 'student' && (!Number.isInteger(age) || age < 12 || age > 100)) {
+            return respond({error:'Student age must be between 12 and 100'},400);
+          }
+          if (role === 'admin' && (!adminInviteCode || !(await constantTimeCompare(adminInviteCode,env.ADMIN_INVITE_CODE || '')))) {
+            return respond({error:'Administrator invitation required'},403);
+          }
           const userRole = await (async () => {
             const allowed = ['student', 'teacher', 'parent'];
             if (role === 'admin' && adminInviteCode) {
@@ -543,7 +645,7 @@ export default {
 
           const newId = generateId();
           const now = new Date().toISOString();
-          const ageGroup = age ? `${age}-17` : '7-12';
+          const ageGroup = role === 'student' ? (age < 18 ? '12-17' : '18+') : 'adult';
           const parentContactSanitized = sanitizeString(parentContact || '');
           const data = JSON.stringify({
             name: displayName,
@@ -577,8 +679,17 @@ export default {
             return respond({ error: 'Registration failed' }, 500);
           }
 
+          const profileData = JSON.parse(user.data || '{}');
+          profileData.emailVerified = fbUser.emailVerified === true;
+          await env.DB.prepare('UPDATE users SET data = ? WHERE id = ?')
+            .bind(JSON.stringify(profileData), user.id)
+            .run();
+          const security = await securityState(env, user.id);
+          if (security.suspended) {return respond({ error: 'Account unavailable. Contact school administration.' }, 403);}
+          env.__securityContext.actorId = user.id;
           const token = generateId();
           const session = {
+            securityVersion: security.session_version,
             userId: user.id,
             email: user.email,
             name: user.name,
@@ -650,6 +761,7 @@ export default {
       }
 
       if (path === '/api/admin/migrate' && method === 'POST') {
+        if (env.ENABLE_LEGACY_MIGRATION !== 'true') {return respond({ error: 'Legacy import is disabled. Use the approved offline migration procedure.' }, 403);}
         const session = await requireAuth();
         if (!session) {
           return respond({ error: 'Not authenticated' }, 401);
@@ -718,6 +830,10 @@ export default {
         return respond({ success: true, report });
       }
 
+      if (path.startsWith('/api/access/')) {
+        return await accessRoutes(request, env, await requireAuth(), respond);
+      }
+
       // ====== Data CRUD Routes ======
       const dataMatch = path.match(/^\/api\/data\/([^/]+)(?:\/([^/]+))?$/);
       if (dataMatch) {
@@ -754,6 +870,14 @@ export default {
           return false;
         }
 
+        function canCreate() {
+          return perms.write.includes(role) || !!perms.writeOwn?.includes(role);
+        }
+
+        async function canReadItem(row) {
+          return canRead() && recordAllowed(env, session, collection, row);
+        }
+
         function rejectMutatingFromInvalidOrigin() {
           if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
             const origin = request.headers.get('Origin');
@@ -774,36 +898,11 @@ export default {
           const params = [];
           const conditions = [];
 
-          if (perms.readOwn && perms.readOwn.includes(role) && !perms.read.includes(role)) {
-            conditions.push('created_by = ?');
-            params.push(session.userId);
-          } else if (
-            perms.writeOwn &&
-            perms.writeOwn.includes(role) &&
-            !perms.write.includes(role)
-          ) {
-            conditions.push('created_by = ?');
-            params.push(session.userId);
-          }
-
-          if (
-            role === 'parent' &&
-            (collection === 'submissions' || collection === 'exam_results')
-          ) {
-            const parentUser = await env.DB.prepare('SELECT * FROM users WHERE id = ?')
-              .bind(session.userId)
-              .first();
-            const children = await env.DB.prepare('SELECT id FROM users WHERE parent_contact = ?')
-              .bind(parentUser?.email || '')
-              .all();
-            const childIds = (children.results || []).map((c) => c.id);
-            if (childIds.length > 0) {
-              const placeholders = childIds.map(() => '?').join(',');
-              conditions.push(`student_id IN (${placeholders})`);
-              params.push(...childIds);
-            } else {
-              conditions.push('1=0');
-            }
+          const scope = scopeFilter(session, collection);
+          conditions.push(scope.sql);
+          params.push(...scope.args);
+          if (['student', 'parent'].includes(role) && ['curriculum_modules', 'assignments'].includes(collection)) {
+            conditions.push("CASE WHEN json_valid(data) THEN COALESCE(json_extract(data, '$.publicationStatus'), 'published') != 'draft' ELSE 0 END");
           }
 
           if (conditions.length > 0) {
@@ -835,7 +934,16 @@ export default {
           if (!canRead()) {
             return respond({ error: 'Forbidden' }, 403);
           }
-          const items = await getFilteredItems();
+          let items = await getFilteredItems();
+          if (['student', 'parent'].includes(role) && ['curriculum_modules', 'assignments'].includes(collection)) {
+            items = items.filter(item => item.publicationStatus !== 'draft');
+          }
+          if (collection === 'assignments' && ['student', 'parent'].includes(role)) {
+            for (const item of items) {
+              delete item.correct;
+              delete item.ideal;
+            }
+          }
           return respond(items);
         }
 
@@ -849,15 +957,19 @@ export default {
             return respond({ error: 'Item not found' }, 404);
           }
           const item = rowToItem(row);
-          if (!canWrite(item) && !canRead()) {
+          if (!(await canReadItem(row))) {
             return respond({ error: 'Forbidden' }, 403);
+          }
+          if (collection === 'assignments' && ['student', 'parent'].includes(role)) {
+            delete item.correct;
+            delete item.ideal;
           }
           return respond(item);
         }
 
         // Create item
         if (!id && method === 'POST') {
-          if (!canWrite(null)) {
+          if (!canCreate()) {
             return respond({ error: 'Forbidden' }, 403);
           }
           let body;
@@ -866,7 +978,11 @@ export default {
           } catch {
             return respond({ error: 'Invalid JSON' }, 400);
           }
+          if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            return respond({ error: 'JSON object required' }, 400);
+          }
           let safeBody = stripMetaFields(body);
+          if (['curriculum_modules', 'assignments'].includes(collection) && safeBody.publicationStatus !== undefined && !['draft', 'published'].includes(safeBody.publicationStatus)) { return respond({ error: 'Invalid publication status' }, 400); }
 
           // Restrict student-created fields to editable whitelist
           if (
@@ -887,17 +1003,90 @@ export default {
 
           // Force student_id to session user for student-created items
           if (perms.writeOwn && perms.writeOwn.includes(role) && !perms.write.includes(role)) {
+            if (collection === 'submissions') {
+              safeBody.assignment_id =
+                safeBody.assignmentId || safeBody.assignment_id || safeBody.quizId || '';
+            }
             safeBody.student_id = session.userId;
             safeBody.created_by = session.userId;
           }
 
+          if (session.role === 'teacher' && !(await teacherApproved(env, session.userId))) {
+            return respond({ error: 'Teacher approval required' }, 403);
+          }
+          if (['submissions', 'exam_results'].includes(collection)) {
+            if (collection === 'submissions' && session.role === 'student') {
+              const assignment = await env.DB.prepare('SELECT * FROM assignments WHERE id=?')
+                .bind(safeBody.assignment_id)
+                .first();
+              if (!assignment || !(await recordAllowed(env, session, 'assignments', assignment))) {
+                return respond({ error: 'Assignment not available to this student' }, 403);
+              }
+              safeBody.class_id = assignment.class_id;
+              safeBody.classId = assignment.class_id;
+              const task = JSON.parse(assignment.data || '{}');
+              safeBody.quizTitle = task.title || assignment.title || '';
+              safeBody.studentName = session.name || '';
+              if (task.type === 'mcq' && ['A', 'B', 'C', 'D'].includes(task.correct)) {
+                safeBody.initialScore = safeBody.studentAnswer === task.correct ? 100 : 0;
+                safeBody.graderFeedback = 'تم التصحيح آليًا على الخادم';
+                safeBody.status = 'graded';
+              } else {
+                safeBody.status = 'pending_review';
+                safeBody.graderFeedback = 'بانتظار مراجعة المدرس';
+              }
+            }
+            if (collection === 'exam_results' && session.role === 'student') {
+              if (
+                !(await recordAllowed(env, session, 'assignments', { class_id: safeBody.classId }))
+              ) {
+                return respond({ error: 'Class not assigned' }, 403);
+              }
+              safeBody.class_id = safeBody.classId;
+            }
+            if (session.role === 'teacher') {
+              const studentId = safeBody.studentId || safeBody.student_id;
+              if (
+                !(await recordAllowed(env, session, collection, {
+                  student_id: studentId,
+                  class_id: safeBody.classId || safeBody.class_id,
+                }))
+              ) {
+                return respond({ error: 'Student outside assigned classes' }, 403);
+              }
+            }
+          } else if (session.role !== 'admin') {
+            const classId = safeBody.classId || safeBody.class_id;
+            if (!(await recordAllowed(env, session, collection, { class_id: classId }))) {
+              return respond({ error: 'Class not assigned' }, 403);
+            }
+          }
+
+          if (collection === 'assignments' && safeBody.lessonId) {
+            if (typeof safeBody.lessonId !== 'string') {return respond({ error: 'Invalid lesson link' }, 400);}
+            const lesson = await env.DB.prepare('SELECT * FROM curriculum_modules WHERE id=?').bind(safeBody.lessonId).first();
+            if (!lesson || lesson.class_id !== safeBody.classId || !(await recordAllowed(env, session, 'curriculum_modules', lesson))) {return respond({ error: 'Lesson must belong to the assignment class' }, 403);}
+          }
+          const mutation = body.clientMutationId;
+          if (mutation !== undefined && (typeof mutation !== 'string' || !/^[a-zA-Z0-9-]{8,120}$/.test(mutation))) {return respond({error:'Invalid retry identifier'},400);}
+          let newId = generateId();
+          if (mutation) {
+            const digest = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(`${session.userId}:${collection}:${mutation}`));
+            newId = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2,'0')).join('');
+          }
+          if (mutation) {
+            const replay=await env.DB.prepare(`SELECT * FROM ${table} WHERE id=?`).bind(newId).first();
+            if (replay) {
+              if (replay.created_by !== session.userId) {return respond({error:'Forbidden'},403);}
+              return respond(rowToItem(replay),200);
+            }
+          }
           // Check collection size limit
           const { total } = await env.DB.prepare(`SELECT COUNT(*) as total FROM ${table}`).first();
           if (total >= MAX_ARRAY_ITEMS) {
             return respond({ error: 'Collection size limit exceeded' }, 413);
           }
 
-          const newId = generateId();
           const now = new Date().toISOString();
 
           // Store the full body as data JSON
@@ -917,7 +1106,7 @@ export default {
 
           const placeholders = columns.map(() => '?');
           await env.DB.prepare(
-            `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`,
+            `INSERT OR IGNORE INTO ${table} (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`,
           )
             .bind(...values)
             .run();
@@ -936,7 +1125,11 @@ export default {
           } catch {
             return respond({ error: 'Invalid JSON' }, 400);
           }
+          if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            return respond({ error: 'JSON object required' }, 400);
+          }
           let safeBody = stripMetaFields(body);
+          if (['curriculum_modules', 'assignments'].includes(collection) && safeBody.publicationStatus !== undefined && !['draft', 'published'].includes(safeBody.publicationStatus)) { return respond({ error: 'Invalid publication status' }, 400); }
 
           // Restrict student-updated fields to editable whitelist
           if (
@@ -961,10 +1154,16 @@ export default {
           if (!existing) {
             return respond({ error: 'Item not found' }, 404);
           }
-          if (!canWrite(rowToItem(existing))) {
+          if (!canWrite(existing) || !(await recordAllowed(env, session, collection, existing))) {
             return respond({ error: 'Forbidden' }, 403);
           }
 
+          if (session.role === 'student' && existing.status === 'graded') {
+            return respond(
+              { error: 'Graded submissions cannot be edited. Submit a new answer if permitted.' },
+              409,
+            );
+          }
           // Merge existing data with new body
           let existingData = {};
           try {
@@ -972,7 +1171,49 @@ export default {
           } catch (_e) {
             existingData = {};
           }
+          // Scope/ownership moves are administrative operations, never teacher edits.
+          if (session.role !== 'admin') {
+            for (const key of [
+              'quizId',
+              'assignmentId',
+              'assignment_id',
+              'classId',
+              'class_id',
+              'studentId',
+              'student_id',
+              'createdBy',
+              'created_by',
+            ]) {
+              delete safeBody[key];
+            }
+          }
+          if (
+            ['submissions', 'exam_results'].includes(collection) &&
+            ['teacher', 'admin'].includes(role)
+          ) {
+            for (const field of ['initialScore', 'score']) {
+              if (!Object.prototype.hasOwnProperty.call(safeBody, field)) {
+                continue;
+              }
+              const grade = safeBody[field];
+              if (typeof grade !== 'number' || !Number.isFinite(grade) || grade < 0 || grade > 100) {
+                return respond({ error: 'Grade must be between 0 and 100' }, 400);
+              }
+            }
+          }
           const mergedData = { ...existingData, ...safeBody };
+          // An ordinary edit must not reinterpret legacy JSON as new typed scope.
+          for (const column of ['created_by', 'student_id', 'class_id', 'assignment_id']) {
+            if (Object.prototype.hasOwnProperty.call(existing, column)) {
+              mergedData[column] = existing[column];
+              mergedData[snakeToCamel(column)] = existing[column];
+            }
+          }
+          if (collection === 'assignments' && mergedData.lessonId) {
+            if (typeof mergedData.lessonId !== 'string') {return respond({ error: 'Invalid lesson link' }, 400);}
+            const lesson = await env.DB.prepare('SELECT * FROM curriculum_modules WHERE id=?').bind(mergedData.lessonId).first();
+            if (!lesson || lesson.class_id !== existing.class_id || !(await recordAllowed(env, session, 'curriculum_modules', lesson))) {return respond({ error: 'Lesson must belong to the assignment class' }, 403);}
+          }
           const dataJson = JSON.stringify(mergedData);
           const now = new Date().toISOString();
 
@@ -1006,7 +1247,7 @@ export default {
           if (!existing) {
             return respond({ error: 'Item not found' }, 404);
           }
-          if (!canWrite(rowToItem(existing))) {
+          if (!canWrite(existing) || !(await recordAllowed(env, session, collection, existing))) {
             return respond({ error: 'Forbidden' }, 403);
           }
 
@@ -1042,7 +1283,7 @@ export default {
 
           // Compute prompt SHA-256 hash
           const encoder = new TextEncoder();
-          const dataBuffer = encoder.encode(bodyText);
+          const dataBuffer = encoder.encode(`${model}:${session.userId}:${bodyText}`);
           const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
           const hashArray = Array.from(new Uint8Array(hashBuffer));
           const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -1114,6 +1355,31 @@ export default {
   },
 };
 
+
+export default {
+  async fetch(request, env, ctx) {
+    const requestId = crypto.randomUUID();
+    const context = { actorId: null };
+    const scopedEnv = { ...env, __securityContext: context };
+    const response = await handler.fetch(request, scopedEnv, ctx);
+    response.headers.set('X-Request-ID', requestId);
+    response.headers.set('Cache-Control', 'no-store');
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    const path = new URL(request.url).pathname;
+    // Never store bodies, answers, emails, tokens, IPs or query strings.
+    if (path.startsWith('/api/') && path !== '/api/health' && request.method !== 'OPTIONS' && !(response.status === 429 && !context.actorId)) {
+      try {
+        await auditEvent(env, { actorId: context.actorId, ...auditTarget(path, request.method), outcome: response.status, requestId });
+      } catch {
+        // Effects may already be committed. Do not turn success into an ambiguous retry.
+        console.error(JSON.stringify({ event: 'security_audit_unavailable', requestId }));
+        response.headers.set('X-Security-Audit', 'degraded');
+      }
+    }
+    return response;
+  },
+};
+
 async function reportErrorToSentry(err, request, env) {
   const dsn = env.SENTRY_DSN || '';
   if (!dsn) {
@@ -1146,14 +1412,14 @@ async function reportErrorToSentry(err, request, env) {
         ],
       },
       request: {
-        url: request.url,
+        url: `${new URL(request.url).origin}${new URL(request.url).pathname.startsWith('/api/') ? '/api/[redacted]' : '/'}`,
         method: request.method,
         // Allowlist only safe headers — never forward Cookie/Authorization
         // or any other header that could carry session tokens.
         headers: {
           'user-agent': request.headers.get('user-agent') || '',
           'content-type': request.headers.get('content-type') || '',
-          referer: request.headers.get('referer') || '',
+          // Referrers and query strings can contain private data; never forward them.
         },
       },
       environment: env.ENVIRONMENT || 'production',
