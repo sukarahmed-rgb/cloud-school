@@ -59,8 +59,8 @@ export function renderStudentDashboard() {
     const last = submissions[0];
     quizDiv.innerHTML =
       '<div class="space-y-3">' +
-      `<div class="grid grid-cols-2 gap-2">${statCard(ctx.__('dashboardQuizzesSolved'), submissions.length, 'text-yellow-400')}${statCard(ctx.__('dashboardAverage'), `${avg}%`, avg >= 80 ? 'text-green-400' : avg >= 50 ? 'text-yellow-400' : 'text-red-400')}</div>` +
-      `<p class="text-gray-300 text-sm">${ctx.escapeHtml(ctx.__('dashboardLastQuiz'))} ${ctx.escapeHtml(last.quizTitle || '')} — ${last.initialScore || 0}%</p>${renderGradeDistribution(
+      `<div class="grid grid-cols-2 gap-2">${statCard(ctx.__('dashboardQuizzesSolved'), submissions.length, 'text-yellow-400')}${statCard(ctx.__('dashboardAverage'), avg === null ? 'بانتظار التقييم' : `${avg}%`, avg === null ? 'text-gray-300' : avg >= 80 ? 'text-green-400' : avg >= 50 ? 'text-yellow-400' : 'text-red-400')}</div>` +
+      `<p class="text-gray-300 text-sm">${ctx.escapeHtml(ctx.__('dashboardLastQuiz'))} ${ctx.escapeHtml(last.quizTitle || '')} — ${last.initialScore === undefined ? 'بانتظار التقييم' : `${last.initialScore  }%`}</p>${renderGradeDistribution(
         ctx,
         stats.gradeDistribution,
       )}</div>`;
@@ -137,7 +137,7 @@ export function renderStudentDashboard() {
       recentDiv.innerHTML = `<div class="space-y-1 text-sm">${stats.recentActivity
         .map(
           (a) =>
-            `<p class="text-gray-300">${a.type === 'quiz' ? '📝' : '🎮'} ${ctx.escapeHtml(a.title || '')} — ${a.score}% <span class="text-gray-500">${a.date ? a.date.slice(0, 10) : ''}</span></p>`,
+            `<p class="text-gray-300">${a.type === 'quiz' ? '📝' : '🎮'} ${ctx.escapeHtml(a.title || '')} — ${a.score === null ? 'بانتظار التقييم' : `${a.score  }%`} <span class="text-gray-500">${a.date ? a.date.slice(0, 10) : ''}</span></p>`,
         )
         .join('')}</div>`;
     }

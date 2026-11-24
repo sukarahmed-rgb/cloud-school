@@ -12,7 +12,7 @@ export function renderParentDashboard() {
 
   const linkedContact = currentUserSession?.childContact || '0555555555';
   const childSubmissions = localData.submissions.filter(
-    (s) => s.studentContact === linkedContact || s.parentContact === currentUserSession?.contact,
+    (s) => currentUserSession?.serverAuth || s.studentContact === linkedContact || s.parentContact === currentUserSession?.contact,
   );
 
   const childName =
@@ -32,7 +32,7 @@ export function renderParentDashboard() {
                 <h4 class="font-bold text-xl">${escapeHtml(s.quizTitle)}</h4>
                 <p class="text-xs text-gray-300">${escapeHtml(__('solveTime'))}: ${escapeHtml(s.timestamp)}</p>
             </div>
-            <span class="text-2xl font-black text-yellow-400">${escapeHtml(String(s.initialScore))} / 100</span>
+            <span class="text-2xl font-black text-yellow-400">${escapeHtml(s.initialScore === undefined ? 'بانتظار التقييم' : `${String(s.initialScore)  } / 100`)}</span>
         `;
     list.appendChild(item);
   });

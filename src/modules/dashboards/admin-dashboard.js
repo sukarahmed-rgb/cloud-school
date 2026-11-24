@@ -1,6 +1,6 @@
 // @ts-check
 // Admin Dashboard Module - لوحة قيادة المسؤول (Lazy loaded)
-import { localData } from '../app-state.js';
+import { localData, getCurrentUserSession } from '../app-state.js';
 import { escapeHtml } from '../helpers.js';
 import { saveLocalData } from '../local-data.js';
 import { saveStudentToFirebase } from '../teacher-management.js';
@@ -30,14 +30,18 @@ export function handleAdminCreateStudent(e) {
     .value;
   const grade = /** @type {HTMLInputElement} */ (document.getElementById('admin-student-grade'))
     .value;
-  const pin = secureRandomInt(1000, 10000).toString();
+  const pin = getCurrentUserSession()?.serverAuth ? '' : secureRandomInt(1000, 10000).toString();
 
   const newStudent = { name, grade, pin };
   localData.students.push(newStudent);
   saveLocalData();
   saveStudentToFirebase(newStudent);
 
-  speak(__('adminAccountCreated', name, pin));
+  speak(
+    getCurrentUserSession()?.serverAuth
+      ? 'تمت إضافة سجل إداري، وليس حساب دخول.'
+      : __('adminAccountCreated', name, pin),
+  );
   e.target.reset();
   renderAdminDashboard();
 }

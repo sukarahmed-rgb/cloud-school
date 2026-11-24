@@ -1,5 +1,4 @@
-const STATIC_CACHE = 'cloud-school-static-v4';
-const API_CACHE = 'cloud-school-api-v4';
+const STATIC_CACHE = 'cloud-school-static-v6';
 const MAX_CACHE_ENTRIES = 200;
 
 const STATIC_FILES = [
@@ -17,7 +16,6 @@ const STATIC_FILES = [
 ];
 
 const API_DOMAIN = 'cloud-school-api.cloud-school-subdomain.workers.dev';
-const API_TTL_MS = 5 * 60 * 1000;
 
 self.addEventListener('install', function (event) {
   event.waitUntil(
@@ -40,7 +38,7 @@ self.addEventListener('activate', function (event) {
         return Promise.all(
           keys
             .filter(function (k) {
-              return k !== STATIC_CACHE && k !== API_CACHE;
+              return k !== STATIC_CACHE;
             })
             .map(function (k) {
               return caches.delete(k);
@@ -56,11 +54,12 @@ self.addEventListener('activate', function (event) {
 self.addEventListener('fetch', function (event) {
   const url = new URL(event.request.url);
 
-  if (url.hostname === API_DOMAIN) {
+  if (url.hostname === API_DOMAIN || url.pathname.startsWith('/api/')) {
     if (event.request.method !== 'GET') {
       return;
     }
-    event.respondWith(networkFirst(event.request, API_CACHE, API_TTL_MS));
+    // Private API responses must never be reused across accounts or after logout.
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
     return;
   }
 

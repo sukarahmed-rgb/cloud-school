@@ -1,22 +1,20 @@
 {
   "langName": "English",
   "langChanged": "Switched to English. تم التبديل إلى الإنجليزية.",
-
   "authTitle": "Cloud School",
   "authSubtitle": "The comprehensive educational platform for the visually impaired and blind",
   "welcome": "Welcome hero to Cloud School",
   "welcomeMessage": "Welcome to the enhanced Cloud School educational platform for the visually impaired and blind. Please log in to get started.",
   "login": "Secure Login 🔑",
   "loginTitle": "Sign In",
-  "loginUsername": "📧 Username or Email:",
-  "loginPassword": "🔒 Password:",
-  "loginSubmit": "Login 🔑",
-  "registerNew": "Create New Account 📝",
+  "loginUsername": "Username or Email:",
+  "loginPassword": "Password:",
+  "loginSubmit": "Login",
+  "registerNew": "Create New Account",
   "demoLogin": "Quick Demo Login as Student 🚀",
   "registerFormOpen": "New account registration form. Select account type and enter your details.",
   "backToLogin": "Returning to login form.",
-
-  "registerTitle": "📝 Create New Account",
+  "registerTitle": "Create New Account",
   "registerName": "Full Name:",
   "registerContact": "Email or Phone Number:",
   "registerPassword": "🔒 Password:",
@@ -26,15 +24,13 @@
   "registerParentFields": "Linked student account (Phone / Email):",
   "registerSubmit": "Create Account ✅",
   "registerLoginLink": "Already have an account? Sign In",
-
   "roleStudent": "Student",
   "roleParent": "Parent",
-  "roleTeacher": "Teacher",
+  "roleTeacher": "🤖 Teacher",
   "roleAdmin": "Admin",
   "activeUser": "User: {0} ({1})",
   "demoUser": "Ahmed Khaled (Demo Student)",
   "logout": "Logout 🚪",
-
   "skipToContent": "Skip to main educational content",
   "themeDark": "Yellow/Black",
   "themeLight": "Black/White",
@@ -53,9 +49,7 @@
   "ageTeen": "Teen",
   "ageAdult": "Adult",
   "ageSet": "Age level set to: {0}",
-
   "langToggleLabel": "عربي / English",
-
   "sectionBooks": "📚 Textbooks",
   "sectionAssignments": "📝 Assignments",
   "sectionBraille": "🖐️ Smart Braille Board",
@@ -68,7 +62,6 @@
   "sectionStudyGroup": "Study Group",
   "sectionVision": "AI Vision",
   "sectionClose": "🔙 Back to Main Screen",
-
   "booksEmpty": "No books available.",
   "booksListen": "📖 Listen to Lesson",
   "booksSummarize": "🧠 Summarize with AI",
@@ -76,7 +69,6 @@
   "assignmentsSolve": "✍️ Solve Assignment",
   "assignmentSubmit": "Submit Solution ✅",
   "assignmentSubmitted": "Solution submitted successfully!",
-
   "brailleTitle": "🖐️ Smart Braille Board",
   "brailleEval": "🤖 Evaluate Braille Text",
   "brailleSubmit": "Form Braille Character",
@@ -86,7 +78,6 @@
   "brailleCleared": "Braille board cleared.",
   "brailleFirst": "Please write an answer in Braille or use voice input first.",
   "loadingBrailleTranslate": "Translating Braille...",
-
   "quizTitle": "🧠 Smart Quiz",
   "quizStart": "Start Quiz",
   "quizSubmit": "Confirm Answer ✅",
@@ -99,7 +90,6 @@
   "quizExcellent": "⭐ Excellent performance!",
   "quizGood": "👏 Good job, keep it up!",
   "quizTryAgain": "💪 Try again to improve!",
-
   "gameTrueFalse": "⏱️ Speed Challenge (True/False)",
   "gameSpeed": "🏆 Beat the Clock",
   "gameStory": "📖 Interactive AI Storyteller ✨",
@@ -125,26 +115,22 @@
   "gameUnclear": "I didn't understand the answer. Please try again.",
   "gameWrongScore": "❌ Wrong answer. Current score: {0}",
   "loadingStory": "Preparing your interactive story...",
-
   "tutorPlaceholder": "💬 Type your question here...",
   "tutorAsk": "Ask",
   "tutorThinking": "Connecting to AI Tutor...",
   "tutorAskFirst": "Ask the AI Tutor first.",
   "tutorError": "Sorry, I encountered an issue preparing the answer.",
-
   "storyGenerating": "Weaving your interactive story chapters...",
   "storyError": "Sorry, couldn't create the story right now.",
   "storyNext": "Next ➡️",
   "storyEnd": "🔚 End of Story",
-
   "micStart": "Recording started.",
   "micStop": "Recording ended. Transcribing...",
   "micUnsupported": "Microphone not supported.",
   "micError": "Error processing audio.",
   "micPermission": "Could not access microphone.",
   "micCaptureOk": "Audio captured.",
-
-  "keyboardHelp": "Keyboard Shortcuts",
+  "keyboardHelp": "Help: Keyboard Shortcuts",
   "keyboardSec1": "Section 1: Books",
   "keyboardSec2": "Section 2: Assignments",
   "keyboardSec3": "Section 3: Braille",
@@ -157,9 +143,7 @@
   "keyboardTheme": "Next Theme",
   "keyboardRoles": "Next Role",
   "keyboardMic": "Microphone (Record/Stop)",
-  "keyboardHelp": "Help: Keyboard Shortcuts",
   "keyboardClose": "Close: Help / Section",
-
   "teacherTitle": "Teacher Dashboard",
   "teacherStats": "Quick Statistics",
   "teacherStudents": "Enrolled Students",
@@ -173,27 +157,24 @@
   "teacherExportDone": "Report copied to clipboard. You can paste it into any document.",
   "teacherReport": "Teacher Report",
   "teacherReportLabel": "Teacher Report",
-
   "reportAvg": "Avg",
   "reportAvgScore": "Average Score",
   "reportCopied": "Report copied.",
   "reportCorrections": "Corrections",
   "reportDate": "Date",
   "reportEnd": "End of Report",
-  "reportGenerated": "Report generated.",
+  "reportGenerated": "Report Date",
   "reportNoData": "No data.",
   "reportPerStudent": "Per Student",
   "reportQuizzes": "Quizzes",
   "reportStudents": "Students",
-  "reportTitle": "Teacher Report",
-
+  "reportTitle": "Student Report",
   "parentDashboard": "Parent Dashboard",
   "parentNoChildren": "No children linked to your account yet.",
   "parentChild": "Child: {0}",
   "parentGrade": "Grade: {0}",
   "parentSubject": "Subject: {0}",
   "parentContactLabel": "Parent Contact",
-
   "adminDashboard": "Admin Dashboard",
   "adminStudents": "Student Management",
   "adminAddStudent": "Add New Student",
@@ -202,16 +183,13 @@
   "adminStudentPin": "PIN:",
   "adminAddBtn": "Add ✅",
   "adminStudentList": "Student List",
-
   "roleBarHidden": "Role bar hidden.",
   "roleBarVisible": "Role bar visible.",
-
   "notifications": "Notifications",
   "notifEmpty": "No notifications.",
   "notifQuizPass": "✅ Quiz Excellence!",
   "notifGameScore": "🎮 New Game Score!",
   "notifNew": "New Notifications",
-
   "errorApiKey": "API Key error. Please check your key in Settings.",
   "errorNetwork": "Network error. Check your internet connection.",
   "errorFetch": "Could not reach server. Make sure the proxy server is running.",
@@ -221,12 +199,10 @@
   "errorFirebase": "Database connection error.",
   "errorDefault": "Sorry, an unexpected error occurred. Please try again later.",
   "initError": "Init error in {0}: {1}",
-
   "srModeActive": "Screen reader mode active.",
   "srModeOffSpoken": "Screen reader turned off.",
   "ttsBrowserActivated": "Browser TTS activated.",
   "ttsGeminiActivated": "Gemini TTS activated.",
-
   "proxyStatus": "Proxy Server",
   "proxyConnected": "Connected 🟢",
   "proxyDisconnected": "Disconnected 🔴",
@@ -239,11 +215,9 @@
   "proxySecurityTitle": "🔒 Infrastructure Security",
   "proxySecurityDesc": "Gemini API key is sent directly to the proxy server and is never stored in source code. The key is saved in your browser in obfuscated form for future sessions — you can clear it from Settings at any time.",
   "proxyProduction": "For production: use Cloudflare Worker — copy proxy/worker.js to Cloudflare Dashboard",
-
   "help": "Help",
   "helpShortcuts": "Keyboard Shortcuts",
   "helpClose": "Close ✕",
-
   "logoutSuccess": "Logged out successfully.",
   "loginRequired": "Please enter username and password.",
   "loginFailed": "Incorrect username or password. If you don't have an account, click 'Create New Account'.",
@@ -251,21 +225,18 @@
   "registerAgeRestriction": "Sorry! Students under 12 cannot register independently. Please ask a parent or guardian to register first.",
   "registerParentRequired": "Strict warning: Registration cannot proceed without entering a parent phone number, email, or ID to link both accounts.",
   "ageConfirm12": "You indicated your age is 12 or older. Is your actual age 12 or older? (Selecting 'No' will go back) ✅ Yes, I am 12 or older",
-
   "geminiKeyPrompt": "Enter your Gemini API key:",
   "geminiKeyInputLabel": "Gemini API Key:",
   "geminiKeySave": "Save Key 🔑",
   "geminiKeyPlaceholder": "AIza...",
   "geminiKeySaved": "Gemini API key saved.",
   "geminiKeyCleared": "Gemini API key cleared.",
-
   "sectionOpened": "Opened {0} section",
   "sectionClosed": "Returned to student main screen.",
   "teacherViewActive": "Teacher Dashboard is active. You can manage books, quizzes, and track student performance.",
   "parentViewActive": "Parent Dashboard is active. You can monitor your children's progress.",
   "adminViewActive": "Admin Dashboard is open. You can manage students and monitor the system.",
   "studentViewActive": "Student view is now active. Use number keys 1 through 8 to open sections.",
-
   "noSpeech": "No speech detected.",
   "speechError": "Speech recognition error occurred.",
   "optA": "A)",
@@ -273,7 +244,6 @@
   "optC": "C)",
   "optD": "D)",
   "quizTimeRemaining": "Time remaining: {0} minutes",
-
   "dialogicStarting": "🎙️ AI Teacher starting the lesson...",
   "dialogicWelcome": "Welcome to the Smart Classroom! I'm your AI teacher. Press the microphone button and say a topic name.",
   "dialogicAskTopic": "🎤 Speak now to choose a lesson topic. You can say any subject you want to study.",
@@ -281,7 +251,6 @@
   "defaultSubject": "General Science",
   "dialogicLetsStart": "Great! Today we'll talk about: {0}. Let's begin!",
   "dialogicSubjectLabel": "📚 Topic: {0}",
-  "roleTeacher": "🤖 Teacher",
   "roleModerator": "🤖 Moderator",
   "dialogicListen": "🎤 Listening... Speak now.",
   "dialogicTeacherSpeaking": "Teacher is speaking...",
@@ -297,7 +266,6 @@
   "dialogicThankYou": "Thank you! That was a great session. I learned a lot today.",
   "dialogicSessionEnded": "✅ Session ended.",
   "dialogicEnd": "Session ended.",
-
   "studyGroupIntro": "👥 Discussion group: {0}",
   "studyGroupWelcome": "Welcome everyone! Today's session is about: {0}. Each student will get a turn to speak.",
   "studyGroupTurn": "💬 {0}, your turn. Please answer the question.",
@@ -316,7 +284,6 @@
   "studyGroupEnd": "Study group session ended.",
   "speakAfterBeep": "Speak now after the beep to answer the question.",
   "micRetry": "I didn't hear the question. Please try again.",
-
   "voiceExamTitle": "Voice Exam",
   "voiceExamActivate": "Activate Voice Mode",
   "voiceExamDeactivate": "Deactivate Voice Mode",
@@ -342,7 +309,6 @@
   "voiceExamEssayRecorded": "Your voice answer has been recorded.",
   "voiceExamNoQuiz": "No active quiz. Please select a quiz first.",
   "voiceExamNotAvailable": "Voice mode is not available in this browser.",
-
   "brailleChecking": "Checking Braille...",
   "brailleEvalError": "Error evaluating Braille.",
   "brailleEvalFailed": "Braille evaluation failed.",
@@ -356,7 +322,6 @@
   "brailleScreenKbd": "Visual Braille Board",
   "braillePerkinsKbd": "Perkins mode active. Use F, D, S and J, K, L.",
   "brailleDeleted": "Last character deleted.",
-
   "audiobookStopped": "Audiobook stopped.",
   "audioCpActivated": "Audiobook player activated.",
   "bookPublished": "Book published.",
@@ -366,7 +331,6 @@
   "btnListenAudio": "Listen",
   "btnReadAI": "Read with AI",
   "loadingBookSummary": "Loading book summary...",
-
   "quizPublished": "Quiz published successfully.",
   "quizSelectOption": "Select the correct answer.",
   "quizEmptyAnswer": "Please select an answer first.",
@@ -381,13 +345,11 @@
   "typeMCQ": "MCQ",
   "noAnswersYet": "No answers yet.",
   "solveTime": "Solve Time",
-
   "gradingDone": "Grading done.",
   "gradingFailed": "Grading failed.",
   "gradingInProgress": "Grading in progress...",
   "totalCorrections": "Total Corrections",
   "noGradesForDistribution": "No grades for distribution.",
-
   "notifAchievement": "New Achievement",
   "notifGameAchievement": "Game Achievement",
   "notifGotScore": "scored",
@@ -405,7 +367,6 @@
   "notifScored": "scored",
   "notifScoredAchievement": "got achievement with score",
   "markAllRead": "Mark All Read",
-
   "keyboardHelpLabel": "Help",
   "keyboardShortcutHelp": "Keyboard shortcuts.",
   "keyboardShortcutClose": "Close shortcuts panel.",
@@ -419,25 +380,18 @@
   "keyboardSecVision": "Vision",
   "keyboardSR": "Toggle Screen Reader",
   "keyboardTts": "Toggle TTS",
-
   "listeningToBook": "📖 Now listening: {0}",
   "readBookAloud": "📖 Reading book: {0}. Content: {1}",
-
   "loadingTutor": "Connecting to AI Tutor...",
   "loadingVision": "Analyzing image...",
-
   "visionAnalyzing": "AI analyzing image...",
   "visionError": "Error analyzing image.",
   "visionSelectImage": "Select an image to analyze.",
   "visionImageLoaded": "Image loaded.",
-
   "speechUnavailable": "Speech recognition not available in this browser.",
-
   "promptApiKey": "Please enter your Gemini API key in Settings.",
   "loginTooMany": "Too many login attempts. Please try again later.",
-
   "close": "Close",
-
   "criticalError": "Critical error: {0}",
   "langArabic": "عربي",
   "langEnglish": "English",
@@ -448,7 +402,7 @@
   "gradeGood": "Good",
   "gradePass": "Pass",
   "gradePoor": "Poor",
-  "btnAIGradeFeedback": "🤖 AI Grade & Feedback",
+  "btnAIGradeFeedback": "Draft AI feedback",
   "activeStudentsSuffix": " active",
   "badgeExcellent": "Excellent",
   "badgeStar": "Star",
@@ -497,33 +451,28 @@
   "initStepAge": "Age",
   "initStepI18n": "Translation",
   "initStepButtons": "Buttons",
-
   "gameMathChallenge": "🔢 Math Audio Challenge",
   "gameMathStart": "Welcome to Math Challenge! You'll hear math problems suited to your level. Type the answer and press Submit. You have 60 seconds!",
   "gameMathTypeAnswer": "Type your answer here:",
   "gameMathSubmit": "Submit Answer ✅",
   "gameMathNoAnswer": "Type your answer first, then press Submit.",
   "gameMathWrongAnswer": "Wrong answer! The correct answer is: {0}",
-
   "gameListeningQuiz": "🎧 Listening Comprehension Quiz",
   "gameListeningLoading": "Preparing a learning passage with AI... Please wait.",
   "gameListeningPassage": "Listen carefully to the following passage",
   "gameListeningNowQuestions": "Now, answer the following questions about what you heard.",
   "gameListeningComplete": "Well done! You've completed the listening quiz. Your score: {0} points.",
   "gameCorrectAnswer": "The correct answer",
-
   "gameScienceLab": "🧪 Science Lab Simulator",
   "gameScienceLoading": "Preparing your science experiment with AI... Put on your lab goggles!",
   "gameScienceReady": "The experiment is ready! Choose the correct action at each step.",
   "gameScienceStep": "Step {0}",
   "gameScienceComplete": "Congratulations! You've completed the science experiment. Your score: {0} points.",
-
   "gameGeography": "🌍 Geography Explorer",
   "gameGeographyLoading": "Preparing a geographic exploration with AI... Fasten your seatbelt!",
   "gameGeographyWelcome": "Welcome to the exploration of",
   "gameGeographyStart": "Let's start exploring! Answer the questions to learn more.",
   "gameGeographyComplete": "Great job, explorer! You've completed the geographic journey. Your score: {0} points.",
-
   "gameAIError": "Sorry, an error occurred generating content. Please try again.",
   "dashboardGameMath": "Math Challenge",
   "dashboardGameListening": "Listening Quiz",
@@ -535,16 +484,9 @@
   "dashboardGamesPlayed": "Games Played",
   "dashboardGameAvg": "Game Avg",
   "dashboardNoActivity": "No recent activity.",
-  "gradePoor": "Poor",
-  "gradePass": "Pass",
-  "gradeGood": "Good",
-  "gradeExcellent": "Excellent",
-  "reportTitle": "Student Report",
   "reportQuizSummary": "Quiz Summary",
   "reportGameSummary": "Game Summary",
   "reportScore": "Score",
-  "reportDate": "Date",
-  "reportGenerated": "Report Date",
   "offlineStatus": "Offline — using local data",
   "onlineStatus": "Online",
   "reportChooseOption": "Choose report method",

@@ -6,7 +6,7 @@
   "main": "cloud_school_app.js",
   "scripts": {
     "test": "jest",
-    "test:integration": "node --test \"tests/integration/*.test.mjs\"",
+    "test:integration": "node --test tests/integration/access-control-local.test.mjs",
     "test:ui": "playwright test",
     "dev": "vite",
     "start": "vite",
@@ -21,7 +21,12 @@
     "deploy:hosting": "npx firebase deploy --only hosting",
     "deploy": "npx firebase deploy",
     "lighthouse": "lhci autorun --collect.noCleanup=true",
-    "bundle:analyze": "vite-bundle-visualizer -o reports/bundle-stats.html"
+    "bundle:analyze": "vite-bundle-visualizer -o reports/bundle-stats.html",
+    "css": "tailwindcss -i ./styles/utilities.css -o ./public/utilities.css --minify",
+    "predev": "npm run css",
+    "prebuild": "npm run css",
+    "pretest:ui": "npm run css",
+    "test:live": "node --test tests/integration/worker-api.test.mjs"
   },
   "lint-staged": {
     "*.js": [
@@ -36,7 +41,7 @@
     "@babel/core": "^8.0.1",
     "@babel/preset-env": "^8.0.2",
     "@eslint/js": "^10.0.1",
-    "@lhci/cli": "^0.15.1",
+    "@lhci/cli": "^0.16.1",
     "@playwright/test": "^1.35.0",
     "babel-jest": "^30.4.1",
     "eslint": "^10.7.0",
@@ -46,12 +51,15 @@
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "lint-staged": "^17.0.8",
-    "live-server": "^1.2.2",
     "playwright": "^1.35.0",
     "prettier": "^3.9.5",
+    "tailwindcss": "3.4.17",
     "typescript": "^7.0.2",
     "vite": "^8.1.4",
     "vite-bundle-visualizer": "^1.2.1",
     "wrangler": "^4.110.0"
+  },
+  "engines": {
+    "node": ">=22.19.0 <23"
   }
 }

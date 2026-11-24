@@ -1,3 +1,5 @@
+import { contentPath, isPublished } from './journey-state.js';
+import { openLesson } from './learning-journey.js';
 // @ts-check
 import { localData } from './app-state.js';
 import { escapeHtml } from './helpers.js';
@@ -17,7 +19,7 @@ export function renderStudentBooks() {
   }
   grid.innerHTML = '';
 
-  localData.books.forEach((b) => {
+  localData.books.filter(isPublished).forEach((b) => {
     const item = document.createElement('div');
     item.className = 'card p-6 rounded-xl flex flex-col justify-between items-start gap-4';
     item.innerHTML = `
@@ -28,6 +30,8 @@ export function renderStudentBooks() {
                 <button data-action="play-book" data-book-id="${escapeHtml(b.id)}" class="flex-1 p-3 bg-blue-600 text-white font-bold rounded hover:bg-blue-500 btn-interactive">\u{1F3A7} ${__('btnListenAudio')}</button>
             </div>
         `;
+    const path = document.createElement('p'); path.textContent = contentPath(b); item.prepend(path);
+    const resume = document.createElement('button'); resume.textContent = 'افتح الدرس وأكمل القراءة'; resume.className = 'p-3 border-2 rounded'; resume.onclick = () => openLesson(b.id); item.append(resume);
     grid.appendChild(item);
   });
 

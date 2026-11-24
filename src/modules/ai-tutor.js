@@ -208,7 +208,7 @@ export async function gradeSubmissionWithAI(index) {
         'You are a grader and educational teacher. ',
       ) + ctx.getAgeTone(),
     );
-    sub.initialScore = 95;
+    // AI feedback is a draft, not a fabricated grade. Teacher confirms a score separately.
     sub.graderFeedback = report;
     ctx.saveLocalData();
 

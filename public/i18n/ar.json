@@ -1,22 +1,20 @@
 {
   "langName": "العربية",
   "langChanged": "تم التبديل إلى اللغة العربية. Switched to Arabic.",
-
   "authTitle": "كلاود سكول | Cloud School",
   "authSubtitle": "المنصة التعليمية المتكاملة لضعاف البصر والمكفوفين",
   "welcome": "مرحباً بك يا بطل في كلاود سكول",
   "welcomeMessage": "مرحباً بك في منصة كلاود سكول التعليمية المحدثة لضعاف البصر والمكفوفين. يرجى تسجيل الدخول أولاً للبدء.",
   "login": "تسجيل الدخول والتحقق الآمن 🔑",
   "loginTitle": "تسجيل الدخول",
-  "loginUsername": "📧 اسم المستخدم أو البريد الإلكتروني:",
-  "loginPassword": "🔒 كلمة المرور:",
-  "loginSubmit": "تسجيل الدخول 🔑",
-  "registerNew": "إنشاء حساب جديد 📝",
+  "loginUsername": "اسم المستخدم أو البريد الإلكتروني:",
+  "loginPassword": "كلمة المرور:",
+  "loginSubmit": "تسجيل الدخول",
+  "registerNew": "إنشاء حساب جديد",
   "demoLogin": "تسجيل دخول تجريبي سريع كطالب 🚀",
   "registerFormOpen": "نموذج إنشاء حساب جديد. اختر نوع الحساب وأدخل بياناتك.",
   "backToLogin": "العودة لنموذج تسجيل الدخول.",
-
-  "registerTitle": "📝 إنشاء حساب جديد",
+  "registerTitle": "إنشاء حساب جديد",
   "registerName": "الاسم الكامل للمستخدم:",
   "registerContact": "البريد الإلكتروني أو رقم الهاتف:",
   "registerPassword": "🔒 كلمة المرور:",
@@ -26,15 +24,13 @@
   "registerParentFields": "رقم الطالب linked (رقم الهاتف / البريد الإلكتروني):",
   "registerSubmit": "إنشاء الحساب ✅",
   "registerLoginLink": "لديك حساب؟ تسجيل الدخول",
-
   "roleStudent": "طالب",
   "roleParent": "ولي أمر",
-  "roleTeacher": "معلم",
+  "roleTeacher": "🤖 المدرس",
   "roleAdmin": "إدارة المدرسة",
   "activeUser": "المستخدم: {0} ({1})",
   "demoUser": "أحمد خالد (طالب تجريبي)",
   "logout": "تسجيل خروج 🚪",
-
   "skipToContent": "انتقل مباشرة إلى المحتوى التعليمي الأساسي",
   "themeDark": "أصفر/أسود",
   "themeLight": "أسود/أبيض",
@@ -53,9 +49,7 @@
   "ageTeen": "شاب",
   "ageAdult": "بالغ",
   "ageSet": "تم ضبط المرحلة العمرية على: {0}",
-
   "langToggleLabel": "عربي / English",
-
   "sectionBooks": "📚 الكتب المدرسية",
   "sectionAssignments": "📝 الواجبات والتسليم",
   "sectionBraille": "🖐️ لوحة برايل الذكية",
@@ -68,7 +62,6 @@
   "sectionStudyGroup": "مجموعة الدراسة",
   "sectionVision": "الرؤية بالذكاء الاصطناعي",
   "sectionClose": "🔙 العودة إلى الشاشة الرئيسية",
-
   "booksEmpty": "لا توجد كتب متاحة حالياً.",
   "booksListen": "📖 استمع للدرس",
   "booksSummarize": "🧠 لخص هذا الكتاب بالذكاء الاصطناعي",
@@ -76,7 +69,6 @@
   "assignmentsSolve": "✍️ حل الواجب",
   "assignmentSubmit": "إرسال الحل ✅",
   "assignmentSubmitted": "تم إرسال الحل بنجاح!",
-
   "brailleTitle": "🖐️ لوحة برايل الذكية",
   "brailleEval": "🤖 تصحيح النص ببرايل",
   "brailleSubmit": "تشكيل حرف عربي",
@@ -86,7 +78,6 @@
   "brailleCleared": "تم تفريغ لوحة تعليم برايل.",
   "brailleFirst": "الرجاء كتابة إجابة ببرايل أو بالصوت أولاً.",
   "loadingBrailleTranslate": "جاري ترجمة برايل...",
-
   "quizTitle": "🧠 اختبار ذكي",
   "quizStart": "ابدأ الاختبار",
   "quizSubmit": "تأكيد الإجابة ✅",
@@ -99,7 +90,6 @@
   "quizExcellent": "⭐ أداء ممتاز!",
   "quizGood": "👏 أداء جيد، واصل التقدم!",
   "quizTryAgain": "💪 حاول مرة أخرى للتحسن!",
-
   "gameTrueFalse": "⏱️ لعبة تحدي الثواني (صواب أم خطأ)",
   "gameSpeed": "🏆 لعبة البطل ضد الوقت",
   "gameStory": "📖 الحكواتي الذكي التفاعلي ✨",
@@ -125,26 +115,22 @@
   "gameUnclear": "لم أفهم الإجابة. حاول مرة أخرى.",
   "gameWrongScore": "❌ الإجابة خاطئة. النتيجة الحالية: {0}",
   "loadingStory": "جاري تحضير قصتك التفاعلية...",
-
   "tutorPlaceholder": "💬 اكتب سؤالك هنا...",
   "tutorAsk": "اسأل",
   "tutorThinking": "جاري التواصل مع المعلم الافتراضي...",
   "tutorAskFirst": "اسأل المعلم الافتراضي أولاً.",
   "tutorError": "عذراً، واجهت مشكلة في إعداد الإجابة.",
-
   "storyGenerating": "جاري نسج فصول قصتك التفاعلية...",
   "storyError": "عذراً، تعذر صياغة القصة حالياً.",
   "storyNext": "التالي ➡️",
   "storyEnd": "🔚 نهاية القصة",
-
   "micStart": "بدء التسجيل.",
   "micStop": "انتهى التسجيل. جاري التفريغ...",
   "micUnsupported": "الميكروفون غير مدعوم.",
   "micError": "خطأ في معالجة الصوت.",
   "micPermission": "لم أتمكن من الوصول للميكروفون.",
   "micCaptureOk": "تم التقاط الصوت.",
-
-  "keyboardHelp": "اختصارات لوحة المفاتيح",
+  "keyboardHelp": "مساعدة: اختصارات لوحة المفاتيح",
   "keyboardSec1": "القسم 1: الكتب",
   "keyboardSec2": "القسم 2: الواجبات",
   "keyboardSec3": "القسم 3: برايل",
@@ -157,9 +143,7 @@
   "keyboardTheme": "السمة التالية",
   "keyboardRoles": "تغيير الدور التالي",
   "keyboardMic": "الميكروفون (تسجيل/إيقاف)",
-  "keyboardHelp": "مساعدة: اختصارات لوحة المفاتيح",
   "keyboardClose": "إغلاق: المساعدة / القسم",
-
   "teacherTitle": "لوحة قيادة المعلم",
   "teacherStats": "إحصائيات سريعة",
   "teacherStudents": "الطلاب المسجلين",
@@ -173,27 +157,24 @@
   "teacherExportDone": "تم نسخ التقرير إلى الحافظة. يمكنك لصقه في أي مستند.",
   "teacherReport": "تقرير المعلم",
   "teacherReportLabel": "تقرير المعلم",
-
   "reportAvg": "المعدل",
   "reportAvgScore": "متوسط الدرجات",
   "reportCopied": "تم نسخ التقرير.",
   "reportCorrections": "عدد التصحيحات",
   "reportDate": "التاريخ",
   "reportEnd": "نهاية التقرير",
-  "reportGenerated": "تم إنشاء التقرير.",
+  "reportGenerated": "تاريخ التقرير",
   "reportNoData": "لا توجد بيانات.",
   "reportPerStudent": "لكل طالب",
   "reportQuizzes": "عدد الاختبارات",
   "reportStudents": "عدد الطلاب",
-  "reportTitle": "تقرير المعلم",
-
+  "reportTitle": "تقرير الطالب",
   "parentDashboard": "لوحة تحكم ولي الأمر",
   "parentNoChildren": "لا يوجد أبناء مرتبطون بحسابك بعد.",
   "parentChild": "الابن/البنت: {0}",
   "parentGrade": "الدرجة: {0}",
   "parentSubject": "المادة: {0}",
   "parentContactLabel": "جهة اتصال ولي الأمر",
-
   "adminDashboard": "واجهة إدارة المدرسة",
   "adminStudents": "إدارة الطلاب",
   "adminAddStudent": "إضافة طالب جديد",
@@ -202,16 +183,13 @@
   "adminStudentPin": "الرقم السري (PIN):",
   "adminAddBtn": "إضافة ✅",
   "adminStudentList": "قائمة الطلاب",
-
   "roleBarHidden": "شريط الأدوار مخفي",
   "roleBarVisible": "شريط الأدوار ظاهر",
-
   "notifications": "الإشعارات",
   "notifEmpty": "لا توجد إشعارات.",
   "notifQuizPass": "✅ تفوق في الاختبار!",
   "notifGameScore": "🎮 نتيجة لعبة جديدة!",
   "notifNew": "إشعارات جديدة",
-
   "errorApiKey": "خطأ في مفتاح API. يرجى التحقق من المفتاح في الإعدادات.",
   "errorNetwork": "خطأ في الاتصال بالشبكة. تحقق من اتصالك بالإنترنت.",
   "errorFetch": "تعذر الاتصال بالخادم. تأكد من تشغيل الخادم الوسيط.",
@@ -221,12 +199,10 @@
   "errorFirebase": "خطأ في الاتصال بقاعدة البيانات.",
   "errorDefault": "عذراً، حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.",
   "initError": "خطأ في تهيئة {0}: {1}",
-
   "srModeActive": "وضع قارئ الشاشة نشط.",
   "srModeOffSpoken": "تم إيقاف قارئ الشاشة.",
   "ttsBrowserActivated": "تم تفعيل تحويل النص إلى كلام للمتصفح.",
   "ttsGeminiActivated": "تم تفعيل تحويل النص إلى كلام لجيميني.",
-
   "proxyStatus": "الخادم الوسيط",
   "proxyConnected": "متصل 🟢",
   "proxyDisconnected": "غير متصل 🔴",
@@ -239,11 +215,9 @@
   "proxySecurityTitle": "🔒 أمان البنية التحتية",
   "proxySecurityDesc": "مفتاح Gemini API يُرسل مباشرة للخادم الوسيط ولا يُخزَّن في كود المصدر. المفتاح يُحفَظ في المتصفح بشكل مشوَّش (obfuscated) لاستخدامك الجلسات القادمة — يمكنك مسحه من الإعدادات في أي وقت.",
   "proxyProduction": "للإنتاج: استخدم Cloudflare Worker — انسخ proxy/worker.js إلى Cloudflare Dashboard",
-
   "help": "المساعدة",
   "helpShortcuts": "اختصارات لوحة المفاتيح",
   "helpClose": "إغلاق ✕",
-
   "logoutSuccess": "تم تسجيل الخروج بنجاح.",
   "loginRequired": "يرجى إدخال اسم المستخدم وكلمة المرور.",
   "loginFailed": "اسم المستخدم أو كلمة المرور غير صحيحة. إذا لم يكن لديك حساب، اضغط على 'إنشاء حساب جديد'.",
@@ -251,21 +225,18 @@
   "registerAgeRestriction": "عذراً! لا يمكن إكمال التسجيل للطلاب دون 12 عاماً بشكل مستقل. يرجى دعوة ولي أمرك للتسجيل أولاً.",
   "registerParentRequired": "تنبيه صارم: لا يمكن إتمام التسجيل وتجاوز هذه الخطوة أبداً دون إدخال رقم هاتف، بريد إلكتروني، أو معرف (ID) ولي الأمر لربط الحسابين.",
   "ageConfirm12": "لقد قمت بتحديد عمرك 12 عاماً أو أكثر. هل عمرك الحقيقي 12 سنة أو أكثر؟ (اختيار 'لا' سيعود بك) ✅ نعم، عمري 12 سنة أو أكثر",
-
   "geminiKeyPrompt": "أدخل مفتاح Gemini API:",
   "geminiKeyInputLabel": "مفتاح Gemini API:",
   "geminiKeySave": "حفظ المفتاح 🔑",
   "geminiKeyPlaceholder": "AIza...",
   "geminiKeySaved": "تم حفظ مفتاح Gemini API",
   "geminiKeyCleared": "تم مسح مفتاح Gemini API",
-
   "sectionOpened": "فتحت قسم {0}",
   "sectionClosed": "تم العودة إلى الشاشة الرئيسية للطالب.",
   "teacherViewActive": "لوحة قيادة المعلم مفتوحة. يمكنك إدارة الكتب والاختبارات ومتابعة أداء الطلاب.",
   "parentViewActive": "لوحة تحكم ولي الأمر نشطة. يمكنك متابعة تقدم أبنائك.",
   "adminViewActive": "واجهة إدارة المدرسة مفتوحة. يمكنك إدارة الطلاب والمراقبة.",
   "studentViewActive": "واجهة الطالب نشطة الآن في كلاود سكول. استخدم الأزرار أو الأرقام 1 إلى 8 لفتح الأقسام.",
-
   "noSpeech": "لم يتم التقاط أي صوت.",
   "speechError": "حدث خطأ في التعرف على الصوت.",
   "optA": "أ)",
@@ -273,7 +244,6 @@
   "optC": "ج)",
   "optD": "د)",
   "quizTimeRemaining": "الوقت المتبقي: {0} دقائق",
-
   "dialogicStarting": "🎙️ المدرس الذكي يبدأ الدرس...",
   "dialogicWelcome": "مرحباً بك في الفصل الذكي! أنا مدرسك الخصوصي. ابدأ بالضغط على زر الميكروفون وقل اسم الموضوع.",
   "dialogicAskTopic": "🎤 تكلّم الآن لاختيار موضوع الدرس. يمكنك ذكر أي مادة تريد دراستها.",
@@ -281,7 +251,6 @@
   "defaultSubject": "العلوم العامة",
   "dialogicLetsStart": "رائع! سنتحدث اليوم عن: {0}. لنبدأ!",
   "dialogicSubjectLabel": "📚 الموضوع: {0}",
-  "roleTeacher": "🤖 المدرس",
   "roleModerator": "🤖 الوسيط",
   "dialogicListen": "🎤 استماع... تحدث الآن.",
   "dialogicTeacherSpeaking": "المدرس يتحدث...",
@@ -297,7 +266,6 @@
   "dialogicThankYou": "شكراً لك! كانت جلسة رائعة. تعلمت الكثير اليوم.",
   "dialogicSessionEnded": "✅ انتهت الجلسة.",
   "dialogicEnd": "تم إنهاء الجلسة.",
-
   "studyGroupIntro": "👥 جلسة نقاش: {0}",
   "studyGroupWelcome": "مرحباً بالجميع! جلسة اليوم عن: {0}. سيتم إعطاء كل طالب دوره للتحدث.",
   "studyGroupTurn": "💬 {0}، دورك الآن. تفضل بالرد على السؤال.",
@@ -316,7 +284,6 @@
   "studyGroupEnd": "تم إنهاء الجلسة الجماعية.",
   "speakAfterBeep": "تحدث الآن بعد الصافرة للإجابة على السؤال.",
   "micRetry": "لم أسمع السؤال. حاول مرة أخرى.",
-
   "voiceExamTitle": "الاختبار الناطق",
   "voiceExamActivate": "تفعيل الوضع الناطق",
   "voiceExamDeactivate": "إيقاف الوضع الناطق",
@@ -342,7 +309,6 @@
   "voiceExamEssayRecorded": "تم تسجيل إجابتك الصوتية.",
   "voiceExamNoQuiz": "لا يوجد اختبار مفتوح. اختر اختباراً أولاً.",
   "voiceExamNotAvailable": "الوضع الناطق غير متاح في هذا المتصفح.",
-
   "brailleChecking": "جاري فحص طريقة برايل...",
   "brailleEvalError": "حدث خطأ في تقييم برايل.",
   "brailleEvalFailed": "فشل تقييم برايل.",
@@ -356,7 +322,6 @@
   "brailleScreenKbd": "لوحة برايل مرئية",
   "braillePerkinsKbd": "وضع Perkins مفعل. استخدم F, D, S و J, K, L.",
   "brailleDeleted": "تم حذف آخر حرف.",
-
   "audiobookStopped": "تم إيقاف الكتاب الصوتي.",
   "audioCpActivated": "تم تفعيل مشغل الكتاب الصوتي.",
   "bookPublished": "تم نشر الكتاب.",
@@ -366,7 +331,6 @@
   "btnListenAudio": "استمع",
   "btnReadAI": "اقرأ بالذكاء الاصطناعي",
   "loadingBookSummary": "جاري تحميل ملخص الكتاب...",
-
   "quizPublished": "تم نشر الاختبار بنجاح.",
   "quizSelectOption": "اختر الإجابة الصحيحة.",
   "quizEmptyAnswer": "الرجاء اختيار إجابة أولاً.",
@@ -381,13 +345,11 @@
   "typeMCQ": "اختيار متعدد",
   "noAnswersYet": "لا توجد إجابات بعد.",
   "solveTime": "وقت الحل",
-
   "gradingDone": "تم التصحيح.",
   "gradingFailed": "فشل التصحيح.",
   "gradingInProgress": "جاري التصحيح...",
   "totalCorrections": "إجمالي التصحيحات",
   "noGradesForDistribution": "لا توجد درجات للتوزيع.",
-
   "notifAchievement": "إنجاز جديد",
   "notifGameAchievement": "إنجاز لعبة",
   "notifGotScore": "حصل على",
@@ -405,7 +367,6 @@
   "notifScored": "حصل على",
   "notifScoredAchievement": "حصل على إنجاز بدرجة",
   "markAllRead": "تحديد الكل كمقروء",
-
   "keyboardHelpLabel": "المساعدة",
   "keyboardShortcutHelp": "اختصارات لوحة المفاتيح.",
   "keyboardShortcutClose": "إغلاق لوحة الاختصارات.",
@@ -419,25 +380,18 @@
   "keyboardSecVision": "تحليل الصور",
   "keyboardSR": "تشغيل/إيقاف قارئ الشاشة",
   "keyboardTts": "تشغيل/إيقاف التحويل الصوتي",
-
   "listeningToBook": "📖 استمع الآن: {0}",
   "readBookAloud": "📖 قراءة كتاب: {0}. المحتوى: {1}",
-
   "loadingTutor": "جاري التواصل مع المعلم الافتراضي...",
   "loadingVision": "جاري تحليل الصورة...",
-
   "visionAnalyzing": "جاري تحليل الصورة بالذكاء الاصطناعي...",
   "visionError": "حدث خطأ في تحليل الصورة.",
   "visionSelectImage": "اختر صورة لتحليلها.",
   "visionImageLoaded": "تم تحميل الصورة.",
-
   "speechUnavailable": "التعرف على الصوت غير متاح في هذا المتصفح.",
-
   "promptApiKey": "الرجاء إدخال مفتاح Gemini API في الإعدادات.",
   "loginTooMany": "محاولات دخول كثيرة جداً. حاول مرة أخرى لاحقاً.",
-
   "close": "إغلاق",
-
   "criticalError": "خطأ حرج: {0}",
   "langArabic": "عربي",
   "langEnglish": "English",
@@ -448,7 +402,7 @@
   "gradeGood": "جيد",
   "gradePass": "مقبول",
   "gradePoor": "ضعيف",
-  "btnAIGradeFeedback": "🤖 تصحيح وتغذية AI",
+  "btnAIGradeFeedback": "مسودة ملاحظات بالذكاء الاصطناعي",
   "activeStudentsSuffix": " نشط",
   "badgeExcellent": "ممتاز",
   "badgeStar": "نجمة",
@@ -497,33 +451,28 @@
   "initStepAge": "العمر",
   "initStepI18n": "الترجمة",
   "initStepButtons": "الأزرار",
-
   "gameMathChallenge": "🔢 تحدي الرياضيات الصوتي",
   "gameMathStart": "مرحباً بك في تحدي الرياضيات! ستسمع مسائل رياضية تناسب مستواك. اكتب الإجابة واضغط إرسال. لديك 60 ثانية!",
   "gameMathTypeAnswer": "اكتب إجابتك هنا:",
   "gameMathSubmit": "إرسال الإجابة ✅",
   "gameMathNoAnswer": "اكتب إجابتك أولاً ثم اضغط إرسال.",
   "gameMathWrongAnswer": "إجابة خاطئة! الإجابة الصحيحة هي: {0}",
-
   "gameListeningQuiz": "🎧 اختبار الفهم السمعي",
   "gameListeningLoading": "جارٍ إعداد فقرة تعليمية بالذكاء الاصطناعي... انتظر قليلاً.",
   "gameListeningPassage": "استمع جيداً للفقرة التالية",
   "gameListeningNowQuestions": "والآن، أجب عن الأسئلة التالية حول ما سمعته.",
   "gameListeningComplete": "أحسنت! لقد أنهيت اختبار الفهم السمعي. نتيجتك: {0} نقطة.",
   "gameCorrectAnswer": "الإجابة الصحيحة",
-
   "gameScienceLab": "🧪 محاكي التجارب العلمية",
   "gameScienceLoading": "جارٍ تحضير التجربة العلمية بالذكاء الاصطناعي... ارتدِ نظارات المختبر!",
   "gameScienceReady": "التجربة جاهزة! اختر الإجراء الصحيح في كل خطوة.",
   "gameScienceStep": "الخطوة {0}",
   "gameScienceComplete": "تهانينا! لقد أنهيت التجربة العلمية بنجاح. نتيجتك: {0} نقطة.",
-
   "gameGeography": "🌍 مستكشف الجغرافيا",
   "gameGeographyLoading": "جارٍ تحضير رحلة استكشافية جغرافية بالذكاء الاصطناعي... اربط حزام الأمان!",
   "gameGeographyWelcome": "مرحباً بك في رحلة استكشاف",
   "gameGeographyStart": "هيا نبدأ الاستكشاف! أجب عن الأسئلة لتتعلم المزيد.",
   "gameGeographyComplete": "أحسنت يا مستكشف! لقد أنهيت الرحلة الجغرافية. نتيجتك: {0} نقطة.",
-
   "gameAIError": "عذراً، حدث خطأ في توليد المحتوى. حاول مرة أخرى.",
   "dashboardGameMath": "تحدي الرياضيات",
   "dashboardGameListening": "الفهم السمعي",
@@ -535,16 +484,9 @@
   "dashboardGamesPlayed": "لعبة لعبت",
   "dashboardGameAvg": "معدل الألعاب",
   "dashboardNoActivity": "لا توجد أنشطة حديثة.",
-  "gradePoor": "ضعيف",
-  "gradePass": "مقبول",
-  "gradeGood": "جيد",
-  "gradeExcellent": "ممتاز",
-  "reportTitle": "تقرير الطالب",
   "reportQuizSummary": "ملخص الاختبارات",
   "reportGameSummary": "ملخص الألعاب",
   "reportScore": "الدرجة",
-  "reportDate": "التاريخ",
-  "reportGenerated": "تاريخ التقرير",
   "offlineStatus": "غير متصل — يتم استخدام البيانات المحلية",
   "onlineStatus": "متصل",
   "reportChooseOption": "اختيار طريقة عرض التقرير",

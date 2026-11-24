@@ -12,6 +12,10 @@ export function recordGameScore(gameType, score) {
   saveLocalData();
 }
 
+export function hasConfirmedGrade(s) {
+  return typeof s.initialScore === 'number' && Number.isFinite(s.initialScore) && s.initialScore >= 0 && s.initialScore <= 100 && !['pending','failed'].includes(s.syncStatus) && s.status !== 'pending_review';
+}
+
 export function getStudentStats(studentName, localData) {
   const submissions = (localData.submissions || []).filter((s) => s.studentName === studentName);
   const gameProgress = localData.gameProgress || [];
@@ -19,9 +23,10 @@ export function getStudentStats(studentName, localData) {
   const books = localData.books || [];
 
   const quizCount = submissions.length;
+  const graded = submissions.filter(hasConfirmedGrade);
   const quizAvg =
-    quizCount > 0
-      ? Math.round(submissions.reduce((sum, s) => sum + (s.initialScore || 0), 0) / quizCount)
+    graded.length > 0
+      ? Math.round(graded.reduce((sum, s) => sum + s.initialScore, 0) / graded.length)
       : null;
   const bookCount = books.length;
   const gameCount = myGames.length;
@@ -31,7 +36,7 @@ export function getStudentStats(studentName, localData) {
       : null;
 
   const gradeDistribution = [0, 0, 0, 0];
-  submissions.forEach((s) => {
+  graded.forEach((s) => {
     const sc = s.initialScore || 0;
     if (sc < 50) {
       gradeDistribution[0]++;
@@ -50,6 +55,8 @@ export function getStudentStats(studentName, localData) {
   return {
     quizCount,
     quizAvg,
+    gradedCount: graded.length,
+    pendingCount: submissions.length-graded.length,
     bookCount,
     gameCount,
     gameAvg,
@@ -96,7 +103,7 @@ function buildRecentActivity(submissions, gameProgress) {
     ...submissions.map((s) => ({
       type: 'quiz',
       title: s.quizTitle || '',
-      score: s.initialScore || 0,
+      score: hasConfirmedGrade(s) ? s.initialScore : null,
       date: s.timestamp || '',
     })),
     ...gameProgress.map((g) => ({

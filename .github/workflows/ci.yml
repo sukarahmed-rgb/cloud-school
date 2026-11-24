@@ -1,6 +1,16 @@
 name: CI/CD
 
 on:
+  workflow_dispatch:
+    inputs:
+      deployProduction:
+        description: 'Deploy after release checklist and owner approval'
+        type: boolean
+        default: false
+      deployPreview:
+        description: 'Deploy isolated preview after owner approval'
+        type: boolean
+        default: false
   push:
     branches: [main]
   pull_request:
@@ -11,11 +21,34 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  checks: write
   contents: read
-  pull-requests: write
 
 jobs:
+  security-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: python3 scripts/security/release_check.py
+      - run: python3 scripts/security/test_backup.py
+      - name: Dependency release gate
+        run: npm audit --audit-level=high
+      - name: Archive full dependency findings
+        if: always()
+        run: npm audit --json > dependency-audit.json || test -s dependency-audit.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: dependency-audit
+          path: dependency-audit.json
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -24,11 +57,14 @@ jobs:
         node-version: [22]
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
+      - run: npm run test:integration
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test -- --ci --coverage
@@ -44,11 +80,13 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui -- --reporter=list
       - uses: actions/upload-artifact@v7
@@ -63,11 +101,13 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm run build
       - uses: actions/upload-artifact@v7
         with:
@@ -80,11 +120,13 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@v8
         with:
           name: dist
@@ -98,54 +140,53 @@ jobs:
           path: .lighthouseci/
 
   preview:
-    if: github.event_name == 'pull_request'
-    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.deployPreview
+    needs: [test, e2e, build, security-gate]
+    environment: preview
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write
+      contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
       - name: Write service account
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > service-account.json
-      - id: deploy-preview
-        run: echo "PREVIEW_URL=$(npx firebase-tools hosting:channel:deploy preview-${{ github.event.pull_request.number }} --project cloud-school-6251a | grep -oP 'Channel URL \(preview-\d+\):\s*\K\S+')" >> $GITHUB_ENV
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          umask 077
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > service-account.json
+      - name: Deploy approved preview
+        run: npx firebase hosting:channel:deploy review-${{ github.run_id }} --project cloud-school-6251a
         env:
           GOOGLE_APPLICATION_CREDENTIALS: service-account.json
-      - uses: actions/github-script@v9
+      - name: Remove credentials
         if: always()
-        with:
-          script: |
-            const url = process.env.PREVIEW_URL;
-            if (url) {
-              const { repo, issue } = context;
-              github.rest.issues.createComment({
-                owner: repo.owner,
-                repo: repo.repo,
-                issue_number: issue.number,
-                body: `🔥 Preview URL: ${url}`
-              });
-            }
+        run: rm -f service-account.json
 
   deploy-cloudflare:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [test, build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.deployProduction
+    environment: production
+    needs: [test, e2e, build, security-gate]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: Apply D1 migrations
         run: npx wrangler d1 migrations apply cloud-school-db --remote
         env:
@@ -158,23 +199,33 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [test, e2e, build, lighthouse]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.deployProduction
+    environment: production
+    needs: [test, e2e, build, lighthouse, security-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist
       - name: Write service account
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > service-account.json
-      - run: npx -y firebase-tools@latest deploy --only hosting
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          umask 077
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > service-account.json
+      - run: npx firebase deploy --only hosting
         env:
           GOOGLE_APPLICATION_CREDENTIALS: service-account.json
+      - name: Remove credentials
+        if: always()
+        run: rm -f service-account.json

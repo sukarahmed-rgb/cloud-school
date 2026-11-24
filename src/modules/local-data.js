@@ -1,9 +1,12 @@
 // @ts-check
-import { STORAGE_KEYS, localData } from './app-state.js';
+import { getAccountStorageKey, localData } from './app-state.js';
 
 export function saveLocalData() {
   try {
-    localStorage.setItem(STORAGE_KEYS.localData, JSON.stringify(localData));
+    const key = getAccountStorageKey();
+    if (key) {
+      localStorage.setItem(key, JSON.stringify(localData));
+    }
   } catch (e) {
     console.warn('Failed to save local data:', e);
   }
@@ -11,7 +14,8 @@ export function saveLocalData() {
 
 export function loadLocalData() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEYS.localData);
+    const key = getAccountStorageKey();
+    const saved = key && localStorage.getItem(key);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed.books) {

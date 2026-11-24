@@ -14,11 +14,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Cloud School">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com https://browser.sentry-cdn.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://cloud-school-api.cloud-school-subdomain.workers.dev *.sentry.io; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests">
+    <link rel="stylesheet" href="utilities.css">
     <link rel="stylesheet" href="cloud_school_styles.css">
     <script src="https://browser.sentry-cdn.com/8.18.0/bundle.min.js" crossorigin="anonymous"></script>
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics-compat.js"></script>
     <script src="config.js"></script>
 </head>
 <body class="theme-dark-high-contrast dynamic-text flex flex-col">
@@ -81,21 +81,21 @@
                 <form data-action="login-form" >
                     <h2 data-i18n="loginTitle" class="font-black text-center">تسجيل الدخول</h2>
                     <div>
-                        <label for="login-username" class="block font-bold" data-i18n="loginUsername">📧 اسم المستخدم أو البريد الإلكتروني:</label>
+                        <label for="login-username" class="block font-bold" data-i18n="loginUsername"> اسم المستخدم أو البريد الإلكتروني:</label>
                         <input type="text" id="login-username" required class="w-full p-3 rounded-lg font-bold" placeholder="أدخل اسم المستخدم أو بريدك الإلكتروني">
                     </div>
 
                     <div>
-                        <label for="login-password" class="block font-bold" data-i18n="loginPassword">🔒 كلمة المرور:</label>
+                        <label for="login-password" class="block font-bold" data-i18n="loginPassword"> كلمة المرور:</label>
                         <input type="password" id="login-password" required class="w-full p-3 rounded-lg font-bold" placeholder="أدخل كلمة المرور">
                     </div>
 
                     <div >
                         <button type="submit" id="btn-login-submit" class="w-full p-4 bg-yellow-400 text-black font-black text-xl rounded-xl large-touch-target transition btn-interactive" data-i18n="loginSubmit">
-                            تسجيل الدخول 🔑
+                            تسجيل الدخول
                         </button>
                         <button type="button" id="btn-show-register" class="w-full p-4 border-2 border-current font-bold rounded-xl btn-interactive large-touch-target" data-i18n="registerNew">
-                            إنشاء حساب جديد 📝
+                            إنشاء حساب جديد
                         </button>
                     </div>
                 </form>
@@ -104,7 +104,7 @@
             <!-- ========== نموذج إنشاء حساب جديد (Register) ========== -->
             <div id="register-form-container" class="hidden">
                 <form data-action="auth-form" >
-                    <h2 class="text-2xl font-black text-center border-current" data-i18n="registerTitle">📝 إنشاء حساب جديد</h2>
+                    <h2 class="text-2xl font-black text-center border-current" data-i18n="registerTitle"> إنشاء حساب جديد</h2>
 
                     <div>
                         <label for="reg-name" class="block font-bold" data-i18n="registerName">الاسم الكامل للمستخدم:</label>
@@ -117,7 +117,7 @@
                     </div>
 
                     <div>
-                        <label for="reg-password-new" class="block font-bold" data-i18n="registerPassword">🔒 كلمة المرور:</label>
+                        <label for="reg-password-new" class="block font-bold" data-i18n="registerPassword"> كلمة المرور:</label>
                         <input type="password" id="reg-password-new" required class="w-full p-3 rounded-lg font-bold" placeholder="اختر كلمة مرور قوية">
         <div id="pwd-strength" class="text-sm font-bold text-yellow-400"></div>
                     </div>
@@ -142,7 +142,7 @@
                             حساب ولي أمرك (حقل إجباري - اكتب رقم هاتف، بريد، أو ID ولي الأمر المسجل) *
                         </label>
                         <input type="text" id="reg-parent-contact" class="w-full p-3 rounded-lg font-bold" placeholder="اكتب بريد، جوال، أو معرف حساب ولي أمرك على المنصة">
-                        
+
                         <div >
                           <label for="otp-method" class="block font-bold">طريقة التحقق:</label>
                           <select id="otp-method" class="w-full p-3 rounded-lg font-bold text-black">
@@ -167,8 +167,13 @@
                     </div>
 
                     <div >
-                        <button type="submit" id="btn-auth-submit" class="w-full p-4 bg-green-500 text-black font-black text-xl rounded-xl large-touch-target transition btn-interactive" data-i18n="registerSubmit">
-                            إنشاء الحساب والدخول ✅
+                        <div class="my-4">
+                      <label for="reg-admin-invite" class="block font-bold">رمز دعوة الإدارة، لحساب مدير فقط</label>
+                      <input id="reg-admin-invite" type="password" autocomplete="off" class="w-full p-3 rounded" />
+                      <p>حساب المدرس يحتاج موافقة الإدارة وتعيين فصل. ربط ولي الأمر يحتاج دعوة إدارة وتأكيد البريد الإلكتروني.</p>
+                    </div>
+                    <button type="submit" id="btn-auth-submit" class="w-full p-4 bg-green-500 text-black font-black text-xl rounded-xl large-touch-target transition btn-interactive" data-i18n="registerSubmit">
+                            إنشاء الحساب والدخول
                         </button>
                         <button type="button" id="btn-show-login" class="w-full p-3 border-2 border-current font-bold rounded-xl btn-interactive" data-i18n="registerLoginLink">
                             لدي حساب بالفعل؟ تسجيل الدخول ←
@@ -219,7 +224,7 @@
                 <span class="toolbar-group flex items-center">
                     <button id="lang-toggle" class="p-2 border-2 rounded text-xs font-bold" aria-label="عربي / English">عربي / English</button>
                     <button id="btn-age-level" class="p-2 border-2 rounded text-xs font-bold" aria-label="المرحلة العمرية">
-                        🧑 العمر: تلقائي
+                         العمر: تلقائي
                     </button>
                 </span>
 
@@ -235,32 +240,32 @@
                         <button data-size-dir="-1" class="px-3 py-1 text-lg font-black" aria-label="تصغير الخط" data-i18n-aria="fontDecrease" data-i18n="fontDecrease">-</button>
                     </div>
                     <button id="tts-engine-toggle" class="p-2 border-2 rounded text-xs font-bold" aria-label="تبديل محرك الصوت">
-                        🎙️ Gemini
+                         Gemini
                     </button>
                 </span>
 
                 <span class="toolbar-group flex items-center">
                     <button id="btn-screen-reader-mode" class="p-2 border-2 rounded text-xs font-bold flex items-center" aria-pressed="false">
-                        🔊 خارجي: معطل
+                         خارجي: معطل
                     </button>
                     <button id="audio-co-pilot-toggle" class="p-2 border-2 rounded text-xs font-bold flex items-center" aria-pressed="true">
-                        🔊 داخلي: مفعل
+                         داخلي: مفعل
                     </button>
                 </span>
 
                 <span class="toolbar-group flex items-center">
                     <div class="flex items-center">
-                        <button id="btn-gemini-key-toggle" class="p-2 border-2 rounded text-xs font-bold" aria-label="إعداد مفتاح Gemini API">🔑 API</button>
+                        <button id="btn-gemini-key-toggle" class="p-2 border-2 rounded text-xs font-bold" aria-label="إعداد مفتاح Gemini API"> API</button>
                         <div id="gemini-key-input-container" class="hidden z-50 p-2 bg-slate-900 border-2 rounded-lg flex" style="min-width:280px">
                             <input type="text" id="gemini-key-input" class="flex-1 text-xs rounded bg-black text-yellow-400 border" placeholder="AIza..." aria-label="مفتاح Gemini API" data-i18n-placeholder="geminiKeyPlaceholder" data-i18n-aria="geminiKeyInputLabel">
                             <button id="btn-gemini-key-save" class="px-2 py-1 bg-purple-600 text-white text-xs font-bold rounded" data-i18n="geminiKeySave">حفظ</button>
                         </div>
                     </div>
                     <button id="btn-notifications" class="p-2 bg-blue-600 text-white text-xs font-bold rounded hidden" aria-label="الإشعارات">
-                        🔔 <span id="notif-badge" class="bg-red-500 text-white flex items-center justify-center font-black">0</span>
+                         <span id="notif-badge" class="bg-red-500 text-white flex items-center justify-center font-black">0</span>
                     </button>
-                    <button id="btn-help-shortcuts" class="p-2 bg-purple-600 text-white text-xs font-bold rounded" aria-label="مساعدة الاختصارات">⌨️</button>
-                    <button data-action="logout" data-i18n="logout" class="p-2 bg-red-600 text-white text-xs font-bold rounded hidden">تسجيل خروج 🚪</button>
+                    <button id="btn-help-shortcuts" class="p-2 bg-purple-600 text-white text-xs font-bold rounded" aria-label="مساعدة الاختصارات">⌨</button>
+                    <button data-action="logout" data-i18n="logout" class="p-2 bg-red-600 text-white text-xs font-bold rounded hidden">تسجيل خروج </button>
                 </span>
             </div>
         </div>
@@ -268,7 +273,7 @@
 
     <!-- شريط محاكاة الأدوار -->
     <div id="dev-role-bar" class="text-black p-2 font-bold flex flex-wrap justify-center items-center gap-4 text-sm hidden" role="region" aria-label="محاكي أدوار المنصة">
-        <span>⚙️ محاكاة الأدوار للمعاينة:</span>
+        <span> محاكاة الأدوار للمعاينة:</span>
         <button data-role-switch="student" id="role-btn-student" class="px-3 py-1 rounded bg-black text-white transition">الطالب (المساعد الصوتي وبرايل)</button>
         <button data-role-switch="teacher" id="role-btn-teacher" class="px-3 py-1 rounded bg-gray-200 text-black transition">المعلم (صناعة المناهج والواجبات)</button>
         <button data-role-switch="parent" id="role-btn-parent" class="px-3 py-1 rounded bg-gray-200 text-black transition">ولي الأمر (الاطلاع على نشاط الطالب)</button>
@@ -291,7 +296,7 @@
                     <p class="text-lg">استخدم لوحة المفاتيح أو اللمس للتنقل. المساعد الصوتي يقرأ لك كل شيء بالذكاء الاصطناعي فائق الوضوح.</p>
                 </div>
                 <div class="p-3 border-2 border-current rounded-xl font-bold flex flex-col text-center">
-                    <span>🔑 رمز دخولك السريع:</span>
+                    <span> رمز دخولك السريع:</span>
                     <span class="text-2xl tracking-widest" id="student-pin-display" aria-label="رمز الدخول">----</span>
                 </div>
             </div>
@@ -372,7 +377,7 @@
             <div id="student-section-container" class="hidden card p-6 border-4 border-current">
                 <div class="flex justify-between items-center border-current mb-6">
                     <h3 id="student-section-title" class="font-black" tabindex="-1">عنوان القسم</h3>
-                    <button data-action="close-section" class="px-6 py-2 bg-red-600 text-white font-black rounded-lg text-lg large-touch-target btn-interactive">إغلاق ❌</button>
+                    <button data-action="close-section" class="px-6 py-2 bg-red-600 text-white font-black rounded-lg text-lg large-touch-target btn-interactive">إغلاق </button>
                 </div>
 
                 <!-- 1. المناهج والكتب -->
@@ -382,12 +387,12 @@
                     <div id="audiobook-player" class="hidden p-4 bg-black text-white border-2 border-current rounded-xl mt-6 bg-slate-900">
                         <p class="font-bold text-lg text-yellow-300" id="audiobook-playing-title">جاري تشغيل: كيمياء الصف العاشر</p>
                         <div class="flex items-center gap-4 mt-4 flex-wrap">
-                            <button data-action="audiobook-tts" class="p-3 bg-yellow-500 text-black font-bold rounded btn-interactive">تشغيل النطق بالذكاء الاصطناعي 🔊</button>
-                            <button data-action="summarize-book" class="p-3 bg-purple-600 text-white font-bold rounded btn-interactive">تلخيص ذكي للمنهج ✨</button>
-                            <button data-action="audiobook-stop" class="p-3 bg-red-600 text-white font-bold rounded btn-interactive">إيقاف نهائي 🛑</button>
+                            <button data-action="audiobook-tts" class="p-3 bg-yellow-500 text-black font-bold rounded btn-interactive">تشغيل النطق بالذكاء الاصطناعي </button>
+                            <button data-action="summarize-book" class="p-3 bg-purple-600 text-white font-bold rounded btn-interactive">تلخيص ذكي للمنهج </button>
+                            <button data-action="audiobook-stop" class="p-3 bg-red-600 text-white font-bold rounded btn-interactive">إيقاف نهائي </button>
                         </div>
                         <div id="book-ai-summary-box" class="mt-4 p-4 bg-slate-800 border-2 rounded-lg hidden">
-                            <h4 class="text-xl font-bold text-purple-400">📝 تلخيص ذكي مسموع:</h4>
+                            <h4 class="text-xl font-bold text-purple-400"> تلخيص ذكي مسموع:</h4>
                             <p id="book-ai-summary-text" class="text-white font-bold"></p>
                         </div>
                     </div>
@@ -402,7 +407,7 @@
                         <div class="flex justify-between items-center flex-wrap gap-4 bg-black text-yellow-300 p-4 rounded-lg">
                             <h4 class="text-2xl font-black" id="active-quiz-title">اختبار العلوم الأول</h4>
                             <div class="flex items-center gap-2">
-                                <span class="text-xl">⏱️ العداد الصوتي:</span>
+                                <span class="text-xl">⏱ العداد الصوتي:</span>
                                 <span id="active-quiz-timer" class="text-2xl font-bold">10:00</span>
                             </div>
                         </div>
@@ -432,10 +437,10 @@
                         <div id="quiz-text-input-section" class="border-current hidden">
                             <p class="font-bold text-xl">اكتب إجابتك النصية للواجب أدناه باستخدام إحدى الوسائل المتاحة:</p>
                             <div class="flex flex-wrap gap-2">
-                                <button id="btn-mic-input" class="p-3 bg-blue-600 text-white font-bold rounded-lg flex items-center gap-2 btn-interactive">🎤 إجابة صوتية (Speech-to-Text)</button>
-                                <button data-action="toggle-screen-braille" class="p-3 bg-purple-600 text-white font-bold rounded-lg btn-interactive">⌨️ كيبورد برايل للشاشة (أزرار ضخمة)</button>
-                                <button data-action="toggle-perkins" class="p-3 text-white font-bold rounded-lg btn-interactive">💻 محاكي Perkins (F,D,S - J,K,L)</button>
-                                <button data-action="braille-evaluate" class="p-3 bg-yellow-500 text-black font-bold rounded-lg btn-interactive">✨ تدقيق ومصحح برايل الذكي</button>
+                                <button id="btn-mic-input" class="p-3 bg-blue-600 text-white font-bold rounded-lg flex items-center gap-2 btn-interactive"> إجابة صوتية (Speech-to-Text)</button>
+                                <button data-action="toggle-screen-braille" class="p-3 bg-purple-600 text-white font-bold rounded-lg btn-interactive">⌨ كيبورد برايل للشاشة (أزرار ضخمة)</button>
+                                <button data-action="toggle-perkins" class="p-3 text-white font-bold rounded-lg btn-interactive"> محاكي Perkins (F,D,S - J,K,L)</button>
+                                <button data-action="braille-evaluate" class="p-3 bg-yellow-500 text-black font-bold rounded-lg btn-interactive"> تدقيق ومصحح برايل الذكي</button>
                             </div>
 
                             <div >
@@ -444,7 +449,7 @@
                             </div>
 
                             <div id="braille-evaluation-box" class="p-4 bg-slate-900 border-2 rounded-lg hidden">
-                                <h4 class="text-lg font-bold text-yellow-400">🤖 تقييم وتصحيح لغة برايل من Gemini:</h4>
+                                <h4 class="text-lg font-bold text-yellow-400"> تقييم وتصحيح لغة برايل من Gemini:</h4>
                                 <p id="braille-evaluation-text" class="text-white font-bold"></p>
                             </div>
 
@@ -464,8 +469,8 @@
                                     </div>
                                 </div>
                                 <div class="flex justify-center gap-2 mt-4 flex-wrap">
-                                    <button data-action="enter-braille" class="p-3 bg-green-600 text-white font-bold rounded btn-interactive">إدخل الحرف ✍️</button>
-                                    <button data-action="clear-braille" class="p-3 bg-gray-600 text-white font-bold rounded btn-interactive">مسح الخلايا 🧹</button>
+                                    <button data-action="enter-braille" class="p-3 bg-green-600 text-white font-bold rounded btn-interactive">إدخل الحرف </button>
+                                    <button data-action="clear-braille" class="p-3 bg-gray-600 text-white font-bold rounded btn-interactive">مسح الخلايا </button>
                                     <button data-action="add-space" class="p-3 text-white font-bold rounded btn-interactive">مسافة ⌴</button>
                                     <button data-action="delete-char" class="p-3 bg-red-600 text-white font-bold rounded btn-interactive">مسح حرف ⌫</button>
                                 </div>
@@ -474,7 +479,7 @@
 
                             <!-- محاكي Perkins -->
                             <div id="perkins-braille-keyboard" class="hidden p-4 border-2 rounded-xl bg-slate-900 text-white" tabindex="-1" aria-label="لوحة بيركنز للكتابة بطريقة برايل">
-                                <p class="font-bold text-yellow-300">🎮 وضع Perkins مفعل الآن!</p>
+                                <p class="font-bold text-yellow-300"> وضع Perkins مفعل الآن!</p>
                                 <p class="text-sm">ضع أصابع يدك اليسرى على <kbd class="px-2 py-1 rounded text-red-400">F, D, S</kbd> (تمثل النقاط 1، 2، 3) وأصابع يدك اليمنى على <kbd class="px-2 py-1 rounded text-red-400">J, K, L</kbd> (تمثل النقاط 4, 5, 6).</p>
                                 <p class="text-sm">اضغط على المفاتيح معاً في نفس الوقت لتوليد الأحرف باللغة العربية! واضغط <kbd class="px-2 py-1 rounded">Space</kbd> للمسافة و <kbd class="px-2 py-1 rounded">Backspace</kbd> للحذف.</p>
                             </div>
@@ -482,10 +487,10 @@
 
                         <div class="flex items-center justify-between flex-wrap gap-4">
                             <div class="flex items-center gap-4">
-                                <button id="btn-voice-exam-toggle" class="p-4 bg-yellow-500 text-black font-bold text-xl rounded-xl large-touch-target btn-interactive">تفعيل الوضع الناطق 🎤</button>
+                                <button id="btn-voice-exam-toggle" class="p-4 bg-yellow-500 text-black font-bold text-xl rounded-xl large-touch-target btn-interactive">تفعيل الوضع الناطق </button>
                                 <span id="voice-exam-status" class="text-lg font-bold text-yellow-300"></span>
                             </div>
-                            <button data-action="submit-quiz" class="p-4 bg-green-600 text-white font-bold text-xl rounded-xl w-full large-touch-target btn-interactive">إرسال الإجابة النهائية 🚀</button>
+                            <button data-action="submit-quiz" class="p-4 bg-green-600 text-white font-bold text-xl rounded-xl w-full large-touch-target btn-interactive">إرسال الإجابة النهائية </button>
                         </div>
                     </div>
                 </div>
@@ -494,18 +499,18 @@
                 <div id="student-sub-image-describer" class="hidden">
                     <p class="font-bold text-xl">ارفع أو اختر أي صورة لمخطط بياني، رسمة توضيحية، أو درس في كتابك وسيقوم الذكاء الاصطناعي بوصفها لك بذكاء وتفصيل شديد بالصوت:</p>
                     <div class="card p-6 rounded-xl border-2 border-current">
-                        <label for="vision-image-input" class="block font-bold text-lg">📸 اختر ملف الصورة (PNG, JPG):</label>
+                        <label for="vision-image-input" class="block font-bold text-lg"> اختر ملف الصورة (PNG, JPG):</label>
                         <input type="file" id="vision-image-input" accept="image/*" class="w-full p-3 rounded">
                         <div id="vision-preview-container" class="hidden text-center">
                             <p class="font-bold text-green-400">تم تحميل الصورة بنجاح</p>
                             <img id="vision-image-preview" src="" alt="صورة توضيحية للرفع" class="border-4 border-current rounded-lg" loading="lazy">
                         </div>
-                        <button data-action="analyze-image" id="btn-analyze-image" class="w-full p-4 bg-purple-600 text-white font-black text-xl rounded-xl btn-interactive">تحليل ووصف الصورة بالذكاء الاصطناعي ✨</button>
+                        <button data-action="analyze-image" id="btn-analyze-image" class="w-full p-4 bg-purple-600 text-white font-black text-xl rounded-xl btn-interactive">تحليل ووصف الصورة بالذكاء الاصطناعي </button>
                     </div>
                     <div id="vision-response-box" class="hidden p-6 border-2 bg-slate-900 rounded-xl">
                         <div class="flex justify-between items-center flex-wrap gap-2">
-                            <span class="text-purple-400 font-bold text-lg">👁️ الوصف اللفظي التفصيلي للصورة:</span>
-                            <button data-action="speak-vision" class="px-4 py-2 bg-yellow-400 text-black font-bold rounded btn-interactive">🔊 قراءة الوصف بصوت عالٍ</button>
+                            <span class="text-purple-400 font-bold text-lg"> الوصف اللفظي التفصيلي للصورة:</span>
+                            <button data-action="speak-vision" class="px-4 py-2 bg-yellow-400 text-black font-bold rounded btn-interactive"> قراءة الوصف بصوت عالٍ</button>
                         </div>
                         <p id="vision-response-text" class="text-xl font-bold text-white">جاري إرسال الصورة لـ Gemini وتوليد التقرير الصوتي...</p>
                     </div>
@@ -517,7 +522,7 @@
                     <div class="p-6 border-2">
                         <h4 class="text-2xl font-black flex items-center gap-2">
                             <svg  fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
-                            <span>لوحة تعليم لغة برايل التفاعلية للمبتدئين 🧑‍🏫</span>
+                            <span>لوحة تعليم لغة برايل التفاعلية للمبتدئين ‍</span>
                         </h4>
                         <p class="text-sm">انقر على النقاط الستة بالأسفل لتشكيل الحرف العربي وسماع نطق الحرف فوراً بالذكاء الاصطناعي لتدريب أصابعك!</p>
                         <div class="gap-3 max-w-xs">
@@ -533,8 +538,8 @@
                             </div>
                         </div>
                         <div class="flex justify-center gap-2">
-                            <button data-action="pronounce-cheat" class="p-3 text-black font-black rounded-lg text-sm btn-interactive">انطق الحرف المشكّل 🔊</button>
-                            <button data-action="clear-cheat" class="p-3 text-white font-bold rounded-lg text-sm btn-interactive">مسح اللوحة 🧹</button>
+                            <button data-action="pronounce-cheat" class="p-3 text-black font-black rounded-lg text-sm btn-interactive">انطق الحرف المشكّل </button>
+                            <button data-action="clear-cheat" class="p-3 text-white font-bold rounded-lg text-sm btn-interactive">مسح اللوحة </button>
                         </div>
                         <div class="text-center font-bold text-yellow-300 text-lg" id="cheat-char-preview">الحرف المشكل حالياً: لا يوجد</div>
                     </div>
@@ -542,48 +547,48 @@
                     <p class="font-bold text-lg">اختر لعبة للتنافس وتحسين مهاراتك بطريقة تفاعلية:</p>
                     <div class="gap-4">
                         <button data-game-type="seconds" class="p-6 border-2 border-current rounded-xl text-right transition btn-interactive">
-                            <span class="block">⏱️</span>
+                            <span class="block">⏱</span>
                             <span class="text-xl font-bold block">لعبة تحدي الثواني</span>
                             <span class="text-xs block">أجب على أسئلة صح أم خطأ ضد عقارب الساعة ومؤثرات صوتية!</span>
                         </button>
                         <button data-game-type="hero" class="p-6 border-2 border-current rounded-xl text-right transition btn-interactive">
-                            <span class="block">🏆</span>
+                            <span class="block"></span>
                             <span class="text-xl font-bold block">لعبة البطل ضد الوقت</span>
                             <span class="text-xs block">تحدي فردي لكسر رقمك القياسي الشخصي في الإجابات المتتالية.</span>
                         </button>
                         <button data-game-type="audio-memory" class="p-6 border-2 rounded-xl text-right transition btn-interactive">
-                            <span class="block">🧠</span>
+                            <span class="block"></span>
                             <span class="text-xl font-bold block text-purple-400">لعبة الذاكرة السمعية</span>
                             <span class="text-xs block text-gray-300">استمع إلى تسلسل أصوات، ثم كرره — درب ذاكرتك السمعية!</span>
                         </button>
                         <button data-game-type="pvp" class="p-6 border-2 border-current rounded-xl text-right transition btn-interactive">
-                            <span class="block">⚔️</span>
+                            <span class="block"></span>
                             <span class="text-xl font-bold block">المبارزة الثنائية (Live PvP)</span>
                             <span class="text-xs block">تحدي مباشر ضد زميل محاكى، الأسرع في الإجابة يحقق الفوز!</span>
                         </button>
                         <button data-game-type="ai-story" class="p-6 border-2 rounded-xl text-right transition btn-interactive">
-                            <span class="block">📖</span>
-                            <span class="text-xl font-bold block text-purple-400">الحكواتي الذكي التفاعلي ✨</span>
+                            <span class="block"></span>
+                            <span class="text-xl font-bold block text-purple-400">الحكواتي الذكي التفاعلي </span>
                             <span class="text-xs block text-gray-300">عش مغامرة وقصة تعليمية يولدها الذكاء الاصطناعي بالصوت وتخوضها بنفسك!</span>
                         </button>
                         <button data-game-type="math-challenge" class="p-6 border-2 rounded-xl text-right transition btn-interactive">
-                            <span class="block">🔢</span>
+                            <span class="block"></span>
                             <span class="text-xl font-bold block">تحدي الرياضيات الصوتي</span>
                             <span class="text-xs block text-gray-300">حل مسائل رياضية تتكيف مع مستواك — من الجمع البسيط حتى التفاضل والتكامل!</span>
                         </button>
                         <button data-game-type="listening-quiz" class="p-6 border-2 rounded-xl text-right transition btn-interactive">
-                            <span class="block">🎧</span>
-                            <span class="text-xl font-bold block">اختبار الفهم السمعي ✨</span>
+                            <span class="block"></span>
+                            <span class="text-xl font-bold block">اختبار الفهم السمعي </span>
                             <span class="text-xs block text-gray-300">استمع لفقرة تعليمية يولدها الذكاء الاصطناعي ثم أجب عن أسئلة الفهم والاستيعاب!</span>
                         </button>
                         <button data-game-type="science-lab" class="p-6 border-2 rounded-xl text-right transition btn-interactive">
-                            <span class="block">🧪</span>
-                            <span class="text-xl font-bold block">محاكي التجارب العلمية ✨</span>
+                            <span class="block"></span>
+                            <span class="text-xl font-bold block">محاكي التجارب العلمية </span>
                             <span class="text-xs block text-gray-300">ادخل المختبر الافتراضي ونفّذ تجارب علمية تفاعلية بمؤثرات صوتية ثلاثية الأبعاد!</span>
                         </button>
                         <button data-game-type="geography-explorer" class="p-6 border-2 rounded-xl text-right transition btn-interactive">
-                            <span class="block">🌍</span>
-                            <span class="text-xl font-bold block">مستكشف الجغرافيا ✨</span>
+                            <span class="block"></span>
+                            <span class="text-xl font-bold block">مستكشف الجغرافيا </span>
                             <span class="text-xs block text-gray-300">سافر حول العالم واستكشف القارات والمناخ والتضاريس في مغامرة جغرافية صوتية!</span>
                         </button>
                     </div>
@@ -599,8 +604,8 @@
                         <div id="game-arena" class="text-center">
                             <p id="game-question" class="font-bold">السؤال هنا؟</p>
                             <div id="game-binary-options" class="flex flex-col gap-4 justify-center">
-                                <button data-action="answer-true" class="flex-1 p-8 bg-green-600 text-white font-black large-touch-target btn-interactive">نعم (صح) 👍</button>
-                                <button data-action="answer-false" class="flex-1 p-8 bg-red-600 text-white font-black large-touch-target btn-interactive">لا (خطأ) 👎</button>
+                                <button data-action="answer-true" class="flex-1 p-8 bg-green-600 text-white font-black large-touch-target btn-interactive">نعم (صح) </button>
+                                <button data-action="answer-false" class="flex-1 p-8 bg-red-600 text-white font-black large-touch-target btn-interactive">لا (خطأ) </button>
                             </div>
                             <div id="game-story-options" class="hidden gap-4 max-w-2xl"></div>
                         </div>
@@ -611,18 +616,18 @@
                 <div id="student-sub-ai-tutor" class="hidden">
                     <p class="font-bold text-xl">مرحباً! أنا معلمك الذكي المدعوم بـ <span class="text-yellow-400 font-black">Gemini</span>. اسألني أي سؤال في المناهج وسأجيبك فوراً بالصوت والنص الطبيعي.</p>
                     <div class="flex gap-2">
-                        <button data-action="ai-tutor-speech" class="p-4 bg-blue-600 text-white font-black rounded-xl flex items-center gap-2 btn-interactive">🎤 اضغط للتحدث بالصوت</button>
+                        <button data-action="ai-tutor-speech" class="p-4 bg-blue-600 text-white font-black rounded-xl flex items-center gap-2 btn-interactive"> اضغط للتحدث بالصوت</button>
                         <p class="text-xs" id="ai-voice-status">اضغط وتحدث وسأقوم بتحويل صوتك وكتابة السؤال تلقائياً.</p>
                     </div>
                     <div >
                         <label for="ai-tutor-query" class="block font-bold text-lg">اكتب سؤالك هنا يدوياً أو دع الإدخال الصوتي يملأه:</label>
                         <textarea id="ai-tutor-query" rows="3" class="w-full p-4 rounded-xl border-2 border-current bg-black text-white text-xl font-bold" placeholder="مثال: اشرح لي كيف تتكون الروابط الأيونية؟"></textarea>
                     </div>
-                    <button data-action="ask-ai" id="btn-ask-ai" class="w-full p-4 bg-yellow-500 text-black font-black text-xl rounded-xl btn-interactive">إرسال السؤال إلى المعلم ✨</button>
+                    <button data-action="ask-ai" id="btn-ask-ai" class="w-full p-4 bg-yellow-500 text-black font-black text-xl rounded-xl btn-interactive">إرسال السؤال إلى المعلم </button>
                     <div id="ai-tutor-response-box" class="hidden p-6 border-2 bg-slate-900 rounded-xl">
                         <div class="flex justify-between items-center">
-                            <span class="text-green-400 font-bold">🤖 إجابة المعلم الافتراضي الذكي:</span>
-                            <button data-action="speak-ai-response" class="px-4 py-2 bg-yellow-400 text-black font-bold rounded btn-interactive">🔊 قراءة الإجابة بصوت عالٍ</button>
+                            <span class="text-green-400 font-bold"> إجابة المعلم الافتراضي الذكي:</span>
+                            <button data-action="speak-ai-response" class="px-4 py-2 bg-yellow-400 text-black font-bold rounded btn-interactive"> قراءة الإجابة بصوت عالٍ</button>
                         </div>
                         <p id="ai-tutor-response-text" class="text-xl font-bold text-white">جاري التفكير وتحضير الإجابة...</p>
                     </div>
@@ -641,17 +646,17 @@
                     </div>
 
                     <div class="flex flex-wrap gap-4">
-                        <button id="btn-dialogic-start" class="p-4 bg-green-600 text-white font-black text-xl rounded-xl flex-1 btn-interactive">🎙️ بدء الفصل الذكي</button>
-                        <button id="btn-dialogic-stop" class="p-4 bg-red-600 text-white font-black text-xl rounded-xl flex-1 btn-interactive hidden">🛑 إنهاء الجلسة</button>
+                        <button id="btn-dialogic-start" class="p-4 bg-green-600 text-white font-black text-xl rounded-xl flex-1 btn-interactive"> بدء الفصل الذكي</button>
+                        <button id="btn-dialogic-stop" class="p-4 bg-red-600 text-white font-black text-xl rounded-xl flex-1 btn-interactive hidden"> إنهاء الجلسة</button>
                     </div>
 
                     <div id="dialogic-conversation" class="hidden p-4 border-2 border-current rounded-xl">
-                        <h4 class="text-xl font-bold text-yellow-300">📝 نص الحوار:</h4>
+                        <h4 class="text-xl font-bold text-yellow-300"> نص الحوار:</h4>
                         <div id="dialogic-transcript" class="overflow-y-auto"></div>
                     </div>
 
                     <div class="flex gap-2">
-                        <button id="btn-dialogic-speak" class="p-4 bg-blue-600 text-white font-bold rounded-xl flex-1 btn-interactive">🎤 تحدث الآن</button>
+                        <button id="btn-dialogic-speak" class="p-4 bg-blue-600 text-white font-bold rounded-xl flex-1 btn-interactive"> تحدث الآن</button>
                         <p class="text-sm" id="dialogic-voice-status">الميكروفون جاهز. انتظر حتى يطرح المدرس السؤال ثم تحدث.</p>
                     </div>
                 </div>
@@ -666,31 +671,31 @@
 
                     <div  id="dashboard-stats-grid">
                         <div class="card p-6 rounded-xl border-2 border-current bg-slate-900">
-                            <h4 class="text-xl font-bold text-yellow-400">📊 إحصائيات الاختبارات</h4>
+                            <h4 class="text-xl font-bold text-yellow-400"> إحصائيات الاختبارات</h4>
                             <div id="dashboard-quiz-stats">
                                 <p class="text-gray-300">لا توجد بيانات بعد.</p>
                             </div>
                         </div>
                         <div class="card p-6 rounded-xl border-2 border-current bg-slate-900">
-                            <h4 class="text-xl font-bold text-yellow-400">📚 الكتب</h4>
+                            <h4 class="text-xl font-bold text-yellow-400"> الكتب</h4>
                             <div id="dashboard-book-stats">
                                 <p class="text-gray-300">لا توجد بيانات بعد.</p>
                             </div>
                         </div>
                         <div class="card p-6 rounded-xl border-2 border-current bg-slate-900">
-                            <h4 class="text-xl font-bold text-yellow-400">🎮 الألعاب</h4>
+                            <h4 class="text-xl font-bold text-yellow-400"> الألعاب</h4>
                             <div id="dashboard-game-stats">
                                 <p class="text-gray-300">لا توجد بيانات بعد.</p>
                             </div>
                         </div>
                     <div class="card p-6 rounded-xl border-2 border-current bg-slate-900">
-                        <h4 class="text-xl font-bold text-yellow-400">🏆 الإنجازات</h4>
+                        <h4 class="text-xl font-bold text-yellow-400"> الإنجازات</h4>
                         <div id="dashboard-achievements">
                             <p class="text-gray-300">ابدأ التعلم لتحصل على شارات الإنجاز!</p>
                         </div>
                     </div>
                     <div class="card p-6 rounded-xl border-2 border-current bg-slate-900">
-                        <h4 class="text-xl font-bold text-yellow-400">📋 آخر الأنشطة</h4>
+                        <h4 class="text-xl font-bold text-yellow-400"> آخر الأنشطة</h4>
                         <div id="dashboard-recent-activity">
                             <p class="text-gray-300">لا توجد أنشطة بعد.</p>
                         </div>
@@ -698,11 +703,11 @@
                 </div>
 
                 <div class="flex flex-wrap gap-4 justify-center">
-                    <button onclick="window.printStudentReport()" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg transition btn-interactive">🖨️ طباعة التقرير</button>
+                    <button onclick="window.printStudentReport()" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg transition btn-interactive"> طباعة التقرير</button>
                 </div>
 
                 <div class="p-4 border-2 rounded-xl text-center">
-                        <p class="text-lg font-bold text-yellow-300" id="dashboard-encouragement">واصل التقدم يا بطل! 🚀</p>
+                        <p class="text-lg font-bold text-yellow-300" id="dashboard-encouragement">واصل التقدم يا بطل! </p>
                     </div>
                 </div>
 
@@ -726,18 +731,18 @@
                     </div>
 
                     <div class="flex flex-wrap gap-4">
-                        <button id="btn-study-group-start" class="p-4 bg-purple-600 text-white font-black text-xl rounded-xl flex-1 btn-interactive">👥 بدء الجلسة الجماعية</button>
-                        <button id="btn-study-group-stop" class="p-4 bg-red-600 text-white font-black text-xl rounded-xl flex-1 btn-interactive hidden">🛑 إنهاء الجلسة</button>
+                        <button id="btn-study-group-start" class="p-4 bg-purple-600 text-white font-black text-xl rounded-xl flex-1 btn-interactive"> بدء الجلسة الجماعية</button>
+                        <button id="btn-study-group-stop" class="p-4 bg-red-600 text-white font-black text-xl rounded-xl flex-1 btn-interactive hidden"> إنهاء الجلسة</button>
                     </div>
 
                     <div id="study-group-conversation" class="hidden p-4 border-2 border-current rounded-xl">
-                        <h4 class="text-xl font-bold text-yellow-300">📝 محضر الجلسة:</h4>
+                        <h4 class="text-xl font-bold text-yellow-300"> محضر الجلسة:</h4>
                         <div id="study-group-transcript" class="overflow-y-auto"></div>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
-                        <button id="btn-study-group-speak" class="p-4 bg-blue-600 text-white font-bold rounded-xl flex-1 btn-interactive">🎤 تحدث الآن</button>
-                        <button id="btn-study-group-next" class="p-4 bg-yellow-500 text-black font-bold rounded-xl btn-interactive">⏭️ دور الزميل التالي</button>
+                        <button id="btn-study-group-speak" class="p-4 bg-blue-600 text-white font-bold rounded-xl flex-1 btn-interactive"> تحدث الآن</button>
+                        <button id="btn-study-group-next" class="p-4 bg-yellow-500 text-black font-bold rounded-xl btn-interactive">⏭ دور الزميل التالي</button>
                         <p class="text-sm" id="study-group-voice-status">الميكروفون جاهز. اضغط "تحدث الآن" للمشاركة.</p>
                     </div>
                 </div>
@@ -746,7 +751,7 @@
 
         <!-- ==================== 2. واجهة المعلم ==================== -->
         <section id="view-teacher" class="hidden">
-            <h1 class="font-bold" tabindex="-1" id="teacher-dashboard-heading">🏫 لوحة قيادة المعلم</h1>
+            <h1 class="font-bold" tabindex="-1" id="teacher-dashboard-heading"> لوحة قيادة المعلم</h1>
 
             <!-- إحصائيات سريعة -->
             <div class="gap-4" id="teacher-stats-cards" role="region" aria-label="إحصائيات سريعة">
@@ -770,7 +775,7 @@
 
             <!-- توزيع الدرجات -->
             <div class="card p-6 border-2 border-current" role="region" aria-label="توزيع الدرجات">
-                <h3 class="text-xl font-bold">📊 توزيع الدرجات</h3>
+                <h3 class="text-xl font-bold"> توزيع الدرجات</h3>
                 <div id="grade-distribution" >
                     <p >لا توجد درجات بعد لعرض التوزيع.</p>
                 </div>
@@ -779,8 +784,8 @@
             <!-- أداء الطلاب -->
             <div class="card p-6 border-2 border-current" role="region" aria-label="جدول أداء الطلاب">
                 <div class="flex justify-between items-center flex-wrap gap-2">
-                    <h3 class="text-xl font-bold">🎓 أداء الطلاب التفصيلي</h3>
-                    <button id="btn-export-report" class="px-4 py-2 text-white font-bold rounded btn-interactive">📋 إنشاء تقرير نصي</button>
+                    <h3 class="text-xl font-bold"> أداء الطلاب التفصيلي</h3>
+                    <button id="btn-export-report" class="px-4 py-2 text-white font-bold rounded btn-interactive"> إنشاء تقرير نصي</button>
                 </div>
                 <div >
                     <table class="w-full text-right border border-current">
@@ -803,7 +808,7 @@
                 <h3 class="text-2xl font-bold">رفع المناهج والاختبارات</h3>
                 <div >
                 <div class="card p-6 border-2 border-current">
-                    <h3 class="text-2xl font-bold">📚 رفع كتاب أو وحدة تعليمية جديدة</h3>
+                    <h3 class="text-2xl font-bold"> رفع كتاب أو وحدة تعليمية جديدة</h3>
                     <form data-action="teacher-book-form" >
                         <div>
                             <label for="teacher-book-title" class="block font-bold">عنوان الكتاب/المقرر الدراسي:</label>
@@ -817,15 +822,15 @@
                             <label for="teacher-book-content" class="block font-bold">المحتوى النصي الكامل للمقرر:</label>
                             <textarea id="teacher-book-content" required rows="6" class="w-full p-3 rounded" placeholder="اكتب أو الصق محتوى الوحدة بالتفصيل ليتمكن القارئ الآلي من قراءته للطالب بسلاسة."></textarea>
                         </div>
-                        <button type="submit" class="w-full p-4 bg-green-600 text-white font-bold rounded-xl btn-interactive">حفظ ونشر المقرر 🚀</button>
+                        <button type="submit" class="w-full p-4 bg-green-600 text-white font-bold rounded-xl btn-interactive">حفظ ونشر المقرر </button>
                     </form>
                 </div>
 
                 <div class="card p-6 border-2 border-current">
                     <div class="flex justify-between items-center flex-wrap gap-2">
                         <!-- [إصلاح #7] إصلاح إملائي: "الاختبار" بدلاً من "الافتبار" -->
-                        <h3 class="text-2xl font-bold">✏️ إنشاء واجب أو اختبار تفاعلي</h3>
-                        <button data-action="generate-ai-quiz" id="btn-ai-generate" class="px-3 py-1 bg-purple-600 text-white text-xs font-bold rounded btn-interactive">توليد ذكي بالذكاء الاصطناعي ✨</button>
+                        <h3 class="text-2xl font-bold"> إنشاء واجب أو اختبار تفاعلي</h3>
+                        <button data-action="generate-ai-quiz" id="btn-ai-generate" class="px-3 py-1 bg-purple-600 text-white text-xs font-bold rounded btn-interactive">توليد ذكي بالذكاء الاصطناعي </button>
                     </div>
                     <form data-action="teacher-quiz-form" >
                         <div>
@@ -870,14 +875,14 @@
                                 <textarea id="teacher-quiz-ideal-ans" rows="3" class="w-full p-3 rounded" placeholder="الإجابة النموذجية التي سيقوم مصحح الذكاء الاصطناعي بالمقارنة بناءً عليها..."></textarea>
                             </div>
                         </div>
-                        <button type="submit" class="w-full p-4 bg-blue-600 text-white font-bold rounded-xl btn-interactive">حفظ ونشر الواجب 🚀</button>
+                        <button type="submit" class="w-full p-4 bg-blue-600 text-white font-bold rounded-xl btn-interactive">حفظ ونشر الواجب </button>
                     </form>
                 </div>
             </div>
             </div>
 
             <div class="card p-6 border-2 border-current">
-                <h3 class="text-2xl font-bold">✍️ إجابات الطلاب المرفوعة والمصححة في الوقت الفعلي</h3>
+                <h3 class="text-2xl font-bold"> إجابات الطلاب المرفوعة والمصححة في الوقت الفعلي</h3>
                 <div >
                     <table class="w-full text-right border border-current">
                         <thead>
@@ -897,27 +902,27 @@
 
         <!-- ==================== 3. بوابة ولي الأمر ==================== -->
         <section id="view-parent" class="hidden">
-            <h1 class="font-bold" tabindex="-1" id="parent-dashboard-heading">👪 بوابة ولي الأمر لمتابعة الطالب</h1>
+            <h1 class="font-bold" tabindex="-1" id="parent-dashboard-heading"> بوابة ولي الأمر لمتابعة الطالب</h1>
             <p class="text-lg">مرحباً بك في لوحة تحكم ولي الأمر لمدرسة سكول. يمكنك هنا الاطلاع على أداء الابن ودرجاته، وتلقي التوجيهات المخصصة لصعوبات التعلم.</p>
             <div >
                 <div class="card p-6 border-2 border-current">
-                    <h3 class="text-2xl font-bold">📊 سجل درجات واختبارات الابن: <span id="parent-linked-child-name" class="text-yellow-400">—</span></h3>
+                    <h3 class="text-2xl font-bold"> سجل درجات واختبارات الابن: <span id="parent-linked-child-name" class="text-yellow-400">—</span></h3>
                     <div id="parent-grades-list" ></div>
                 </div>
                 <div class="card p-6 border-2 bg-slate-900">
-                    <h3 class="text-2xl font-bold text-yellow-400">🔔 آخر الإشعارات</h3>
+                    <h3 class="text-2xl font-bold text-yellow-400"> آخر الإشعارات</h3>
                     <div id="parent-notifications-list" class="overflow-y-auto">
                         <p >لا توجد إشعارات بعد.</p>
                     </div>
                 </div>
                 <div class="card p-6 border-2 border-current text-white">
                     <div class="flex items-center gap-2">
-                        <span >🧠</span>
+                        <span ></span>
                         <h3 class="text-2xl font-bold text-yellow-300">تقرير الذكاء الاصطناعي لتشخيص صعوبات التعلم</h3>
                     </div>
                     <p class="text-sm">يقوم نظام الذكاء الاصطناعي بتحليل سلوك الطالب على المنصة لإصدار هذا التقرير التوجيهي الذكي:</p>
                     <div class="p-4 bg-slate-900 border rounded-xl" id="ai-analytics-report-box">
-                        <p class="font-bold text-green-400">📝 توصيات الطبيب المعرفي للذكاء الاصطناعي ✨:</p>
+                        <p class="font-bold text-green-400"> توصيات الطبيب المعرفي للذكاء الاصطناعي :</p>
                         <ul class="text-sm" id="ai-analytics-bullets">
                             <li>سيظهر التقرير التوجيهي بعد جمع بيانات كافية من نشاط الطالب على المنصة.</li>
                         </ul>
@@ -928,11 +933,11 @@
 
         <!-- ==================== 4. لوحة تحكم الإدارة ==================== -->
         <section id="view-admin" class="hidden">
-            <h1 class="font-bold" tabindex="-1" id="admin-dashboard-heading">⚙️ لوحة تحكم إدارة مدرسة سكول</h1>
-            <p class="text-lg">توليد وإدارة حسابات الطلاب وتوزيعهم، مع توليد فوري لرموز الدخول السريعة (PIN 4 أرقام) لتمكين الطالب الكفيف من تسجيل الدخول بلمسة واحدة.</p>
+            <h1 class="font-bold" tabindex="-1" id="admin-dashboard-heading"> لوحة تحكم إدارة مدرسة سكول</h1>
+            <p class="text-lg">سجل إداري للطلاب. إنشاء سجل هنا لا ينشئ حساب دخول أو رمز مصادقة. إدارة الوصول الحقيقية في قسم الفصول والصلاحيات أدناه.</p>
             <div >
                 <div class="card p-6 border-2 border-current">
-                    <h3 class="text-2xl font-bold">➕ إضافة طالب جديد للمنصة</h3>
+                    <h3 class="text-2xl font-bold"> إضافة طالب جديد للمنصة</h3>
                     <form data-action="admin-student-form" >
                         <div>
                             <label for="admin-student-name" class="block font-bold">اسم الطالب رباعي:</label>
@@ -942,11 +947,11 @@
                             <label for="admin-student-grade" class="block font-bold">الصف الدراسي:</label>
                             <input type="text" id="admin-student-grade" required class="w-full p-3 rounded" placeholder="مثل: الصف العاشر">
                         </div>
-                        <button type="submit" class="w-full p-4 bg-yellow-500 text-black font-black rounded-xl btn-interactive">توليد الحساب والرمز السري 🔒</button>
+                        <button type="submit" class="w-full p-4 bg-yellow-500 text-black font-black rounded-xl btn-interactive">إضافة سجل طالب</button>
                     </form>
                 </div>
                 <div class="card p-6 border-2 border-current">
-                    <h3 class="text-2xl font-bold">📋 سجل الطلاب المفعلين والرموز</h3>
+                    <h3 class="text-2xl font-bold"> سجل الطلاب الإداري</h3>
                     <div >
                         <table class="w-full text-right text-sm">
                             <thead>

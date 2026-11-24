@@ -1,3 +1,11 @@
+# Cloud School repair review copy
+
+This is a local repair copy, not a deployed release. See [RELEASE-REVIEW.md](RELEASE-REVIEW.md) for changes, tests, migration steps and remaining checks. The original project overview is below and contains some historical paths/test counts.
+
+Local checks (Node 22): `npm ci`, `npm run test:integration`, `npm test -- --runInBand`, `npm run lint`, `npm run typecheck`, `npm run test:ui`, `npm run build`.
+
+`test:integration` now runs synthetic local SQLite checks. `test:live` is explicitly separate. No deploy is needed to run local checks.
+
 # Cloud School (كلاود سكول)
 
 منصة تعليمية سحابية متكاملة مصممة خصيصًا لتلبية احتياجات الطلاب المكفوفين وضعاف البصر.

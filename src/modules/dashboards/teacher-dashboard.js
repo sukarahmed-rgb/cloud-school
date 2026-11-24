@@ -1,3 +1,6 @@
+import { hasConfirmedGrade } from '../analytics.js';
+import { getAccountStorageKey } from '../app-state.js';
+import { getProxyBase } from '../gemini-client.js';
 // @ts-check
 // Teacher Dashboard Module - لوحة قيادة المعلم (Lazy loaded)
 import { initDialog } from '../dom-utils.js';
@@ -20,12 +23,13 @@ export function renderTeacherDashboard() {
   ).size;
   const totalQuizzes = assignments.length;
   const totalSubmissions = submissions.length;
+  const gradedSubmissions = submissions.filter(hasConfirmedGrade);
   const avgScore =
-    totalSubmissions > 0
+    gradedSubmissions.length > 0
       ? Math.round(
-          submissions.reduce(function (sum, s) {
+          gradedSubmissions.reduce(function (sum, s) {
             return sum + (s.initialScore || 0);
-          }, 0) / totalSubmissions,
+          }, 0) / gradedSubmissions.length,
         )
       : 0;
   const completionRate =
@@ -36,11 +40,11 @@ export function renderTeacherDashboard() {
   document.getElementById('stat-total-students').textContent =
     totalStudents + (activeStudents > 0 ? ` (${activeStudents}${__('activeStudentsSuffix')})` : '');
   document.getElementById('stat-total-quizzes').textContent = String(totalQuizzes);
-  document.getElementById('stat-avg-score-teacher').textContent = `${avgScore}%`;
+  document.getElementById('stat-avg-score-teacher').textContent = gradedSubmissions.length ? `${avgScore}%` : 'بانتظار التقييم';
   document.getElementById('stat-completion').textContent = `${Math.min(completionRate, 100)}%`;
 
-  renderGradeDistribution(submissions);
-  renderStudentPerformanceTable(submissions, assignments);
+  renderGradeDistribution(gradedSubmissions);
+  renderStudentPerformanceTable(gradedSubmissions, assignments);
   const exportBtn = document.getElementById('btn-export-report');
   if (exportBtn) {
     exportBtn.onclick = function () {
@@ -134,7 +138,7 @@ function renderStudentPerformanceTable(submissions, _assignments) {
 }
 
 function generateTeacherReport() {
-  const submissions = localData.submissions || [];
+  const submissions = (localData.submissions || []).filter(hasConfirmedGrade);
   const students = localData.students || [];
   const assignments = localData.assignments || [];
   if (submissions.length === 0) {
@@ -222,13 +226,70 @@ export function renderTeacherSubmissions() {
             <td class="p-3 border border-current">${escapeHtml(s.quizTitle)}</td>
             <td class="p-3 border border-current font-mono text-xs">${escapeHtml(s.studentAnswer)}</td>
             <td class="p-3 border border-current">
-                <span class="font-bold text-yellow-400">${__('gradeLabel')} ${escapeHtml(String(s.initialScore))}</span><br>
+                <span class="font-bold text-yellow-400">${__('gradeLabel')} ${escapeHtml(s.initialScore === undefined ? 'بانتظار التقييم' : String(s.initialScore))}</span><br>
                 <span class="text-xs text-gray-300 block max-w-xs overflow-hidden text-ellipsis">${escapeHtml(s.graderFeedback)}</span>
             </td>
             <td class="p-3 border border-current">
                 <button data-action="grade-ai" data-index="${idx}" class="px-2 py-1 bg-purple-600 text-white font-bold rounded text-xs btn-interactive">${__('btnAIGradeFeedback')}</button>
             </td>
         `;
+    if (s.id) {
+      const cell = tr.lastElementChild;
+      const form = document.createElement('form');
+      const scoreLabel = document.createElement('label');
+      scoreLabel.textContent = 'درجة المدرس من ١٠٠';
+      const score = document.createElement('input');
+      score.type = 'number';
+      score.min = '0';
+      score.max = '100';
+      score.required = true;
+      score.className = 'w-full p-2';
+      scoreLabel.append(score);
+      const feedbackLabel = document.createElement('label');
+      feedbackLabel.textContent = 'ملاحظات المدرس';
+      const feedback = document.createElement('textarea');
+      feedback.className = 'w-full p-2';
+      feedbackLabel.append(feedback);
+      const button = document.createElement('button');
+      button.type = 'submit';
+      button.textContent = 'حفظ تقييم المدرس';
+      button.className = 'p-2 rounded my-2';
+      const status = document.createElement('p');
+      status.setAttribute('role', 'status');
+      form.append(scoreLabel, feedbackLabel, button, status);
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        button.disabled = true;
+        const owner = getAccountStorageKey();
+        try {
+          const response = await fetch(
+            `${getProxyBase()}/api/data/submissions/${encodeURIComponent(s.id)}`,
+            {
+              method: 'PUT',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                initialScore: Number(score.value),
+                graderFeedback: feedback.value,
+                status: 'graded',
+              }),
+            },
+          );
+          const saved = await response.json();
+          if (!response.ok) {
+            throw new Error(saved.error || 'تعذر حفظ الدرجة');
+          }
+          if (getAccountStorageKey() !== owner) {return;}
+          Object.assign(s, saved);
+          status.textContent = 'تم حفظ تقييم المدرس';
+        } catch (error) {
+          status.textContent = error.message;
+        } finally {
+          button.disabled = false;
+        }
+      });
+      cell.append(form);
+    }
     tbody.appendChild(tr);
   });
 

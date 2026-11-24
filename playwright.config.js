@@ -10,7 +10,8 @@ export default defineConfig({
   timeout: 30000,
   use: {
     trace: 'on-first-retry',
-    baseURL: 'http://127.0.0.1:8080',
+    serviceWorkers: 'block',
+    baseURL: 'http://127.0.0.1:4183',
   },
   projects: [
     {
@@ -19,8 +20,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npx vite --port=8080 --host=127.0.0.1 --strictPort',
-    url: 'http://127.0.0.1:8080/index.html',
+    command: 'npx vite --port=4183 --host=127.0.0.1 --strictPort',
+    url: 'http://127.0.0.1:4183/index.html',
     reuseExistingServer: !process.env.CI,
     timeout: 15000,
   },

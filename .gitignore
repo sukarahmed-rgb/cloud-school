@@ -18,3 +18,12 @@ reports/
 service-account.json
 .backups/
 .opencode/
+
+# Local security/backup material, never commit
+*.sealed
+*.sqlite
+*.sqlite-*
+*.key
+__pycache__/
+
+dependency-audit.json

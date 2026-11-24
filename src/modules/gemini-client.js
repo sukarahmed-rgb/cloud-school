@@ -26,6 +26,7 @@ export async function proxyFetch(endpoint, payload) {
   }
   const response = await fetch(url, {
     method: 'POST',
+    credentials: 'include',
     headers: headers,
     body: JSON.stringify(payload),
   });

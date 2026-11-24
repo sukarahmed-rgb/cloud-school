@@ -140,7 +140,7 @@ export function enterApp(session) {
   }
   ctx.setCurrentUserSession(session);
   document.getElementById('auth-gate').classList.add('hidden');
-  document.getElementById('dev-role-bar').classList.remove('hidden');
+  document.getElementById('dev-role-bar').classList.add('hidden');
   document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
   document.getElementById('active-user-badge').textContent = ctx.__(
     'userBadge',
@@ -202,11 +202,24 @@ export async function handleRegistrationSubmit(e) {
     if (typeof firebase !== 'undefined' && firebase.auth) {
       const cred = await firebase.auth().createUserWithEmailAndPassword(contact, plainPassword);
       await cred.user.updateProfile({ displayName: name });
+      if (typeof cred.user.sendEmailVerification === 'function') {
+        await cred.user.sendEmailVerification();
+      }
 
       if (ctx.serverAvailable) {
         try {
           const idToken = await cred.user.getIdToken();
-          const user = await ctx.serverRegisterFirebase(idToken, name, role, age, parentContact);
+          const invite =
+            /** @type {HTMLInputElement|null} */ (document.getElementById('reg-admin-invite'))
+              ?.value || '';
+          const user = await ctx.serverRegisterFirebase(
+            idToken,
+            name,
+            role,
+            age,
+            parentContact,
+            invite,
+          );
           enterApp({
             name: user.name || name,
             contact: user.email || contact,
@@ -217,13 +230,14 @@ export async function handleRegistrationSubmit(e) {
           return;
         } catch (err) {
           console.warn('Proxy registration after Firebase failed:', err.message);
+          throw err;
         }
       }
 
       enterApp({
         name: name,
         contact: contact,
-        role: role,
+        role: 'student',
         age: age,
         parentContact: parentContact,
         userId: cred.user.uid,

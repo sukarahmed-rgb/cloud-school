@@ -18,4 +18,4 @@ jobs:
         with:
           node-version: 22
       - name: Run integration tests against live Worker
-        run: npm run test:integration
+        run: npm run test:live

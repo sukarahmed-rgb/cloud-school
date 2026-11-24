@@ -32,9 +32,8 @@ export async function initFirebase() {
     auth = window.firebase.auth();
     auth.useDeviceLanguage();
 
-    if (typeof window.firebase.analytics === 'function') {
-      window.firebase.analytics();
-    }
+    // Analytics is disabled by default for a student-facing app.
+    // Enable only after a separate privacy/consent review.
 
     window.firebase.auth().onAuthStateChanged(async (user) => {
       if (user) {

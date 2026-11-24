@@ -1,23 +1,11 @@
-# GitHub Secrets Required
+# Deployment credentials and boundaries
 
-| Secret | Used By | Required | How to Get |
-|---|---|---|---|
-| `FIREBASE_TOKEN` | `deploy`, `preview` jobs | ✅ Yes | `npx firebase-tools login:ci` → copy token |
-| `CLOUDFLARE_API_TOKEN` | `deploy-cloudflare` job | ✅ Yes | Cloudflare Dashboard → API Tokens → Create (permissions: Workers, D1) |
-| `CLOUDFLARE_ACCOUNT_ID` | `deploy-cloudflare` job | ✅ Yes | Cloudflare Dashboard → right sidebar → Account ID |
+No deployment credentials are included in this repository. Never paste a private key or token into an issue, chat, workflow source or tracked file.
 
-## Optional
+Current workflows use FIREBASE_SERVICE_ACCOUNT through the process environment for Firebase Hosting. Store the least-privilege service account JSON in the relevant GitHub environment secret, not a legacy FIREBASE_TOKEN. Restrict the preview identity to the approved preview resource. Production and preview identities should not be interchangeable. Enable required environment reviewers in GitHub; the YAML alone does not prove that protection is configured.
 
-| Secret | Used By | Notes |
-|---|---|---|
-| `FIREBASE_SERVICE_ACCOUNT_CLOUD_SCHOOL_6251A` | (legacy) | Not needed if `FIREBASE_TOKEN` is set |
+Cloudflare uses CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID. Restrict the token to the intended Worker/database/account; do not use an account-wide global API key. Worker secrets such as FIREBASE_API_KEY, GEMINI_API_KEY and an administrator invitation secret belong in the provider secret store, not wrangler.toml or public/config.js.
 
-## Setup
+The deployment workflows are manual opt-in, depend on security-gate, write a temporary credential file with owner-only permissions and remove it afterward. Do not reuse that file as an artifact. No cloud credentials or permissions were verified during local development, and no setup is authorized by this document.
 
-```bash
-# 1. Generate Firebase CI token
-npx firebase-tools login:ci
-
-# 2. Go to GitHub repo → Settings → Secrets and variables → Actions
-# 3. Add: FIREBASE_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
-```
+Before activation: verify bindings and environment separation, required reviewers, secret rotation/recovery owner, audit permissions and backup restore route. Follow SECURITY-SYSTEM.md and obtain explicit owner deployment approval. Firebase web client configuration is visible by design; verify its provider restrictions and database rules separately.

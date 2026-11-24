@@ -23,6 +23,11 @@ declare global {
   }
 
   interface Assignment {
+    subject?: string;
+    unitTitle?: string;
+    lessonTitle?: string;
+    lessonId?: string;
+    publicationStatus?: 'draft' | 'published';
     id: string;
     title: string;
     type: 'mcq' | 'text';
@@ -33,6 +38,9 @@ declare global {
   }
 
   interface Submission {
+    clientMutationId?: string;
+    id?: string;
+    syncStatus?: string;
     studentName: string;
     studentContact: string;
     parentContact: string;
@@ -74,6 +82,7 @@ declare global {
   }
 
   interface FirebaseUser {
+    sendEmailVerification?: () => Promise<void>;
     uid: string;
     email?: string;
     getIdToken: () => Promise<string>;
