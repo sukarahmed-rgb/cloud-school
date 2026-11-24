@@ -53,9 +53,16 @@ function createMockIndexedDB() {
   };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetModules();
   global.indexedDB = createMockIndexedDB();
+  const state = await import('../../src/modules/app-state.js');
+  state.setCurrentUserSession({
+    serverId: 'test-owner',
+    name: 'Test',
+    role: 'student',
+    contact: 'test@example.invalid',
+  });
 
   global.navigator.serviceWorker = {
     ready: Promise.resolve({
@@ -167,8 +174,8 @@ describe('offline-sync.js', () => {
     const serverSaveFn = jest.fn(() => Promise.resolve());
     await mod.syncOfflineData(serverSaveFn);
     expect(serverSaveFn).toHaveBeenCalledTimes(2);
-    expect(serverSaveFn).toHaveBeenNthCalledWith(1, 'submissions', { answer: 'a1' });
-    expect(serverSaveFn).toHaveBeenNthCalledWith(2, 'submissions', { answer: 'a2' });
+    expect(serverSaveFn).toHaveBeenNthCalledWith(1, 'submissions', expect.objectContaining({ answer: 'a1' }));
+    expect(serverSaveFn).toHaveBeenNthCalledWith(2, 'submissions', expect.objectContaining({ answer: 'a2' }));
     const remaining = await mod.getPendingSaves();
     expect(remaining.length).toBe(0);
   });
@@ -202,7 +209,7 @@ describe('offline-sync.js', () => {
     await mod.queueOfflineSave('submissions', { answer: 'sync-me' });
     window.dispatchEvent(new Event('online'));
     await new Promise((r) => setTimeout(r, 50));
-    expect(backend.serverSave).toHaveBeenCalledWith('submissions', { answer: 'sync-me' });
+    expect(backend.serverSave).toHaveBeenCalledWith('submissions', expect.objectContaining({ answer: 'sync-me' }));
   });
 
   test('online event swallows backend save failures', async () => {
@@ -229,6 +236,43 @@ describe('offline-sync.js', () => {
     )[1];
     handler({ data: { type: 'trigger-sync-offline' } });
     await new Promise((r) => setTimeout(r, 50));
-    expect(backend.serverSave).toHaveBeenCalledWith('submissions', { answer: 'sw-sync' });
+    expect(backend.serverSave).toHaveBeenCalledWith('submissions', expect.objectContaining({ answer: 'sw-sync' }));
   });
+});
+
+test('offline queue never submits an earlier account or legacy ownerless item', async () => {
+  mod = await import('../../src/modules/offline-sync.js');
+  await mod.queueOfflineSave('submissions', { answer: 'private A' });
+  mockDbStore.push({ id: 999, collection: 'submissions', data: { answer: 'legacy' } });
+  const state = await import('../../src/modules/app-state.js');
+  state.setCurrentUserSession({
+    serverId: 'account-b',
+    name: 'B',
+    role: 'student',
+    contact: 'b@example.invalid',
+  });
+  const save = jest.fn();
+  await mod.syncOfflineData(save);
+  expect(save).not.toHaveBeenCalled();
+  expect(mockDbStore).toHaveLength(2);
+  state.setCurrentUserSession({
+    serverId: 'test-owner',
+    name: 'A',
+    role: 'student',
+    contact: 'test@example.invalid',
+  });
+  await mod.syncOfflineData(save);
+  expect(save).toHaveBeenCalledTimes(1);
+  expect(mockDbStore).toHaveLength(1);
+  expect(mockDbStore[0].id).toBe(999);
+});
+
+
+test('offline retry preserves the same mutation identifier after a lost response', async () => {
+ mod=await import('../../src/modules/offline-sync.js');
+ await mod.queueOfflineSave('submissions',{answer:'retry'});
+ const save=jest.fn().mockRejectedValueOnce(new Error('response lost')).mockResolvedValueOnce({id:'saved'});
+ await mod.syncOfflineData(save);await mod.syncOfflineData(save);
+ expect(save.mock.calls[0][1].clientMutationId).toBe(save.mock.calls[1][1].clientMutationId);
+ expect((await mod.getPendingSaves())).toHaveLength(0);
 });

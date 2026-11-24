@@ -1,4 +1,9 @@
 import { test, expect } from '@playwright/test';
+
+// Never use real backend or Firebase accounts during synthetic browser tests.
+test.beforeEach(async ({page}) => {
+  await page.route('https://cloud-school-api.*/**', route => route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Synthetic offline test'})}));
+});
 import AxeBuilder from '@axe-core/playwright';
 
 async function bypassAuth(page, role = 'student') {

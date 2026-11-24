@@ -1,6 +1,11 @@
 /**
  * @typedef {Object} Book
  * @property {string} id
+ * @property {string} [subject]
+ * @property {string} [unitTitle]
+ * @property {string} [lessonTitle]
+ * @property {string} [lessonId]
+ * @property {'draft'|'published'} [publicationStatus]
  * @property {string} title
  * @property {string} content
  * @property {string} audio
@@ -17,6 +22,11 @@
 /**
  * @typedef {Object} Assignment
  * @property {string} id
+ * @property {string} [subject]
+ * @property {string} [unitTitle]
+ * @property {string} [lessonTitle]
+ * @property {string} [lessonId]
+ * @property {'draft'|'published'} [publicationStatus]
  * @property {string} title
  * @property {'mcq'|'text'} type
  * @property {string} [question]
@@ -27,6 +37,9 @@
 
 /**
  * @typedef {Object} Submission
+ * @property {string} [clientMutationId]
+ * @property {string} [id]
+ * @property {string} [syncStatus]
  * @property {string} studentName
  * @property {string} studentContact
  * @property {string} parentContact
@@ -47,6 +60,11 @@
 
 /**
  * @typedef {Object} Notification
+ * @property {string} [subject]
+ * @property {string} [unitTitle]
+ * @property {string} [lessonTitle]
+ * @property {string} [lessonId]
+ * @property {'draft'|'published'} [publicationStatus]
  * @property {string} title
  * @property {string} details
  * @property {'submission'|'achievement'|'info'} type
@@ -63,6 +81,7 @@
  * @property {string} [childContact]
  * @property {number} [age]
  * @property {'student'|'teacher'|'admin'|'parent'} role
+ * @property {string} [userId]
  * @property {string} [uid]
  * @property {string} [id]
  * @property {string} [serverId]

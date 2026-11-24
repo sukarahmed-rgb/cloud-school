@@ -164,7 +164,7 @@ describe('enterApp', () => {
     enterApp(session);
 
     expect(document.getElementById('auth-gate').classList.contains('hidden')).toBe(true);
-    expect(document.getElementById('dev-role-bar').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('dev-role-bar').classList.contains('hidden')).toBe(true);
     expect(document.querySelector('[data-action="logout"]').classList.contains('hidden')).toBe(
       false,
     );
@@ -545,6 +545,7 @@ describe('handleRegistrationSubmit', () => {
       'student',
       14,
       'parent@test.com',
+      '',
     );
     expect(mockCtx.setCurrentUserSession).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -688,13 +689,8 @@ describe('handleRegistrationSubmit', () => {
     const e = makeEvent();
     await handleRegistrationSubmit(e);
 
-    expect(mockCtx.setCurrentUserSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'FBStudent',
-        serverAuth: false,
-        userId: 'uid-fb-fallback',
-      }),
-    );
+    expect(mockCtx.setCurrentUserSession).not.toHaveBeenCalled();
+    expect(document.getElementById('auth-warning-box').classList.contains('hidden')).toBe(false);
   });
 
   test('registration with server success then enterApp called', async () => {

@@ -1,4 +1,7 @@
 // @ts-check
+import { removeAnswerDraft } from './journey-state.js';
+import { saveLocalData } from './local-data.js';
+import { getAccountStorageKey, localData } from './app-state.js';
 import { serverSave } from './server-backend.js';
 
 const DB_NAME = 'cloud_school_offline';
@@ -30,12 +33,17 @@ function getDB() {
 }
 
 export async function queueOfflineSave(collection, data) {
+  const owner = getAccountStorageKey();
+  if (!owner) {
+    return false;
+  }
   try {
+    if (!data.clientMutationId) {data.clientMutationId = crypto.randomUUID();}
     const db = await getDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
-      const request = store.add({ collection, data, timestamp: Date.now() });
+      const request = store.add({ collection, data, owner, timestamp: Date.now() });
       request.onsuccess = () => {
         console.log(`[Offline Sync] Queued offline save for ${collection}`);
         // Request background sync if service worker is active
@@ -88,16 +96,31 @@ export async function clearPendingSave(id) {
 
 // Function to process and flush all pending saves
 export async function syncOfflineData(serverSaveFn) {
-  const pending = await getPendingSaves();
+  const owner = getAccountStorageKey();
+  if (!owner) {
+    return;
+  }
+  const pending = (await getPendingSaves()).filter((item) => item.owner === owner);
   if (pending.length === 0) {
     return;
   }
 
   console.log(`[Offline Sync] Processing ${pending.length} pending offline saves...`);
   for (const item of pending) {
+    if (getAccountStorageKey() !== owner) {
+      break;
+    }
     try {
+      if (typeof serverSaveFn !== 'function') {
+        return;
+      }
       if (typeof serverSaveFn === 'function') {
-        await serverSaveFn(item.collection, item.data);
+        const saved = await serverSaveFn(item.collection, {...item.data, clientMutationId: item.data.clientMutationId || `offline-${item.id}-${item.timestamp}`});
+        if (getAccountStorageKey() === owner && saved && item.collection === 'submissions') {
+          const sub = localData.submissions.find(s => s.clientMutationId === item.data.clientMutationId);
+          if (sub) { Object.assign(sub, saved, { syncStatus: 'sent' }); removeAnswerDraft(sub.quizId); saveLocalData(); }
+          import('./learning-journey.js').then(m => m.renderLearningJourney()).catch(console.warn);
+        }
       }
       await clearPendingSave(item.id);
       console.log(

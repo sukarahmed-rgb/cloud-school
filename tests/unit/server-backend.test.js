@@ -163,6 +163,7 @@ describe('server-backend.js', () => {
   });
 
   test('serverSave posts data to collection', async () => {
+    setCurrentUserSession({serverId:'test-owner',name:'Test',role:'student',contact:'test@example.invalid'});
     globalThis.fetch.mockResolvedValue(mockResponse({ id: '1' }));
     const result = await serverSave('submissions', { content: 'test' });
     expect(result.id).toBe('1');
@@ -173,6 +174,7 @@ describe('server-backend.js', () => {
   });
 
   test('serverSave throws on failure', async () => {
+    setCurrentUserSession({serverId:'test-owner',name:'Test',role:'student',contact:'test@example.invalid'});
     globalThis.fetch.mockResolvedValue(mockResponse(null, 500));
     await expect(serverSave('bad', {})).rejects.toThrow('Failed to save bad');
   });
@@ -250,10 +252,11 @@ describe('server-backend.js', () => {
   });
 
   describe('syncDataFromServer', () => {
+    beforeEach(() => { setCurrentUserSession({ serverId: 'sync-test', role: 'teacher', name: 'Test', contact: 'test@example.invalid' }); });
     test('returns early when server is unavailable', async () => {
       globalThis.fetch.mockRejectedValue(new Error('fail'));
       await checkServerHealth();
-      const result = syncDataFromServer();
+      const result = await syncDataFromServer();
       expect(result).toBeUndefined();
     });
 

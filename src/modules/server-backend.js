@@ -1,5 +1,10 @@
 // @ts-check
-import { localData, setCurrentUserSession } from './app-state.js';
+import {
+  localData,
+  setCurrentUserSession,
+  getAccountStorageKey,
+  getCurrentUserSession,
+} from './app-state.js';
 import { saveLocalData } from './local-data.js';
 import { __ } from './i18n.js';
 import { switchRole } from './role-switcher.js';
@@ -18,7 +23,7 @@ export function setServerAvailable(val) {
 /** Check if the backend server is reachable */
 export async function checkServerHealth() {
   try {
-    const r = await fetch(`${SERVER_BASE}/api/health`, { credentials: 'include' });
+    const r = await fetch(`${SERVER_BASE}/api/health`, { credentials: 'include', cache:'no-store' });
     if (r.ok) {
       serverAvailable = true;
     }
@@ -33,7 +38,7 @@ export async function checkServerSession() {
     return null;
   }
   try {
-    const r = await fetch(`${SERVER_BASE}/api/auth/session`, { credentials: 'include' });
+    const r = await fetch(`${SERVER_BASE}/api/auth/session`, { credentials: 'include', cache:'no-store' });
     const data = await r.json();
     if (data.authenticated) {
       return data.user;
@@ -66,9 +71,17 @@ export async function serverLoginFirebase(idToken) {
  * @param {string} role
  * @param {number} [age]
  * @param {string} [parentContact]
+ * @param {string} [adminInviteCode]
  * @returns {Promise<Object>}
  */
-export async function serverRegisterFirebase(idToken, name, role, age, parentContact) {
+export async function serverRegisterFirebase(
+  idToken,
+  name,
+  role,
+  age,
+  parentContact,
+  adminInviteCode,
+) {
   const r = await fetch(`${SERVER_BASE}/api/auth/firebase-register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -78,6 +91,7 @@ export async function serverRegisterFirebase(idToken, name, role, age, parentCon
       role,
       age: age || 0,
       parentContact: parentContact || '',
+      adminInviteCode: adminInviteCode || '',
     }),
     credentials: 'include',
   });
@@ -100,7 +114,7 @@ export async function serverLogout() {
  * @returns {Promise<Object>}
  */
 export async function serverFetch(collection) {
-  const r = await fetch(`${SERVER_BASE}/api/data/${collection}`, { credentials: 'include' });
+  const r = await fetch(`${SERVER_BASE}/api/data/${collection}`, { credentials: 'include', cache:'no-store' });
   if (!r.ok) {
     throw new Error(`Failed to fetch ${collection}`);
   }
@@ -113,6 +127,11 @@ export async function serverFetch(collection) {
  * @returns {Promise<Object>}
  */
 export async function serverSave(collection, data) {
+  const owner = getAccountStorageKey();
+  if (!owner) {
+    throw new Error('Sign in before saving');
+  }
+  if (!data.clientMutationId) {data.clientMutationId = crypto.randomUUID();}
   const r = await fetch(`${SERVER_BASE}/api/data/${collection}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -120,7 +139,8 @@ export async function serverSave(collection, data) {
     credentials: 'include',
   });
   if (!r.ok) {
-    throw new Error(`Failed to save ${collection}`);
+    const error = Object.assign(new Error(`Failed to save ${collection}`), { status: r.status });
+    throw error;
   }
   return await r.json();
 }
@@ -130,7 +150,7 @@ export async function initServerBackend() {
   await checkServerHealth();
   if (serverAvailable) {
     try {
-      const r = await fetch(`${SERVER_BASE}/api/admin/gemini-key`, { credentials: 'include' });
+      const r = await fetch(`${SERVER_BASE}/api/admin/gemini-key`, { credentials: 'include', cache:'no-store' });
       if (r.ok) {
         const data = await r.json();
         if (data.configured) {
@@ -151,7 +171,7 @@ export async function initServerBackend() {
         serverAuth: true,
       });
       document.getElementById('auth-gate').classList.add('hidden');
-      document.getElementById('dev-role-bar').classList.remove('hidden');
+      document.getElementById('dev-role-bar').classList.add('hidden');
       document.querySelector('[data-action="logout"]')?.classList.remove('hidden');
       document.getElementById('active-user-badge').textContent = __(
         'userBadge',
@@ -165,38 +185,40 @@ export async function initServerBackend() {
 }
 
 /** Sync local data from the server */
-export function syncDataFromServer() {
+export async function syncDataFromServer() {
   if (!serverAvailable) {
     return;
   }
-  serverFetch('curriculum_modules')
-    .then((books) => {
-      if (books && books.length > 0) {
-        localData.books = books;
+  const owner = getAccountStorageKey();
+  if (!owner) {
+    return;
+  }
+  const session = getCurrentUserSession();
+  const collections = [
+    ['curriculum_modules', 'books'],
+    ['assignments', 'assignments'],
+    ['submissions', 'submissions'],
+  ];
+  if (['teacher', 'admin'].includes(session?.role)) {
+    collections.push(['students', 'students']);
+  }
+  await Promise.all(
+    collections.map(async ([collection, key]) => {
+      try {
+        const records = await serverFetch(collection);
+        if (getAccountStorageKey() === owner && Array.isArray(records)) {
+          localData[key] = records;
+        }
+      } catch (e) {
+        console.warn(`Server sync failed for ${collection}:`, e.message);
       }
-      return serverFetch('assignments');
-    })
-    .then((assignments) => {
-      if (assignments && assignments.length > 0) {
-        localData.assignments = assignments;
-      }
-      return serverFetch('submissions');
-    })
-    .then((submissions) => {
-      if (submissions && submissions.length > 0) {
-        localData.submissions = submissions;
-      }
-      return serverFetch('students');
-    })
-    .then((students) => {
-      if (students && students.length > 0) {
-        localData.students = students;
-      }
-      saveLocalData();
-    })
-    .catch((e) => {
-      console.warn('Server sync failed (using local data):', e.message);
-    });
+    }),
+  );
+  if (getAccountStorageKey() === owner) {
+    saveLocalData();
+    import('./learning-journey.js').then(m => m.renderLearningJourney()).catch(console.warn);
+    import('./content-studio.js').then(m => m.renderContentStudio()).catch(console.warn);
+  }
 }
 
 /**

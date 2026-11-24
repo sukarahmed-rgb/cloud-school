@@ -1,6 +1,7 @@
+import { saveAnswerDraft, readJourney, contentPath, isPublished } from './journey-state.js';
 // @ts-check
 import { saveSubmissionToFirebase } from './teacher-management.js';
-import { localData, getCurrentUserSession } from './app-state.js';
+import { localData, getCurrentUserSession, getAccountStorageKey } from './app-state.js';
 import { saveLocalData } from './local-data.js';
 import { escapeHtml } from './helpers.js';
 import { __ } from './i18n.js';
@@ -11,6 +12,12 @@ import { voiceExamActive, setVoiceExamQuizId } from './voice-exam-state.js';
 
 /** @type {string|null} */
 export let selectedQuizId = null;
+let quizOwner = null;
+window.addEventListener('school-account-changed', () => {
+ clearQuizTimer(); selectedQuizId = null; selectedOption = null; quizOwner = null;
+ document.getElementById('active-quiz-panel')?.classList.add('hidden');
+ const input = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('assignment-student-answer')); if (input) {input.value = '';}
+});
 /** @type {string|null} */
 export let selectedOption = null;
 /** @type {number|null} */
@@ -21,7 +28,7 @@ export function renderStudentAssignments() {
   const list = document.getElementById('student-assignments-list');
   list.innerHTML = '';
 
-  localData.assignments.forEach((a) => {
+  localData.assignments.filter(isPublished).forEach((a) => {
     const item = document.createElement('div');
     item.className = 'card p-6 rounded-xl flex justify-between items-center flex-wrap gap-4';
     item.innerHTML = `
@@ -31,6 +38,7 @@ export function renderStudentAssignments() {
             </div>
             <button data-action="start-quiz" data-quiz-id="${escapeHtml(a.id)}" class="p-4 bg-green-600 text-white font-black text-lg rounded-xl hover:bg-green-500 large-touch-target btn-interactive">${__('btnStartQuiz')} \u{1F3DF}</button>
         `;
+    const path = document.createElement('p'); path.textContent = contentPath(a); item.prepend(path);
     list.appendChild(item);
   });
 
@@ -48,12 +56,14 @@ export function renderStudentAssignments() {
  */
 export function startQuiz(quizId) {
   selectedQuizId = quizId;
+  quizOwner = getAccountStorageKey();
   selectedOption = null;
   setVoiceExamQuizId(quizId);
   const quiz = localData.assignments.find((a) => a.id === quizId);
-  if (!quiz) {
+  if (!quiz || !isPublished(quiz)) {
     return;
   }
+  const draft = readJourney().drafts[quizId];
 
   document.getElementById('active-quiz-panel').classList.remove('hidden');
   document.getElementById('active-quiz-title').textContent = quiz.title;
@@ -84,6 +94,18 @@ export function startQuiz(quizId) {
     speak(__('essayStarted', quiz.question));
   }
 
+  if (quiz.type === 'mcq') {
+    ['A','B','C','D'].forEach(opt => document.getElementById(`btn-opt-${opt}`).classList.remove('bg-yellow-400','text-black'));
+    if (draft?.answer && ['A','B','C','D'].includes(draft.answer)) {selectQuizOption(draft.answer);}
+  } else {
+    const input = /** @type {HTMLTextAreaElement} */ (document.getElementById('assignment-student-answer'));
+    input.value = draft?.answer || '';
+    const owner = getAccountStorageKey();
+    input.oninput = () => { if (getAccountStorageKey() === owner && selectedQuizId === quizId) {updateDraft(quizId, input.value);} };
+  }
+  let draftStatus = document.getElementById('answer-draft-status');
+  if (!draftStatus) { draftStatus = document.createElement('p'); draftStatus.id = 'answer-draft-status'; draftStatus.setAttribute('role','status'); document.getElementById('active-quiz-panel').append(draftStatus); }
+  draftStatus.textContent = draft ? 'تم استرجاع مسودة محفوظة على هذا الجهاز. لم تسلم بعد.' : 'تكتب الإجابة وتحفظ كمسودة على هذا الجهاز. لا تسلم إلا عند الضغط على التسليم.';
   let totalSecondsLeft = 10 * 60;
   let lastSpokenMinute = 10;
   const timerDisplay = document.getElementById('active-quiz-timer');
@@ -118,7 +140,7 @@ export function startQuiz(quizId) {
 
     if (totalSecondsLeft <= 0) {
       clearInterval(quizTimerInterval);
-      submitQuizAnswer();
+      speak('انتهى وقت التدريب. احتفظنا بمسودتك على الجهاز إن كان الحفظ متاحا. راجع إجابتك واضغط التسليم بنفسك.');
     }
   }, 1000);
 
@@ -136,6 +158,7 @@ export function startQuiz(quizId) {
  */
 export function selectQuizOption(option) {
   selectedOption = option;
+  if (selectedQuizId) {updateDraft(selectedQuizId, option);}
   speak(__('quizOptionSelected', option));
 
   ['A', 'B', 'C', 'D'].forEach((opt) => {
@@ -158,6 +181,7 @@ export function clearQuizTimer() {
 
 /** Submit the current quiz answer */
 export function submitQuizAnswer() {
+  if (getAccountStorageKey() !== quizOwner) {return;}
   if (quizTimerInterval) {
     clearInterval(quizTimerInterval);
   }
@@ -195,7 +219,7 @@ export function submitQuizAnswer() {
     quizId: selectedQuizId,
     quizTitle: quiz.title,
     studentAnswer: finalAnswer,
-    initialScore: score,
+    initialScore: session?.serverAuth ? undefined : score,
     graderFeedback: quiz.type === 'mcq' ? __('autoGradingFeedback') : __('awaitingAIGrading'),
     timestamp: new Date().toLocaleTimeString('ar-EG'),
   };
@@ -203,6 +227,13 @@ export function submitQuizAnswer() {
   localData.submissions.unshift(submission);
   saveLocalData();
   saveSubmissionToFirebase(submission);
+  if (session?.serverAuth) { import('./learning-journey.js').then(m => m.renderLearningJourney()); }
+  if (session?.serverAuth) {
+    speak('جاري إرسال الإجابة. الدرجة النهائية بعد مراجعة المدرس.');
+    document.getElementById('active-quiz-panel').classList.add('hidden');
+    selectedQuizId = null;
+    return;
+  }
   addNotification(
     __('notifNewAnswer'),
     `${submission.studentName} ${__('notifQuizDone')} ${submission.quizTitle || ''} ${__('notifScored')} ${score}%`,
@@ -219,4 +250,10 @@ export function submitQuizAnswer() {
   speak(__('quizSubmitted'));
   document.getElementById('active-quiz-panel').classList.add('hidden');
   selectedQuizId = null;
+}
+
+function updateDraft(id, answer) {
+ const saved = saveAnswerDraft(id, answer);
+ const status = document.getElementById('answer-draft-status');
+ if (status) {status.textContent = saved ? 'المسودة محفوظة على هذا الجهاز فقط، لم تسلم بعد.' : 'تعذر حفظ المسودة على الجهاز. لا تغلق الصفحة قبل حفظ إجابتك.';}
 }

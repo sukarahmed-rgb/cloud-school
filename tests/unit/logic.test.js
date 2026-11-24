@@ -1,3 +1,4 @@
+import { setCurrentUserSession } from '../../src/modules/app-state.js';
 /**
  * اختبارات للدوال الجديدة: الإشعارات، لوحة المتابعة، البيانات المحلية
  */
@@ -147,6 +148,7 @@ describe('Local Data Persistence', () => {
   });
 
   test('saveLocalData and loadLocalData round-trip', () => {
+    setCurrentUserSession({ serverId: 'local-test', name: 'Test', contact: 'test@example.invalid', role: 'student' });
     appData.books = [{ id: 'x', title: 'اختبار', content: 'محتوى' }];
     appData.notifications = [{ title: 'n1', details: 'd', read: false }];
     saveLocalData();

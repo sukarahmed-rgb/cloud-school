@@ -76,6 +76,7 @@ jest.mock('../../src/modules/teacher-management.js', () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  localStorage.clear();
   Element.prototype.scrollIntoView = jest.fn();
   jest.useFakeTimers();
   document.body.innerHTML = `
@@ -94,6 +95,7 @@ beforeEach(() => {
     <button id="btn-opt-D"><span></span></button>
   `;
 
+  setCurrentUserSession(/** @type {any} */ ({ name: 'أحمد', contact: 'ahmed@test.com' }));
   localData.assignments = [
     {
       id: 'a1',
@@ -107,7 +109,6 @@ beforeEach(() => {
   ];
   localData.submissions = [];
   localData.notifications = [];
-  setCurrentUserSession(/** @type {any} */ ({ name: 'أحمد', contact: 'ahmed@test.com' }));
 });
 
 afterEach(() => {

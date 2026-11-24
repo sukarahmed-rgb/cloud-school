@@ -92,7 +92,7 @@ describe('auth.js - enterApp', () => {
   test('hides auth gate and shows role bar', () => {
     enterApp({ name: 'Test', role: 'student', contact: 'test@test.com' });
     expect(document.getElementById('auth-gate').classList.contains('hidden')).toBe(true);
-    expect(document.getElementById('dev-role-bar').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('dev-role-bar').classList.contains('hidden')).toBe(true);
   });
 });
 

@@ -13,6 +13,13 @@ export let activeRole = 'student';
  */
 export function switchRole(role) {
   activeRole = role;
+  import('./security-panel.js').then(m => m.renderSecurityPanel()).catch(console.warn);
+  document.getElementById('journey-reader')?.remove();
+  import('./learning-journey.js').then(m => m.renderLearningJourney()).catch(console.warn);
+  import('./content-studio.js').then(m => m.renderContentStudio()).catch(console.warn);
+  import('./access-controls.js')
+    .then(({ refreshAccessControls }) => refreshAccessControls())
+    .catch(console.warn);
 
   document.getElementById('view-student').classList.add('hidden');
   document.getElementById('view-teacher').classList.add('hidden');

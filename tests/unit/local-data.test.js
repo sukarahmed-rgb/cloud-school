@@ -1,10 +1,11 @@
 import { saveLocalData, loadLocalData } from '../../src/modules/local-data.js';
-import { STORAGE_KEYS, localData } from '../../src/modules/app-state.js';
+import { getAccountStorageKey, setCurrentUserSession, localData } from '../../src/modules/app-state.js';
 
 describe('local-data.js', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     localStorage.clear();
+    setCurrentUserSession({ serverId: 'test-user', role: 'student', name: 'Test', contact: 'test@example.invalid' });
     localData.books = [];
     localData.assignments = [];
     localData.submissions = [];
@@ -16,7 +17,7 @@ describe('local-data.js', () => {
   test('saveLocalData writes to localStorage', () => {
     localData.books = [{ id: 1, title: 'Book 1' }];
     saveLocalData();
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.localData));
+    const saved = JSON.parse(localStorage.getItem(getAccountStorageKey()));
     expect(saved.books).toHaveLength(1);
     expect(saved.books[0].title).toBe('Book 1');
   });
@@ -32,7 +33,7 @@ describe('local-data.js', () => {
 
   test('loadLocalData restores saved data', () => {
     localStorage.setItem(
-      STORAGE_KEYS.localData,
+      getAccountStorageKey(),
       JSON.stringify({
         books: [{ id: 1, title: 'Restored' }],
         assignments: [],
@@ -54,7 +55,7 @@ describe('local-data.js', () => {
 
   test('loadLocalData handles corrupt JSON gracefully', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-    localStorage.setItem(STORAGE_KEYS.localData, 'not-json');
+    localStorage.setItem(getAccountStorageKey(), 'not-json');
     loadLocalData();
     expect(console.warn).toHaveBeenCalled();
   });

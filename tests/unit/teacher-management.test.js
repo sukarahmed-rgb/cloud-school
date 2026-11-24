@@ -10,7 +10,7 @@ import {
   serverSave,
 } from '../../src/modules/server-backend.js';
 import { queueOfflineSave } from '../../src/modules/offline-sync.js';
-import { localData } from '../../src/modules/app-state.js';
+import { localData, setCurrentUserSession } from '../../src/modules/app-state.js';
 import { speak } from '../../src/modules/speech.js';
 
 jest.mock('../../src/modules/offline-sync.js', () => ({
@@ -128,4 +128,49 @@ describe('teacher-management.js', () => {
     expect(queueOfflineSave).toHaveBeenCalledWith('curriculum_modules', book);
     expect(serverSave).not.toHaveBeenCalled();
   });
+});
+
+test('failed teacher save is not queued under a different current account', async () => {
+  setCurrentUserSession({
+    serverId: 'teacher-a',
+    role: 'teacher',
+    name: 'A',
+    contact: 'a@example.invalid',
+  });
+  setServerAvailable(true);
+  let rejectSave;
+  serverSave.mockImplementationOnce(
+    () =>
+      new Promise((_resolve, reject) => {
+        rejectSave = reject;
+      }),
+  );
+  const promise = saveBookToFirebase({
+    id: 'book-a',
+    title: 'Private A',
+    content: 'private',
+    audio: '',
+  });
+  setCurrentUserSession({
+    serverId: 'teacher-b',
+    role: 'teacher',
+    name: 'B',
+    contact: 'b@example.invalid',
+  });
+  queueOfflineSave.mockClear();
+  rejectSave(new Error('network failure'));
+  await promise;
+  expect(queueOfflineSave).not.toHaveBeenCalled();
+});
+
+test('book and quiz use their own forms class selections', () => {
+  document.body.innerHTML =
+    '<form><select name="classId"><option value="book-class">Book class</option></select><input id="teacher-book-title" value="Book"><input id="teacher-book-content" value="Text"><input id="teacher-book-audio" value=""></form><form><select name="classId"><option value="quiz-class">Quiz class</option></select><input id="teacher-quiz-title" value="Quiz"><select id="teacher-quiz-type"><option value="text">Text</option></select><input id="teacher-quiz-text-q" value="Question"><input id="teacher-quiz-ideal-ans" value="Ideal"></form>';
+  localData.books = [];
+  localData.assignments = [];
+  setServerAvailable(false);
+  handleTeacherAddBook({ preventDefault() {}, target: document.querySelectorAll('form')[0] });
+  handleTeacherAddQuiz({ preventDefault() {}, target: document.querySelectorAll('form')[1] });
+  expect(localData.books[0].classId).toBe('book-class');
+  expect(localData.assignments[0].classId).toBe('quiz-class');
 });

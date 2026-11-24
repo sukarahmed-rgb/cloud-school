@@ -195,3 +195,15 @@ describe('getStudentStats', () => {
     expect(stats.recentActivity[2].title).toBe('Q2');
   });
 });
+
+
+test('pending, failed and ungraded answers do not lower a confirmed grade average', () => {
+ const stats=getStudentStats('A',{submissions:[
+ {studentName:'A',initialScore:80,status:'graded'},
+ {studentName:'A',initialScore:0,status:'pending_review'},
+ {studentName:'A',initialScore:100,syncStatus:'pending'},
+ {studentName:'A',studentAnswer:'waiting'},
+ ],books:[],gameProgress:[]});
+ expect(stats.quizAvg).toBe(80);expect(stats.gradedCount).toBe(1);expect(stats.pendingCount).toBe(3);
+ expect(stats.gradeDistribution).toEqual([0,0,1,0]);
+});

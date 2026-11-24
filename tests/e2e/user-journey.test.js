@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+// Never use real backend or Firebase accounts during synthetic browser tests.
+test.beforeEach(async ({page}) => {
+  await page.route('https://cloud-school-api.*/**', route => route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Synthetic offline test'})}));
+});
+
 async function bypassAuth(page, role = 'student') {
   await page.waitForFunction(() => typeof window.enterApp === 'function', { timeout: 5000 });
   await page.evaluate((r) => {
@@ -30,11 +35,12 @@ test.describe('E2E User Journey Flow', () => {
     await page.fill('#teacher-quiz-od', 'عمان');
     await page.selectOption('#teacher-quiz-correct', 'A');
 
+    await page.locator('form[data-action="teacher-quiz-form"] [name=publicationStatus]').selectOption('published');
     // Submit the form
     await page.locator('form[data-action="teacher-quiz-form"] button[type="submit"]').click();
 
     // Switch to student view
-    await page.locator('[data-role-switch="student"]').click();
+    await page.evaluate(() => window.switchRole('student'));
     await expect(page.locator('#view-student')).toBeVisible();
 
     // Open student assignments section

@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+// Never use real backend or Firebase accounts during synthetic browser tests.
+test.beforeEach(async ({page}) => {
+  await page.route('https://cloud-school-api.*/**', route => route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Synthetic offline test'})}));
+});
+
 async function bypassAuth(page, role = 'student') {
   await page.waitForFunction(() => typeof window.enterApp === 'function', { timeout: 5000 });
   await page.evaluate((r) => {
@@ -68,23 +73,23 @@ test.describe('Cloud School E2E', () => {
     await expect(page.locator('#student-welcome-msg')).toBeVisible();
   });
 
-  test('should show student role bar after bypass', async ({ page }) => {
+  test('production role bar remains hidden after login', async ({ page }) => {
     await bypassAuth(page, 'student');
 
     const roleBar = page.locator('#dev-role-bar');
-    await expect(roleBar).toBeVisible();
+    await expect(roleBar).toBeHidden();
   });
 
   test('should switch roles via role bar buttons', async ({ page }) => {
     await bypassAuth(page, 'student');
 
     // Click teacher role
-    await page.locator('[data-role-switch="teacher"]').click();
+    await page.evaluate(() => window.switchRole('teacher'));
     await expect(page.locator('#view-teacher')).toBeVisible();
     await expect(page.locator('#view-student')).toHaveClass(/hidden/);
 
     // Switch back to student
-    await page.locator('[data-role-switch="student"]').click();
+    await page.evaluate(() => window.switchRole('student'));
     await expect(page.locator('#view-student')).toBeVisible();
     await expect(page.locator('#view-teacher')).toHaveClass(/hidden/);
   });
