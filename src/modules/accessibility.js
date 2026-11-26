@@ -135,19 +135,35 @@ export function loadTextSize() {
 /**
  * @param {string} theme
  */
+const THEME_BODY_CLASSES = {
+  'dark-hc': 'theme-dark-high-contrast',
+  'light-hc': 'theme-light-high-contrast',
+  classic: 'theme-classic',
+};
+
 export function setTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('cloudSchoolTheme', theme);
+  const themeKey = theme in THEME_BODY_CLASSES ? theme : 'dark-hc';
+  // The theme stylesheets key off a body class; the data-theme attribute is
+  // kept in sync for tests and any attribute-based consumers.
+  document.body.classList.remove(...Object.values(THEME_BODY_CLASSES));
+  document.body.classList.add(THEME_BODY_CLASSES[themeKey]);
+  document.documentElement.setAttribute('data-theme', themeKey);
+  localStorage.setItem('cloudSchoolTheme', themeKey);
   document.querySelectorAll('button[data-theme]').forEach((btn) => {
     const themeBtn = /** @type {HTMLElement} */ (btn);
-    themeBtn.setAttribute('aria-pressed', themeBtn.dataset.theme === theme ? 'true' : 'false');
+    themeBtn.setAttribute('aria-pressed', themeBtn.dataset.theme === themeKey ? 'true' : 'false');
   });
-  speak(__('themeSet', theme));
+  const themeNames = {
+    'dark-hc': __('themeDark'),
+    'light-hc': __('themeLight'),
+    classic: __('themeClassic'),
+  };
+  speak(__('themeSet', themeNames[themeKey] || themeKey));
 }
 
 /** Load and apply saved theme */
 export function loadTheme() {
-  const saved = localStorage.getItem('cloudSchoolTheme') || 'classic';
+  const saved = localStorage.getItem('cloudSchoolTheme') || 'dark-hc';
   setTheme(saved);
 }
 
