@@ -94,7 +94,7 @@
                         <button type="submit" id="btn-login-submit" class="w-full p-4 bg-yellow-400 text-black font-black text-xl rounded-xl large-touch-target transition btn-interactive" data-i18n="loginSubmit">
                             تسجيل الدخول
                         </button>
-                        <button type="button" id="btn-show-register" class="w-full p-4 border-2 border-current font-bold rounded-xl btn-interactive large-touch-target" data-i18n="registerNew">
+                        <button type="button" id="btn-show-register" class="btn-secondary w-full p-3 border-2 border-current font-bold rounded-xl btn-interactive large-touch-target" data-i18n="registerNew">
                             إنشاء حساب جديد
                         </button>
                     </div>
@@ -201,11 +201,11 @@
                     </svg>
                     <span>Cloud School</span>
                 </div>
-                <span class="text-xs bg-red-600 text-white px-2 py-1 font-bold animate-pulse" aria-hidden="true">
+                <span class="header-extra text-xs bg-red-600 text-white px-2 py-1 font-bold animate-pulse" aria-hidden="true">
                     المساعد الصوتي نشط
                 </span>
 
-                <div id="audio-visual-wave" class="flex items-center" aria-hidden="true">
+                <div id="audio-visual-wave" class="header-extra flex items-center" aria-hidden="true">
                     <div class="audio-wave-bar"></div>
                     <div class="audio-wave-bar"></div>
                     <div class="audio-wave-bar"></div>
@@ -221,20 +221,20 @@
 
             <div class="flex flex-wrap items-center" role="toolbar" aria-label="أدوات الوصول الفوري">
 
-                <span class="toolbar-group flex items-center">
+                <span class="toolbar-group flex items-center" role="group" aria-label="لغة المنصة والمرحلة العمرية">
                     <button id="lang-toggle" class="p-2 border-2 rounded text-xs font-bold" aria-label="عربي / English">عربي / English</button>
                     <button id="btn-age-level" class="p-2 border-2 rounded text-xs font-bold" aria-label="المرحلة العمرية">
                          العمر: تلقائي
                     </button>
                 </span>
 
-                <span class="toolbar-group flex items-center">
+                <span class="toolbar-group flex items-center" role="group" aria-label="ألوان الشاشة">
                     <button data-theme="dark-hc" aria-pressed="false" class="p-2 border-2 border-current rounded text-xs font-bold" aria-label="النمط الداكن عالي التباين" data-i18n="themeDark" style="background:rgba(245,158,11,0.15)">أصفر/أسود</button>
                     <button data-theme="light-hc" aria-pressed="false" class="p-2 border-2 border-current rounded text-xs font-bold" aria-label="النمط الفاتح عالي التباين" data-i18n="themeLight">أسود/أبيض</button>
                     <button data-theme="classic" aria-pressed="false" class="p-2 border-2 border-current rounded text-xs font-bold" aria-label="النمط الكلاسيكي" data-i18n="themeClassic">كلاسيك</button>
                 </span>
 
-                <span class="toolbar-group flex items-center">
+                <span class="toolbar-group flex items-center" role="group" aria-label="حجم الخط ومحرك الصوت">
                     <div class="flex border border-current rounded overflow-hidden">
                         <button data-size-dir="1" class="px-3 py-1 text-lg font-black" aria-label="تكبير الخط" data-i18n-aria="fontIncrease" data-i18n="fontIncrease">+</button>
                         <button data-size-dir="-1" class="px-3 py-1 text-lg font-black" aria-label="تصغير الخط" data-i18n-aria="fontDecrease" data-i18n="fontDecrease">-</button>
@@ -244,7 +244,7 @@
                     </button>
                 </span>
 
-                <span class="toolbar-group flex items-center">
+                <span class="toolbar-group flex items-center" role="group" aria-label="قارئ الشاشة والمساعد الداخلي">
                     <button id="btn-screen-reader-mode" class="p-2 border-2 rounded text-xs font-bold flex items-center" aria-pressed="false">
                          خارجي: معطل
                     </button>
@@ -253,7 +253,7 @@
                     </button>
                 </span>
 
-                <span class="toolbar-group flex items-center">
+                <span class="toolbar-group flex items-center" role="group" aria-label="الإعدادات والمساعدة">
                     <div class="flex items-center">
                         <button id="btn-gemini-key-toggle" class="p-2 border-2 rounded text-xs font-bold" aria-label="إعداد مفتاح Gemini API"> API</button>
                         <div id="gemini-key-input-container" class="hidden z-50 p-2 bg-slate-900 border-2 rounded-lg flex" style="min-width:280px">
@@ -265,6 +265,8 @@
                          <span id="notif-badge" class="bg-red-500 text-white flex items-center justify-center font-black">0</span>
                     </button>
                     <button id="btn-help-shortcuts" class="p-2 bg-purple-600 text-white text-xs font-bold rounded" aria-label="مساعدة الاختصارات">⌨</button>
+                </span>
+                <span class="toolbar-group toolbar-group-exit flex items-center" role="group" aria-label="الحساب">
                     <button data-action="logout" data-i18n="logout" class="p-2 bg-red-600 text-white text-xs font-bold rounded hidden">تسجيل خروج </button>
                 </span>
             </div>
@@ -703,7 +705,7 @@
                 </div>
 
                 <div class="flex flex-wrap gap-4 justify-center">
-                    <button onclick="window.printStudentReport()" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg transition btn-interactive"> طباعة التقرير</button>
+                    <button id="btn-print-report" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg transition btn-interactive"> طباعة التقرير</button>
                 </div>
 
                 <div class="p-4 border-2 rounded-xl text-center">
