@@ -1,8 +1,14 @@
 import { test, expect } from '@playwright/test';
 
 // Never use real backend or Firebase accounts during synthetic browser tests.
-test.beforeEach(async ({page}) => {
-  await page.route('https://cloud-school-api.*/**', route => route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Synthetic offline test'})}));
+test.beforeEach(async ({ page }) => {
+  await page.route('https://cloud-school-api.*/**', (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Synthetic offline test' }),
+    }),
+  );
 });
 
 async function bypassAuth(page, role = 'student') {
@@ -127,10 +133,10 @@ test.describe('Cloud School E2E', () => {
   });
 
   test('should have theme toggle buttons', async ({ page }) => {
-    const darkThemeBtn = page.locator('[data-theme="dark-hc"]');
+    const darkThemeBtn = page.locator('button[data-theme="dark-hc"]');
     await expect(darkThemeBtn).toBeVisible();
 
-    const lightThemeBtn = page.locator('[data-theme="light-hc"]');
+    const lightThemeBtn = page.locator('button[data-theme="light-hc"]');
     await expect(lightThemeBtn).toBeVisible();
   });
 
