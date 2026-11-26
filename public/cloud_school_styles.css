@@ -664,3 +664,28 @@ html, body { margin: 0; max-width: 100%; }
   #auth-gate > .card { padding: 1.25rem; }
   #auth-gate > .card > .text-center > svg { width: 3.5rem; height: 3.5rem; }
 }
+
+/* Design pass: touch targets, color roles, grouping, compact mobile header */
+header [role="toolbar"] button,
+header [role="toolbar"] [role="group"] button { min-height: 44px; min-width: 44px; font-size: 0.875rem; }
+header [role="toolbar"] { gap: 0.75rem; justify-content: center; }
+.toolbar-group { padding-inline: 0.5rem; border-inline-start: 1px solid currentColor; }
+.toolbar-group:first-child { border-inline-start: 0; }
+.toolbar-group-exit { margin-inline-start: auto; }
+/* Color roles: gold = primary action, outlined = setting, red = leave */
+.theme-dark-high-contrast header [role="toolbar"] button:not([data-action="logout"]):not([data-theme]) {
+  background: transparent; color: var(--gold-400); border: 2px solid var(--gold-600); }
+.theme-dark-high-contrast header [role="toolbar"] button[aria-pressed="true"] {
+  background: linear-gradient(135deg, var(--gold-500), var(--gold-600)); color: #080c1a; }
+.theme-dark-high-contrast header button[data-action="logout"] { background: #7f1d1d; color: #fff; border: 2px solid #fff; }
+:focus-visible { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 5px #000; }
+.theme-light-high-contrast :focus-visible { outline-color: #000; box-shadow: 0 0 0 5px #fff; }
+.theme-classic { background: #f8fafc; color: #0f172a; }
+.theme-classic button { min-height: 44px; }
+#auth-gate button { min-height: 48px; }
+@media (max-width: 600px) {
+  .header-extra { display: none; }
+  header { padding: 0.5rem; }
+  .toolbar-group { padding-inline: 0.25rem; flex: 1 1 auto; justify-content: center; }
+  .toolbar-group-exit { margin-inline-start: 0; }
+}
