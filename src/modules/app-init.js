@@ -51,12 +51,16 @@ export function dismissSplashScreen() {
     return;
   }
   const handler = function () {
+    clearTimeout(autoDismissTimer);
     splash.style.opacity = '0';
     splash.style.pointerEvents = 'none';
     setTimeout(function () {
       splash.style.display = 'none';
       const authGate = document.getElementById('auth-gate');
-      if (authGate) {
+      // Only move focus into the auth form while it is actually showing.
+      // After login (or once the user has moved on), focusing a hidden
+      // gate would yank a screen-reader user's focus out from under them.
+      if (authGate && !authGate.classList.contains('hidden')) {
         const firstInput = /** @type {HTMLElement|null} */ (
           authGate.querySelector('input, button, [tabindex]:not([tabindex="-1"])')
         );
@@ -70,5 +74,5 @@ export function dismissSplashScreen() {
   };
   splash.addEventListener('click', handler);
   document.addEventListener('keydown', handler);
-  setTimeout(handler, 5000);
+  const autoDismissTimer = setTimeout(handler, 5000);
 }
