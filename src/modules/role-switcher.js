@@ -13,10 +13,10 @@ export let activeRole = 'student';
  */
 export function switchRole(role) {
   activeRole = role;
-  import('./security-panel.js').then(m => m.renderSecurityPanel()).catch(console.warn);
+  import('./security-panel.js').then((m) => m.renderSecurityPanel()).catch(console.warn);
   document.getElementById('journey-reader')?.remove();
-  import('./learning-journey.js').then(m => m.renderLearningJourney()).catch(console.warn);
-  import('./content-studio.js').then(m => m.renderContentStudio()).catch(console.warn);
+  import('./learning-journey.js').then((m) => m.renderLearningJourney()).catch(console.warn);
+  import('./content-studio.js').then((m) => m.renderContentStudio()).catch(console.warn);
   import('./access-controls.js')
     .then(({ refreshAccessControls }) => refreshAccessControls())
     .catch(console.warn);
@@ -57,6 +57,7 @@ export function switchRole(role) {
     renderAdminDashboard();
   }
 
+  const focusWhenScheduled = document.activeElement;
   setTimeout(() => {
     setupAccessibleVoices();
     const activeEl = document.activeElement;
@@ -64,6 +65,12 @@ export function switchRole(role) {
       activeEl instanceof HTMLElement &&
       Boolean(activeEl.closest('[role="dialog"], [aria-modal="true"]'));
     if (inDialog) {
+      return;
+    }
+    // If focus moved since the role switch (the user opened a dialog, clicked
+    // a control, or a dialog just restored focus), do not yank it back to the
+    // role heading. Only auto-focus when focus is still where the switch left it.
+    if (activeEl !== focusWhenScheduled) {
       return;
     }
     const viewMap = {
