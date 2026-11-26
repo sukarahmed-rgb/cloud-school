@@ -14,9 +14,17 @@ import { voiceExamActive, setVoiceExamQuizId } from './voice-exam-state.js';
 export let selectedQuizId = null;
 let quizOwner = null;
 window.addEventListener('school-account-changed', () => {
- clearQuizTimer(); selectedQuizId = null; selectedOption = null; quizOwner = null;
- document.getElementById('active-quiz-panel')?.classList.add('hidden');
- const input = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('assignment-student-answer')); if (input) {input.value = '';}
+  clearQuizTimer();
+  selectedQuizId = null;
+  selectedOption = null;
+  quizOwner = null;
+  document.getElementById('active-quiz-panel')?.classList.add('hidden');
+  const input = /** @type {HTMLTextAreaElement|null} */ (
+    document.getElementById('assignment-student-answer')
+  );
+  if (input) {
+    input.value = '';
+  }
 });
 /** @type {string|null} */
 export let selectedOption = null;
@@ -38,7 +46,9 @@ export function renderStudentAssignments() {
             </div>
             <button data-action="start-quiz" data-quiz-id="${escapeHtml(a.id)}" class="p-4 bg-green-600 text-white font-black text-lg rounded-xl hover:bg-green-500 large-touch-target btn-interactive">${__('btnStartQuiz')} \u{1F3DF}</button>
         `;
-    const path = document.createElement('p'); path.textContent = contentPath(a); item.prepend(path);
+    const path = document.createElement('p');
+    path.textContent = contentPath(a);
+    item.prepend(path);
     list.appendChild(item);
   });
 
@@ -82,6 +92,11 @@ export function startQuiz(quizId) {
     document.getElementById('btn-opt-D').querySelector('span').textContent =
       `${__('optD')} ${quiz.options.D}`;
 
+    // True/false questions only have A and B: hide empty options so a screen reader never lands on a blank button.
+    for (const key of ['A', 'B', 'C', 'D']) {
+      document.getElementById(`btn-opt-${key}`).classList.toggle('hidden', !quiz.options[key]);
+    }
+
     speak(__('quizStarted', quiz.title, quiz.question));
   } else {
     document.getElementById('quiz-question-container').classList.add('hidden');
@@ -95,17 +110,34 @@ export function startQuiz(quizId) {
   }
 
   if (quiz.type === 'mcq') {
-    ['A','B','C','D'].forEach(opt => document.getElementById(`btn-opt-${opt}`).classList.remove('bg-yellow-400','text-black'));
-    if (draft?.answer && ['A','B','C','D'].includes(draft.answer)) {selectQuizOption(draft.answer);}
+    ['A', 'B', 'C', 'D'].forEach((opt) =>
+      document.getElementById(`btn-opt-${opt}`).classList.remove('bg-yellow-400', 'text-black'),
+    );
+    if (draft?.answer && ['A', 'B', 'C', 'D'].includes(draft.answer)) {
+      selectQuizOption(draft.answer);
+    }
   } else {
-    const input = /** @type {HTMLTextAreaElement} */ (document.getElementById('assignment-student-answer'));
+    const input = /** @type {HTMLTextAreaElement} */ (
+      document.getElementById('assignment-student-answer')
+    );
     input.value = draft?.answer || '';
     const owner = getAccountStorageKey();
-    input.oninput = () => { if (getAccountStorageKey() === owner && selectedQuizId === quizId) {updateDraft(quizId, input.value);} };
+    input.oninput = () => {
+      if (getAccountStorageKey() === owner && selectedQuizId === quizId) {
+        updateDraft(quizId, input.value);
+      }
+    };
   }
   let draftStatus = document.getElementById('answer-draft-status');
-  if (!draftStatus) { draftStatus = document.createElement('p'); draftStatus.id = 'answer-draft-status'; draftStatus.setAttribute('role','status'); document.getElementById('active-quiz-panel').append(draftStatus); }
-  draftStatus.textContent = draft ? 'تم استرجاع مسودة محفوظة على هذا الجهاز. لم تسلم بعد.' : 'تكتب الإجابة وتحفظ كمسودة على هذا الجهاز. لا تسلم إلا عند الضغط على التسليم.';
+  if (!draftStatus) {
+    draftStatus = document.createElement('p');
+    draftStatus.id = 'answer-draft-status';
+    draftStatus.setAttribute('role', 'status');
+    document.getElementById('active-quiz-panel').append(draftStatus);
+  }
+  draftStatus.textContent = draft
+    ? 'تم استرجاع مسودة محفوظة على هذا الجهاز. لم تسلم بعد.'
+    : 'تكتب الإجابة وتحفظ كمسودة على هذا الجهاز. لا تسلم إلا عند الضغط على التسليم.';
   let totalSecondsLeft = 10 * 60;
   let lastSpokenMinute = 10;
   const timerDisplay = document.getElementById('active-quiz-timer');
@@ -140,7 +172,9 @@ export function startQuiz(quizId) {
 
     if (totalSecondsLeft <= 0) {
       clearInterval(quizTimerInterval);
-      speak('انتهى وقت التدريب. احتفظنا بمسودتك على الجهاز إن كان الحفظ متاحا. راجع إجابتك واضغط التسليم بنفسك.');
+      speak(
+        'انتهى وقت التدريب. احتفظنا بمسودتك على الجهاز إن كان الحفظ متاحا. راجع إجابتك واضغط التسليم بنفسك.',
+      );
     }
   }, 1000);
 
@@ -158,7 +192,9 @@ export function startQuiz(quizId) {
  */
 export function selectQuizOption(option) {
   selectedOption = option;
-  if (selectedQuizId) {updateDraft(selectedQuizId, option);}
+  if (selectedQuizId) {
+    updateDraft(selectedQuizId, option);
+  }
   speak(__('quizOptionSelected', option));
 
   ['A', 'B', 'C', 'D'].forEach((opt) => {
@@ -181,7 +217,9 @@ export function clearQuizTimer() {
 
 /** Submit the current quiz answer */
 export function submitQuizAnswer() {
-  if (getAccountStorageKey() !== quizOwner) {return;}
+  if (getAccountStorageKey() !== quizOwner) {
+    return;
+  }
   if (quizTimerInterval) {
     clearInterval(quizTimerInterval);
   }
@@ -227,7 +265,9 @@ export function submitQuizAnswer() {
   localData.submissions.unshift(submission);
   saveLocalData();
   saveSubmissionToFirebase(submission);
-  if (session?.serverAuth) { import('./learning-journey.js').then(m => m.renderLearningJourney()); }
+  if (session?.serverAuth) {
+    import('./learning-journey.js').then((m) => m.renderLearningJourney());
+  }
   if (session?.serverAuth) {
     speak('جاري إرسال الإجابة. الدرجة النهائية بعد مراجعة المدرس.');
     document.getElementById('active-quiz-panel').classList.add('hidden');
@@ -253,7 +293,11 @@ export function submitQuizAnswer() {
 }
 
 function updateDraft(id, answer) {
- const saved = saveAnswerDraft(id, answer);
- const status = document.getElementById('answer-draft-status');
- if (status) {status.textContent = saved ? 'المسودة محفوظة على هذا الجهاز فقط، لم تسلم بعد.' : 'تعذر حفظ المسودة على الجهاز. لا تغلق الصفحة قبل حفظ إجابتك.';}
+  const saved = saveAnswerDraft(id, answer);
+  const status = document.getElementById('answer-draft-status');
+  if (status) {
+    status.textContent = saved
+      ? 'المسودة محفوظة على هذا الجهاز فقط، لم تسلم بعد.'
+      : 'تعذر حفظ المسودة على الجهاز. لا تغلق الصفحة قبل حفظ إجابتك.';
+  }
 }
