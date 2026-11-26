@@ -275,6 +275,9 @@ function bindAllEvents() {
     translateAndEvaluateBrailleWithAI,
     handleAdminCreateStudent,
   });
+  // Inline onclick attributes are blocked by the deployed Content-Security-Policy
+  // (script-src has no 'unsafe-inline'), so this button is bound here instead.
+  document.getElementById('btn-print-report')?.addEventListener('click', printStudentReport);
 }
 
 // ==================== طھظ‡ظٹط¦ط© ط§ظ„طھط·ط¨ظٹظ‚ ====================
@@ -523,10 +526,13 @@ function exportReportAsPdf() {
       .report-stat-value { font-size:2rem; font-weight:bold; color:#1a56db; }
       @media print { body { padding:0; } }
     </style></head><body>${bodyContent}
-    <scr${''}ipt>window.onload = function() { window.print(); window.close(); }</scr${''}ipt>
     </body></html>
   `);
   printWin.document.close();
+  // The report window inherits this page's CSP, which blocks inline scripts,
+  // so print from here instead of an inline script tag in the written document.
+  printWin.addEventListener('afterprint', () => printWin.close());
+  printWin.print();
 }
 
 function printStudentReport() {
