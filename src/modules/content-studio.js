@@ -2,6 +2,7 @@ import { localData, getCurrentUserSession, getAccountStorageKey } from './app-st
 import { saveLocalData } from './local-data.js';
 import { getProxyBase } from './gemini-client.js';
 import { contentPath } from './journey-state.js';
+import { addPilotHistory } from './pilot-history.js';
 
 window.addEventListener('school-account-changed', () => {
   document.querySelectorAll('[data-content-fields]').forEach((group) => group.remove());
@@ -205,6 +206,12 @@ export function renderContentStudio() {
     }
   }
   if (!session.serverAuth) {
+    btn('أضف درسي التاريخ التجريبيين كمسودة خاصة', section, () => {
+      if (addPilotHistory(localData)) {
+        saveLocalData();
+        renderContentStudio();
+      }
+    });
     btn('أضف مثالا تجريبيا للدراسات الاجتماعية', section, () => {
       if (localData.books.some((b) => b.id === 'social-demo-lesson')) {
         return;
