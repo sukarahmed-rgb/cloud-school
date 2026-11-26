@@ -69,8 +69,45 @@ describe('app-init.js', () => {
   });
 
   describe('dismissSplashScreen', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      document.body.innerHTML =
+        '<div id="splash-screen"></div>' +
+        '<div id="auth-gate"><input id="auth-first" /></div>' +
+        '<button id="elsewhere"></button>';
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+      document.body.innerHTML = '';
+    });
+
     it('exists and is a function', () => {
       expect(typeof appInit.dismissSplashScreen).toBe('function');
+    });
+
+    it('auto-dismiss focuses the auth form while the gate is visible', () => {
+      appInit.dismissSplashScreen();
+      jest.advanceTimersByTime(5700);
+      expect(document.activeElement.id).toBe('auth-first');
+    });
+
+    it('auto-dismiss does not steal focus once the auth gate is hidden', () => {
+      document.getElementById('auth-gate').classList.add('hidden');
+      document.getElementById('elsewhere').focus();
+      appInit.dismissSplashScreen();
+      jest.advanceTimersByTime(5700);
+      expect(document.activeElement.id).toBe('elsewhere');
+    });
+
+    it('manual dismiss cancels the auto-dismiss timer so it cannot refocus later', () => {
+      appInit.dismissSplashScreen();
+      document.getElementById('splash-screen').dispatchEvent(new window.MouseEvent('click'));
+      jest.advanceTimersByTime(700);
+      document.getElementById('auth-gate').classList.add('hidden');
+      document.getElementById('elsewhere').focus();
+      jest.advanceTimersByTime(5000);
+      expect(document.activeElement.id).toBe('elsewhere');
     });
   });
 });
