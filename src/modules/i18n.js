@@ -106,6 +106,9 @@ export function loadLocale(lang) {
     .then((data) => {
       Object.assign(i18n, data);
       applyTranslations();
+      // Texts set from JS (e.g. the age-level button) are rendered before the
+      // locale finishes loading, so re-apply them once translations arrive.
+      applyJsTranslations();
     })
     .catch((err) => console.error('i18n load error:', err));
 }
